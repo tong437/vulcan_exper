@@ -13,11 +13,17 @@
 # limitations under the License.
 
 import argparse
+import sys
 from pathlib import Path
 from typing import Any
 
 import torch
 import yaml
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from llamafactory.data import get_template_and_fix_tokenizer
 from llamafactory.extras.packages import is_transformers_version_greater_than

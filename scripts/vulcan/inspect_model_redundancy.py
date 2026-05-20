@@ -14,9 +14,15 @@
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import torch
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from llamafactory.hparams import get_infer_args
 from llamafactory.model import load_model, load_tokenizer
