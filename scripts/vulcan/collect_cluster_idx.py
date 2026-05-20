@@ -63,19 +63,6 @@ def load_config(path: str) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def move_to_device(batch: Any, device: torch.device) -> Any:
-    if isinstance(batch, torch.Tensor):
-        return batch.to(device)
-    if isinstance(batch, dict):
-        return {key: move_to_device(value, device) for key, value in batch.items()}
-    if isinstance(batch, list):
-        return [move_to_device(value, device) for value in batch]
-    if isinstance(batch, tuple):
-        return tuple(move_to_device(value, device) for value in batch)
-
-    return batch
-
-
 def main() -> None:
     args = parse_args()
     train_config = load_config(args.config)
@@ -112,7 +99,7 @@ def main() -> None:
     dataloader = DataLoader(
         dataset_module["train_dataset"],
         batch_size=args.batch_size or training_args.per_device_train_batch_size,
-        collate_fn=lambda features: move_to_device(data_collator(features), device),
+        collate_fn=data_collator,
         num_workers=args.num_workers if args.num_workers is not None else training_args.dataloader_num_workers,
     )
     activations = collect_mlp_activations(model, dataloader, max_batches=args.max_batches)

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections.abc import Mapping
 from typing import Any
 
 import numpy as np
@@ -73,10 +74,33 @@ def get_mlp_weight_vectors(mlp: torch.nn.Module) -> torch.Tensor:
     return torch.cat([mlp.up_proj.weight.detach().float(), mlp.gate_proj.weight.detach().float()], dim=1)
 
 
+def move_to_device(batch: Any, device: torch.device) -> Any:
+    if isinstance(batch, torch.Tensor):
+        return batch.to(device)
+    if isinstance(batch, Mapping):
+        return {key: move_to_device(value, device) for key, value in batch.items()}
+    if isinstance(batch, list):
+        return [move_to_device(value, device) for value in batch]
+    if isinstance(batch, tuple):
+        return tuple(move_to_device(value, device) for value in batch)
+    if hasattr(batch, "to"):
+        return batch.to(device)
+
+    return batch
+
+
+def get_model_device(model: torch.nn.Module) -> torch.device:
+    try:
+        return next(model.parameters()).device
+    except StopIteration:
+        return torch.device("cpu")
+
+
 @torch.no_grad()
 def collect_mlp_activations(model: torch.nn.Module, dataloader, max_batches: int | None = None) -> torch.Tensor:
     r"""Collect mean absolute down_proj input activations for every MLP layer."""
     mlp_layers = find_mlp_layers(model)
+    device = get_model_device(model)
     activations = [
         torch.zeros(get_intermediate_size(layer_ref.mlp), dtype=torch.float64, device="cpu")
         for layer_ref in mlp_layers
@@ -101,6 +125,7 @@ def collect_mlp_activations(model: torch.nn.Module, dataloader, max_batches: int
             if max_batches is not None and batch_idx >= max_batches:
                 break
 
+            batch = move_to_device(batch, device)
             model(**batch)
     finally:
         for hook in hooks:
