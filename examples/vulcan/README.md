@@ -73,15 +73,24 @@ python scripts/vulcan/collect_cluster_idx.py \
   --config examples/vulcan/qwen35_08b_vqa_rad_full_sft.yaml \
   --output_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50.json \
   --keep_ratio 0.5 \
-  --max_batches 100
+  --max_batches 100 \
+  model_name_or_path=/path/to/baseline/model_or_checkpoint \
+  dataset_dir=/path/to/datasets/vqa_rad
 ```
+
+The extra `key=value` arguments override fields from the YAML, matching the `python src/train.py <yaml> key=value` style.
 
 ## Collapse SFT
 
 After `cluster_idx_greedy_match_0_50.json` exists, run the Vulcan regularized SFT:
 
 ```bash
-WANDB_DISABLED=true llamafactory-cli train examples/vulcan/qwen35_08b_vqa_rad_vulcan_sft.yaml
+WANDB_DISABLED=true python src/train.py \
+  examples/vulcan/qwen35_08b_vqa_rad_vulcan_sft.yaml \
+  model_name_or_path=/path/to/baseline/model_or_checkpoint \
+  dataset_dir=/path/to/datasets/vqa_rad \
+  collapse_cluster_idx_path=/path/to/cluster_idx_greedy_match_0_50.json \
+  output_dir=/path/to/output/vulcan-sft
 ```
 
 You can compare intra-cluster redundancy before and after collapse SFT:

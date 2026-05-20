@@ -35,7 +35,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_batches", type=int, default=None, help="Limit activation collection batches.")
     parser.add_argument("--batch_size", type=int, default=None, help="Override dataloader batch size.")
     parser.add_argument("--num_workers", type=int, default=None, help="Override dataloader num_workers.")
-    return parser.parse_args()
+    args, overrides = parser.parse_known_args()
+    args.overrides = overrides
+    return args
+
+
+def parse_config_override(override: str) -> tuple[str, Any]:
+    if "=" not in override:
+        raise ValueError(f"Config overrides must use key=value syntax, got: {override}")
+
+    key, value = override.split("=", maxsplit=1)
+    key = key.strip()
+    if not key:
+        raise ValueError(f"Config override key cannot be empty: {override}")
+
+    return key, yaml.safe_load(value)
 
 
 def load_config(path: str) -> dict[str, Any]:
@@ -59,6 +73,10 @@ def move_to_device(batch: Any, device: torch.device) -> Any:
 def main() -> None:
     args = parse_args()
     train_config = load_config(args.config)
+    for override in args.overrides:
+        key, value = parse_config_override(override)
+        train_config[key] = value
+
     train_config["do_train"] = False
     train_config["do_eval"] = False
     train_config["do_predict"] = False
