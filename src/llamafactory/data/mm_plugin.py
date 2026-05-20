@@ -2251,6 +2251,30 @@ class Qwen2VLPlugin(BasePlugin):
 
         return messages
 
+    @override
+    def get_mm_inputs(
+        self,
+        images: list["ImageInput"],
+        videos: list["VideoInput"],
+        audios: list["AudioInput"],
+        imglens: list[int],
+        vidlens: list[int],
+        audlens: list[int],
+        batch_ids: list[list[int]],
+        processor: Optional["MMProcessor"],
+    ) -> dict[str, Union[list[int], "torch.Tensor"]]:
+        self._validate_input(processor, images, videos, audios)
+        mm_inputs = self._get_mm_inputs(images, videos, audios, processor)
+        # Newer Qwen3.5 forward requires mm_token_type_ids when multimodal grids are present.
+        if (
+            hasattr(processor, "create_mm_token_type_ids")
+            and "mm_token_type_ids" not in mm_inputs
+            and ("image_grid_thw" in mm_inputs or "video_grid_thw" in mm_inputs)
+        ):
+            mm_inputs["mm_token_type_ids"] = processor.create_mm_token_type_ids(batch_ids)
+
+        return mm_inputs
+
 
 @dataclass
 class Qwen3VLPlugin(Qwen2VLPlugin):

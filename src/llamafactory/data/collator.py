@@ -415,6 +415,26 @@ class MultiModalDataCollatorForSeq2Seq(DataCollatorForSeq2Seq):
 
         features: dict[str, torch.Tensor] = super().__call__(features)
 
+        # Keep multimodal token types aligned with padded sequence length (e.g. pad_to_multiple_of).
+        if "mm_token_type_ids" in mm_inputs:
+            mm_token_type_ids = mm_inputs["mm_token_type_ids"]
+            target_len = features["input_ids"].size(1)
+            current_len = mm_token_type_ids.size(1)
+            if current_len != target_len:
+                if current_len < target_len:
+                    pad_len = target_len - current_len
+                    if self.tokenizer.padding_side == "right":
+                        mm_token_type_ids = F.pad(mm_token_type_ids, (0, pad_len), value=0)
+                    else:
+                        mm_token_type_ids = F.pad(mm_token_type_ids, (pad_len, 0), value=0)
+                else:
+                    if self.tokenizer.padding_side == "right":
+                        mm_token_type_ids = mm_token_type_ids[:, :target_len]
+                    else:
+                        mm_token_type_ids = mm_token_type_ids[:, -target_len:]
+
+                mm_inputs["mm_token_type_ids"] = mm_token_type_ids
+
         bsz, seq_len = features["input_ids"].shape[:2]
         model_type = getattr(self.model.config, "model_type", None) if self.model is not None else None
         is_omni = model_type in [
