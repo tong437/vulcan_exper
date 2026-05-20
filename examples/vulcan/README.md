@@ -116,3 +116,29 @@ After running LlamaFactory prediction and producing `generated_predictions.jsonl
 python scripts/vulcan/eval_vqa_predictions.py \
   --prediction_file saves/qwen35-0_8b-vqa-rad/full/vulcan-pruned/generated_predictions.jsonl
 ```
+
+## Yes/No Evaluation
+
+VQA-RAD contains many closed-ended questions whose labels are exactly `yes` or `no`. Build a yes/no-only eval split after dataset conversion:
+
+```bash
+python scripts/vulcan/filter_vqa_rad_yesno.py \
+  --dataset_dir datasets/vqa_rad
+```
+
+Run prediction on only that split. Override paths from the command line so the checked-in YAML can stay unchanged:
+
+```bash
+WANDB_DISABLED=true python src/train.py \
+  examples/vulcan/qwen35_08b_vqa_rad_yesno_predict.yaml \
+  model_name_or_path=/path/to/trained-or-pruned-model \
+  dataset_dir=/path/to/datasets/vqa_rad \
+  output_dir=/path/to/output/yesno-predict
+```
+
+Then compute VQA metrics and closed-ended accuracy:
+
+```bash
+python scripts/vulcan/eval_vqa_predictions.py \
+  --prediction_file /path/to/output/yesno-predict/generated_predictions.jsonl
+```

@@ -51,12 +51,30 @@ def token_f1(prediction: str, label: str) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
+def to_yesno(text: str, strict: bool = False) -> str | None:
+    normalized = normalize_answer(text)
+    if normalized in {"yes", "no"}:
+        return normalized
+
+    if strict:
+        return None
+
+    tokens = normalized.split()
+    if tokens and tokens[0] in {"yes", "no"}:
+        return tokens[0]
+
+    return None
+
+
 def main() -> None:
     args = parse_args()
     total = 0
     exact = 0
     normalized_exact = 0
     f1_sum = 0.0
+    yesno_total = 0
+    yesno_correct = 0
+    yesno_predicted = 0
     with Path(args.prediction_file).open(encoding="utf-8") as f:
         for line in f:
             if not line.strip():
@@ -69,6 +87,12 @@ def main() -> None:
             exact += int(prediction == label)
             normalized_exact += int(normalize_answer(prediction) == normalize_answer(label))
             f1_sum += token_f1(prediction, label)
+            label_yesno = to_yesno(label, strict=True)
+            if label_yesno is not None:
+                yesno_total += 1
+                prediction_yesno = to_yesno(prediction)
+                yesno_predicted += int(prediction_yesno is not None)
+                yesno_correct += int(prediction_yesno == label_yesno)
 
     if total == 0:
         raise ValueError(f"No predictions found in {args.prediction_file}.")
@@ -79,6 +103,15 @@ def main() -> None:
         "normalized_exact_match": normalized_exact / total,
         "token_f1": f1_sum / total,
     }
+    if yesno_total > 0:
+        metrics.update(
+            {
+                "yesno_examples": yesno_total,
+                "yesno_accuracy": yesno_correct / yesno_total,
+                "yesno_prediction_coverage": yesno_predicted / yesno_total,
+            }
+        )
+
     print(json.dumps(metrics, indent=2, ensure_ascii=False))
 
 
