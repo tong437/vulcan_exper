@@ -1,0 +1,50 @@
+### model
+# Replace with the local server path if the model has already been downloaded.
+model_name_or_path: Qwen/Qwen3.5-0.8B
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: true
+finetuning_type: full
+deepspeed: examples/deepspeed/ds_z2_config.json
+
+### dataset
+dataset_dir: datasets/vqa_rad
+dataset: vqa_rad_train
+eval_dataset: vqa_rad_test
+template: qwen3_5_nothink
+cutoff_len: 2048
+preprocessing_num_workers: 8
+dataloader_num_workers: 4
+enable_thinking: false
+
+### processor
+image_max_pixels: 262144
+image_min_pixels: 1024
+
+### output
+output_dir: saves/qwen35-0_8b-vqa-rad/full/sft
+logging_steps: 10
+save_steps: 200
+plot_loss: true
+overwrite_output_dir: true
+save_only_model: false
+report_to: none
+
+### train
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 1.0e-5
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+bf16: true
+ddp_timeout: 180000000
+resume_from_checkpoint: null
+
+### eval
+predict_with_generate: true
+per_device_eval_batch_size: 1
+eval_strategy: steps
+eval_steps: 200

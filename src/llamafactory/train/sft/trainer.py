@@ -54,6 +54,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         model_args: Optional["ModelArguments"] = None,
         gen_kwargs: Optional[dict[str, Any]] = None,
         ref_model: Optional["torch.nn.Module"] = None,
+        vulcan_cluster_idx: Optional[list[Optional[list[dict[str, Any]]]]] = None,
         **kwargs,
     ) -> None:
         kwargs["processing_class"] = kwargs.pop("tokenizer")
@@ -85,6 +86,8 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             self.add_callback(BAdamCallback)
 
         self.ref_model = ref_model
+        self.vulcan_cluster_idx = vulcan_cluster_idx
+        self._vulcan_log_cache: dict[str, float] = {}
 
         if ref_model is not None:
             from trl.models.utils import prepare_deepspeed, prepare_fsdp
@@ -147,8 +150,37 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         return super()._get_train_sampler(*args, **kwargs)
 
+    def _add_vulcan_loss(self, model: "torch.nn.Module", loss: "torch.Tensor") -> "torch.Tensor":
+        if not self.finetuning_args.use_collapse_loss:
+            return loss
+
+        if self.vulcan_cluster_idx is None:
+            raise ValueError("Vulcan collapse loss is enabled, but cluster_idx was not loaded.")
+
+        from ..vulcan import get_collapse_lambdas, weight_collapse_loss
+
+        unwrapped_model = self.accelerator.unwrap_model(model)
+        lambda1, lambda2 = get_collapse_lambdas(unwrapped_model, self.finetuning_args)
+        loss_collapse = weight_collapse_loss(
+            unwrapped_model,
+            self.vulcan_cluster_idx,
+            lambda1,
+            lambda2,
+            use_weight_proxy=self.finetuning_args.collapse_use_weight_proxy,
+        )
+        self._vulcan_log_cache = {
+            "collapse_loss": loss_collapse.detach().float().item(),
+            "collapse_lambda1": lambda1.detach().float().item(),
+            "collapse_lambda2": lambda2.detach().float().item(),
+        }
+        return loss + loss_collapse.to(loss.device, dtype=loss.dtype)
+
     @override
     def compute_loss(self, model, inputs, *args, **kwargs):
+        return_outputs = kwargs.get("return_outputs", False)
+        if len(args) > 0:
+            return_outputs = args[0]
+
         if self.finetuning_args.use_asft_loss:
             with torch.no_grad():
                 ref_outputs = self.ref_model(
@@ -157,9 +189,26 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                 )
                 ref_logits = ref_outputs.logits
             outputs = model(**inputs)
-            return self.compute_loss_func(outputs, inputs["labels"], ref_logits)
+            loss = self.compute_loss_func(outputs, inputs["labels"], ref_logits)
         else:
-            return super().compute_loss(model, inputs, *args, **kwargs)
+            loss_outputs = super().compute_loss(model, inputs, *args, **kwargs)
+            if isinstance(loss_outputs, tuple):
+                loss, outputs = loss_outputs
+            else:
+                loss, outputs = loss_outputs, None
+
+        loss = self._add_vulcan_loss(model, loss)
+        if return_outputs:
+            return loss, outputs
+
+        return loss
+
+    @override
+    def log(self, logs: dict[str, float], *args, **kwargs) -> None:
+        if self._vulcan_log_cache:
+            logs = {**logs, **self._vulcan_log_cache}
+
+        return super().log(logs, *args, **kwargs)
 
     @override
     def prediction_step(

@@ -25,6 +25,7 @@ from ...extras.packages import is_transformers_version_greater_than
 from ...extras.ploting import plot_loss
 from ...model import load_model, load_tokenizer
 from ..trainer_utils import create_modelcard_and_push, create_ref_model
+from ..vulcan import find_mlp_layers, init_collapse_lambdas, load_cluster_idx
 from .metric import ComputeAccuracy, ComputeSimilarity, eval_logit_processor
 from .trainer import CustomSeq2SeqTrainer
 
@@ -51,6 +52,22 @@ def run_sft(
     template = get_template_and_fix_tokenizer(tokenizer, data_args)
     dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
     model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
+
+    vulcan_cluster_idx = None
+    if finetuning_args.use_collapse_loss:
+        if not finetuning_args.collapse_cluster_idx_path:
+            raise ValueError("`collapse_cluster_idx_path` is required when `use_collapse_loss` is enabled.")
+
+        vulcan_cluster_idx = load_cluster_idx(finetuning_args.collapse_cluster_idx_path)
+        num_mlp_layers = len(find_mlp_layers(model))
+        if len(vulcan_cluster_idx) != num_mlp_layers:
+            raise ValueError(
+                f"Loaded cluster_idx for {len(vulcan_cluster_idx)} layers, "
+                f"but the model has {num_mlp_layers} MLP layers."
+            )
+
+        init_collapse_lambdas(model, finetuning_args)
+        logger.info_rank0(f"Loaded Vulcan cluster_idx from {finetuning_args.collapse_cluster_idx_path}.")
 
     ref_model = None
     if finetuning_args.use_asft_loss:
@@ -111,6 +128,7 @@ def run_sft(
         callbacks=callbacks,
         gen_kwargs=gen_kwargs,
         ref_model=ref_model,
+        vulcan_cluster_idx=vulcan_cluster_idx,
         **dataset_module,
         **tokenizer_module,
         **metric_module,

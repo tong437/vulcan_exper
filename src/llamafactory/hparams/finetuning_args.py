@@ -524,6 +524,30 @@ class FinetuningArguments(
         default=1.0,
         metadata={"help": "The alpha parameter for EAFT loss to control the power of adaptive weight."},
     )
+    use_collapse_loss: bool = field(
+        default=False,
+        metadata={"help": "Whether to add Vulcan MLP weight collapse regularization during SFT."},
+    )
+    collapse_cluster_idx_path: str | None = field(
+        default=None,
+        metadata={"help": "Path to a Vulcan cluster_idx JSON file used by collapse loss."},
+    )
+    collapse_lambda1: float = field(
+        default=0.0,
+        metadata={"help": "L1 coefficient for Vulcan collapse loss."},
+    )
+    collapse_lambda2: float = field(
+        default=0.0,
+        metadata={"help": "L2 coefficient for Vulcan collapse loss."},
+    )
+    collapse_learnable_lambda: bool = field(
+        default=False,
+        metadata={"help": "Whether to learn positive collapse loss coefficients via softplus parameters."},
+    )
+    collapse_use_weight_proxy: bool = field(
+        default=True,
+        metadata={"help": "Whether to use detached weight proxies and backward hooks for collapse loss."},
+    )
     freeze_vision_tower: bool = field(
         default=True,
         metadata={"help": "Whether ot not to freeze the vision tower in MLLM training."},
@@ -597,6 +621,12 @@ class FinetuningArguments(
 
         if int(self.use_galore) + int(self.use_apollo) + (self.use_badam) > 1:
             raise ValueError("Cannot use GaLore, APOLLO or BAdam together.")
+
+        if self.collapse_lambda1 < 0 or self.collapse_lambda2 < 0:
+            raise ValueError("Collapse loss coefficients must be non-negative.")
+
+        if self.use_collapse_loss and self.stage != "sft":
+            raise ValueError("`use_collapse_loss` is only supported for SFT.")
 
         if self.pissa_init and (self.stage in ["ppo", "kto"] or self.use_ref_model):
             raise ValueError("Cannot use PiSSA for current training stage.")
