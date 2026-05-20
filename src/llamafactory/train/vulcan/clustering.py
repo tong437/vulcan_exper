@@ -101,6 +101,8 @@ def collect_mlp_activations(model: torch.nn.Module, dataloader, max_batches: int
     r"""Collect mean absolute down_proj input activations for every MLP layer."""
     mlp_layers = find_mlp_layers(model)
     device = get_model_device(model)
+    total_batches = "unknown" if max_batches is None else str(max_batches)
+    print(f"Collecting Vulcan MLP activations on {device} for {total_batches} batches.", flush=True)
     activations = [
         torch.zeros(get_intermediate_size(layer_ref.mlp), dtype=torch.float64, device="cpu")
         for layer_ref in mlp_layers
@@ -127,6 +129,8 @@ def collect_mlp_activations(model: torch.nn.Module, dataloader, max_batches: int
 
             batch = move_to_device(batch, device)
             model(**batch)
+            if (batch_idx + 1) % 5 == 0 or batch_idx == 0:
+                print(f"Collected activation batch {batch_idx + 1}/{total_batches}.", flush=True)
     finally:
         for hook in hooks:
             hook.remove()
@@ -147,13 +151,19 @@ def build_uniform_cluster_idx(
         raise ValueError("keep_ratio must be in (0, 1].")
 
     cluster_idx: ClusterIdx = []
-    for layer_ref, activation in zip(find_mlp_layers(model), activations):
+    mlp_layers = find_mlp_layers(model)
+    for layer_idx, (layer_ref, activation) in enumerate(zip(mlp_layers, activations)):
         intermediate_size = get_intermediate_size(layer_ref.mlp)
         target_size = max(1, int(intermediate_size * keep_ratio))
         if target_size == intermediate_size:
             cluster_idx.append(None)
             continue
 
+        print(
+            f"Building Vulcan cluster_idx for layer {layer_idx + 1}/{len(mlp_layers)} "
+            f"({intermediate_size} -> {target_size}).",
+            flush=True,
+        )
         vectors = get_mlp_weight_vectors(layer_ref.mlp)
         cluster_idx.append(get_cluster_greedy_match(activation, vectors, target_size))
 
