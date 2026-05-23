@@ -75,6 +75,9 @@ def main() -> None:
     yesno_total = 0
     yesno_correct = 0
     yesno_predicted = 0
+    yesno_label_counts: Counter[str] = Counter()
+    yesno_prediction_counts: Counter[str] = Counter()
+    yesno_confusion: Counter[str] = Counter()
     with Path(args.prediction_file).open(encoding="utf-8") as f:
         for line in f:
             if not line.strip():
@@ -90,9 +93,12 @@ def main() -> None:
             label_yesno = to_yesno(label, strict=True)
             if label_yesno is not None:
                 yesno_total += 1
+                yesno_label_counts[label_yesno] += 1
                 prediction_yesno = to_yesno(prediction)
                 yesno_predicted += int(prediction_yesno is not None)
                 yesno_correct += int(prediction_yesno == label_yesno)
+                yesno_prediction_counts[prediction_yesno or "other"] += 1
+                yesno_confusion[f"{label_yesno}->{prediction_yesno or 'other'}"] += 1
 
     if total == 0:
         raise ValueError(f"No predictions found in {args.prediction_file}.")
@@ -109,6 +115,9 @@ def main() -> None:
                 "yesno_examples": yesno_total,
                 "yesno_accuracy": yesno_correct / yesno_total,
                 "yesno_prediction_coverage": yesno_predicted / yesno_total,
+                "yesno_label_counts": dict(sorted(yesno_label_counts.items())),
+                "yesno_prediction_counts": dict(sorted(yesno_prediction_counts.items())),
+                "yesno_confusion": dict(sorted(yesno_confusion.items())),
             }
         )
 
