@@ -13,7 +13,13 @@
 # limitations under the License.
 
 from .collapse_loss import get_collapse_lambdas, init_collapse_lambdas, weight_collapse_loss
-from .clustering import build_uniform_cluster_idx, collect_mlp_activations, get_cluster_greedy_match
+from .clustering import (
+    build_layerwise_cluster_idx,
+    build_third_keep_ratios,
+    build_uniform_cluster_idx,
+    collect_mlp_activations,
+    get_cluster_greedy_match,
+)
 from .modeling import find_mlp_layers
 from .pruning import pruning_mlp
 from .schema import load_cluster_idx, save_cluster_idx
@@ -21,6 +27,8 @@ from .schema import load_cluster_idx, save_cluster_idx
 
 __all__ = [
     "find_mlp_layers",
+    "build_layerwise_cluster_idx",
+    "build_third_keep_ratios",
     "build_uniform_cluster_idx",
     "collect_mlp_activations",
     "get_collapse_lambdas",

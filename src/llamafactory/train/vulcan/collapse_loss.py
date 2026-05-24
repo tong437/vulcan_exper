@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
 from typing import TYPE_CHECKING
 
 import torch
@@ -28,27 +27,20 @@ if TYPE_CHECKING:
     from ...hparams import FinetuningArguments
 
 
-def _inverse_softplus(value: float) -> float:
-    if value <= 0:
-        return -20.0
-
-    return math.log(math.expm1(value))
-
-
 def init_collapse_lambdas(model: "nn.Module", finetuning_args: "FinetuningArguments") -> None:
     if not finetuning_args.collapse_learnable_lambda:
         return
 
-    if hasattr(model, "vulcan_raw_lambda1") or hasattr(model, "vulcan_raw_lambda2"):
+    if hasattr(model, "vulcan_lambda1") or hasattr(model, "vulcan_lambda2"):
         return
 
     model.register_parameter(
-        "vulcan_raw_lambda1",
-        torch.nn.Parameter(torch.tensor(_inverse_softplus(finetuning_args.collapse_lambda1), dtype=torch.float32)),
+        "vulcan_lambda1",
+        torch.nn.Parameter(torch.tensor(finetuning_args.collapse_lambda1, dtype=torch.float32)),
     )
     model.register_parameter(
-        "vulcan_raw_lambda2",
-        torch.nn.Parameter(torch.tensor(_inverse_softplus(finetuning_args.collapse_lambda2), dtype=torch.float32)),
+        "vulcan_lambda2",
+        torch.nn.Parameter(torch.tensor(finetuning_args.collapse_lambda2, dtype=torch.float32)),
     )
 
 
@@ -56,6 +48,9 @@ def get_collapse_lambdas(
     model: "nn.Module", finetuning_args: "FinetuningArguments"
 ) -> tuple[torch.Tensor, torch.Tensor]:
     if finetuning_args.collapse_learnable_lambda:
+        if hasattr(model, "vulcan_lambda1") and hasattr(model, "vulcan_lambda2"):
+            return getattr(model, "vulcan_lambda1"), getattr(model, "vulcan_lambda2")
+
         lambda1 = F.softplus(getattr(model, "vulcan_raw_lambda1"))
         lambda2 = F.softplus(getattr(model, "vulcan_raw_lambda2"))
         return lambda1, lambda2

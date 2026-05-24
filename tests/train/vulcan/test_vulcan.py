@@ -12,10 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from types import SimpleNamespace
+
 import pytest
 import torch
 
-from llamafactory.train.vulcan import find_mlp_layers, get_cluster_greedy_match, weight_collapse_loss
+from llamafactory.train.vulcan import (
+    build_layerwise_cluster_idx,
+    build_third_keep_ratios,
+    find_mlp_layers,
+    get_cluster_greedy_match,
+    get_collapse_lambdas,
+    init_collapse_lambdas,
+    weight_collapse_loss,
+)
 from llamafactory.train.vulcan.pruning import pruning_mlp
 
 
@@ -67,6 +77,45 @@ def test_greedy_match_cluster_count():
     assert len(clusters) == 2
     assert sorted(sum((cluster["neuron"] for cluster in clusters), [])) == [0, 1, 2, 3]
     assert sorted(cluster["anchor"] for cluster in clusters) == [1, 3]
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_layerwise_cluster_idx_uses_per_layer_keep_ratios():
+    model = TinyModel(num_layers=3)
+    activations = torch.ones(3, 4)
+    cluster_idx = build_layerwise_cluster_idx(model, activations, keep_ratios=[1.0, 0.75, 0.5])
+
+    assert cluster_idx[0] is None
+    assert len(cluster_idx[1]) == 3
+    assert len(cluster_idx[2]) == 2
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_third_keep_ratios():
+    keep_ratios = build_third_keep_ratios(
+        num_layers=6,
+        first_keep_ratio=1.0,
+        middle_keep_ratio=0.75,
+        last_keep_ratio=0.5,
+    )
+    assert keep_ratios == [1.0, 1.0, 0.75, 0.75, 0.5, 0.5]
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_learnable_collapse_lambdas_init_to_config_values():
+    model = TinyModel(num_layers=1)
+    finetuning_args = SimpleNamespace(
+        collapse_learnable_lambda=True,
+        collapse_lambda1=0.0,
+        collapse_lambda2=0.0,
+    )
+    init_collapse_lambdas(model, finetuning_args)
+    lambda1, lambda2 = get_collapse_lambdas(model, finetuning_args)
+
+    assert isinstance(model.vulcan_lambda1, torch.nn.Parameter)
+    assert isinstance(model.vulcan_lambda2, torch.nn.Parameter)
+    assert torch.equal(lambda1.detach(), torch.tensor(0.0))
+    assert torch.equal(lambda2.detach(), torch.tensor(0.0))
 
 
 @pytest.mark.runs_on(["cpu", "mps"])

@@ -23,6 +23,11 @@ from .modeling import find_mlp_layers, get_intermediate_size
 from .schema import ClusterIdx
 
 
+def _validate_keep_ratio(keep_ratio: float) -> None:
+    if keep_ratio <= 0 or keep_ratio > 1:
+        raise ValueError("keep_ratio must be in (0, 1].")
+
+
 def get_cluster_greedy_match(
     activation: np.ndarray | torch.Tensor,
     vectors: np.ndarray | torch.Tensor,
@@ -147,12 +152,23 @@ def build_uniform_cluster_idx(
     activations: torch.Tensor,
     keep_ratio: float,
 ) -> ClusterIdx:
-    if keep_ratio <= 0 or keep_ratio > 1:
-        raise ValueError("keep_ratio must be in (0, 1].")
+    mlp_layers = find_mlp_layers(model)
+    return build_layerwise_cluster_idx(model, activations, keep_ratios=[keep_ratio] * len(mlp_layers))
 
+
+def build_layerwise_cluster_idx(
+    model: torch.nn.Module,
+    activations: torch.Tensor,
+    keep_ratios: list[float],
+) -> ClusterIdx:
     cluster_idx: ClusterIdx = []
     mlp_layers = find_mlp_layers(model)
+    if len(keep_ratios) != len(mlp_layers):
+        raise ValueError(f"Expected {len(mlp_layers)} keep ratios, got {len(keep_ratios)}.")
+
     for layer_idx, (layer_ref, activation) in enumerate(zip(mlp_layers, activations)):
+        keep_ratio = float(keep_ratios[layer_idx])
+        _validate_keep_ratio(keep_ratio)
         intermediate_size = get_intermediate_size(layer_ref.mlp)
         target_size = max(1, int(intermediate_size * keep_ratio))
         if target_size == intermediate_size:
@@ -168,3 +184,26 @@ def build_uniform_cluster_idx(
         cluster_idx.append(get_cluster_greedy_match(activation, vectors, target_size))
 
     return cluster_idx
+
+
+def build_third_keep_ratios(
+    num_layers: int,
+    first_keep_ratio: float,
+    middle_keep_ratio: float,
+    last_keep_ratio: float,
+    first_layer_ratio: float = 1.0 / 3.0,
+    last_layer_ratio: float = 1.0 / 3.0,
+) -> list[float]:
+    r"""Build front/middle/back keep ratios for decoder layers."""
+    if num_layers <= 0:
+        raise ValueError("num_layers must be positive.")
+    if first_layer_ratio < 0 or last_layer_ratio < 0 or first_layer_ratio + last_layer_ratio > 1:
+        raise ValueError("Layer split ratios must be non-negative and sum to at most 1.")
+
+    for keep_ratio in (first_keep_ratio, middle_keep_ratio, last_keep_ratio):
+        _validate_keep_ratio(keep_ratio)
+
+    first_count = int(num_layers * first_layer_ratio)
+    last_count = int(num_layers * last_layer_ratio)
+    middle_count = num_layers - first_count - last_count
+    return [first_keep_ratio] * first_count + [middle_keep_ratio] * middle_count + [last_keep_ratio] * last_count

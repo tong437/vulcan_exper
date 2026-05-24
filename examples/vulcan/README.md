@@ -80,6 +80,24 @@ python scripts/vulcan/collect_cluster_idx.py \
 
 The extra `key=value` arguments override fields from the YAML, matching the `python src/train.py <yaml> key=value` style.
 
+For a front/middle/back layer split, pass group keep ratios. For example, keep the first third unpruned,
+keep 75% in the middle third, and keep 50% in the last third:
+
+```bash
+python scripts/vulcan/collect_cluster_idx.py \
+  --config examples/vulcan/qwen35_08b_vqa_rad_full_sft.yaml \
+  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_layerwise_1_00_0_75_0_50.json \
+  --first_keep_ratio 1.0 \
+  --middle_keep_ratio 0.75 \
+  --last_keep_ratio 0.5 \
+  --max_batches 100 \
+  model_name_or_path=/path/to/baseline/model_or_checkpoint \
+  dataset_dir=/path/to/datasets/vqa_rad
+```
+
+Note that a layerwise `cluster_idx` is valid for collapse SFT. The current structural pruning script still expects
+uniform target MLP sizes because standard Hugging Face configs expose a single `intermediate_size`.
+
 ## Collapse SFT
 
 After `cluster_idx_greedy_match_0_50.json` exists, run the Vulcan regularized SFT:

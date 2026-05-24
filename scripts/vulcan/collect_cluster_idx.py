@@ -30,7 +30,14 @@ from llamafactory.data import SFTDataCollatorWith4DAttentionMask, get_dataset, g
 from llamafactory.extras.constants import IGNORE_INDEX
 from llamafactory.hparams import get_train_args
 from llamafactory.model import load_model, load_tokenizer
-from llamafactory.train.vulcan import build_uniform_cluster_idx, collect_mlp_activations, save_cluster_idx
+from llamafactory.train.vulcan import (
+    build_layerwise_cluster_idx,
+    build_third_keep_ratios,
+    build_uniform_cluster_idx,
+    collect_mlp_activations,
+    find_mlp_layers,
+    save_cluster_idx,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -38,6 +45,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True, help="LlamaFactory SFT YAML config used to load model and dataset.")
     parser.add_argument("--output_path", required=True, help="Path to save cluster_idx JSON.")
     parser.add_argument("--keep_ratio", type=float, default=0.5, help="Target MLP intermediate keep ratio.")
+    parser.add_argument("--first_keep_ratio", type=float, default=None, help="Keep ratio for the first layer group.")
+    parser.add_argument("--middle_keep_ratio", type=float, default=None, help="Keep ratio for the middle layer group.")
+    parser.add_argument("--last_keep_ratio", type=float, default=None, help="Keep ratio for the last layer group.")
+    parser.add_argument(
+        "--first_layer_ratio", type=float, default=1.0 / 3.0, help="Fraction of layers in the first group."
+    )
+    parser.add_argument(
+        "--last_layer_ratio", type=float, default=1.0 / 3.0, help="Fraction of layers in the last group."
+    )
     parser.add_argument("--max_batches", type=int, default=None, help="Limit activation collection batches.")
     parser.add_argument("--batch_size", type=int, default=None, help="Override dataloader batch size.")
     parser.add_argument("--num_workers", type=int, default=None, help="Override dataloader num_workers.")
@@ -103,7 +119,21 @@ def main() -> None:
         num_workers=args.num_workers if args.num_workers is not None else training_args.dataloader_num_workers,
     )
     activations = collect_mlp_activations(model, dataloader, max_batches=args.max_batches)
-    cluster_idx = build_uniform_cluster_idx(model, activations, keep_ratio=args.keep_ratio)
+    if any(ratio is not None for ratio in (args.first_keep_ratio, args.middle_keep_ratio, args.last_keep_ratio)):
+        num_layers = len(find_mlp_layers(model))
+        keep_ratios = build_third_keep_ratios(
+            num_layers=num_layers,
+            first_keep_ratio=args.first_keep_ratio if args.first_keep_ratio is not None else args.keep_ratio,
+            middle_keep_ratio=args.middle_keep_ratio if args.middle_keep_ratio is not None else args.keep_ratio,
+            last_keep_ratio=args.last_keep_ratio if args.last_keep_ratio is not None else args.keep_ratio,
+            first_layer_ratio=args.first_layer_ratio,
+            last_layer_ratio=args.last_layer_ratio,
+        )
+        print(f"Using layerwise keep ratios: {keep_ratios}", flush=True)
+        cluster_idx = build_layerwise_cluster_idx(model, activations, keep_ratios=keep_ratios)
+    else:
+        cluster_idx = build_uniform_cluster_idx(model, activations, keep_ratio=args.keep_ratio)
+
     save_cluster_idx(cluster_idx, args.output_path)
     print(f"Saved Vulcan cluster_idx to {args.output_path}")
 
