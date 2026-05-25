@@ -627,6 +627,91 @@ python scripts/vulcan/save_pruned_model.py \
 
 > 当前方法在 `keep_ratio=0.75` 下可以保留大部分 yes/no 能力，但与 baseline 直接 0.75 剪枝相比，当前 Collapse Loss 配置没有带来 yes/no accuracy 收益。`keep_ratio=0.50` 对当前任务、模型和正则强度过于激进。
 
+### 10.4 从零初始化 learnable lambda 对照实验
+
+为了对齐原始实验指导中的“可学习 lambda，初始为 0”设定，又补充了一组 `keep_ratio=0.75` 的 learnable lambda 对照。该实验仍使用 uniform `cluster_idx_greedy_match_0_75.json`，不做分层聚类或分层剪枝。
+
+配置差异：
+
+```yaml
+collapse_lambda1: 0.0
+collapse_lambda2: 0.0
+collapse_learnable_lambda: true
+```
+
+训练输出目录：
+
+```text
+saves/qwen35-0_8b-vqa-rad/full/vulcan-sft-0_75-learnable
+```
+
+剪枝输出目录：
+
+```text
+saves/qwen35-0_8b-vqa-rad/full/vulcan-pruned-0_75-learnable
+```
+
+yes/no 评估结果：
+
+```json
+{
+  "num_examples": 251,
+  "exact_match": 0.6653386454183267,
+  "normalized_exact_match": 0.6653386454183267,
+  "token_f1": 0.6653386454183267,
+  "yesno_examples": 251,
+  "yesno_accuracy": 0.6653386454183267,
+  "yesno_prediction_coverage": 0.9880478087649402,
+  "yesno_label_counts": {
+    "no": 133,
+    "yes": 118
+  },
+  "yesno_prediction_counts": {
+    "no": 60,
+    "other": 3,
+    "yes": 188
+  },
+  "yesno_confusion": {
+    "no->no": 55,
+    "no->other": 2,
+    "no->yes": 76,
+    "yes->no": 5,
+    "yes->other": 1,
+    "yes->yes": 112
+  }
+}
+```
+
+与已有 0.75 结果对比：
+
+| 模型 | keep ratio | yes/no accuracy | prediction coverage | 备注 |
+| --- | ---: | ---: | ---: | --- |
+| baseline SFT | 无剪枝 | 0.6733 | 0.9880 | 主基线 |
+| baseline pruned | 0.75 | 0.6574 | 0.9880 | 不经 Collapse Loss |
+| Vulcan pruned 固定 lambda | 0.75 | 0.6454 | 0.9960 | 固定小 lambda |
+| Vulcan pruned learnable lambda | 0.75 | 0.6653 | 0.9880 | lambda 从 0 学习，但最终变为负值 |
+
+训练日志中最后阶段的 lambda 与 collapse loss：
+
+```text
+step=600 collapse_loss=-1810.9670 lambda1=-0.0033722 lambda2=-0.0034027
+step=650 collapse_loss=-1812.0444 lambda1=-0.0033722 lambda2=-0.0034027
+step=675 collapse_loss=-1812.0928 lambda1=-0.0033722 lambda2=-0.0034027
+```
+
+关键判断：
+
+- 该组剪枝后 yes/no accuracy 为 `0.6653`，比 baseline 直接 0.75 剪枝的 `0.6574` 高约 `0.80` 个百分点，折算到 251 条样本约为 2 条样本差异。
+- 但 learnable lambda 最终变为负值，`collapse_loss` 也变为大幅负数，说明训练目标已经从“拉近簇内权重”变成了“奖励簇内距离变大”。
+- 原因是 `L_total = L_sft + lambda * D`，其中簇内距离 `D >= 0`。如果 lambda 作为普通参数参与梯度下降，则 `dL/dlambda = D > 0`，优化器会自然把 lambda 往负方向推。
+- 因此这组结果不能作为 Vulcan Collapse Loss 生效的证据，只能说明“裸 learnable lambda 从 0 初始化”这个设定在当前实现下不成立。
+
+后续处理：
+
+- 不再把无约束 learnable lambda 作为主实验路线。
+- 若继续做 learnable 版本，必须使用非负约束、外部调度或其他约束优化方式，避免 lambda 变成负值。
+- 当前主线回到固定正系数或手动 schedule，例如只使用 `collapse_lambda1 > 0`、`collapse_lambda2 = 0` 做强度 sweep。
+
 ## 11. 评估脚本指标解析
 
 `eval_vqa_predictions.py` 会对 `generated_predictions.jsonl` 逐行读取：
@@ -766,16 +851,18 @@ torch.distributed.elastic.multiprocessing.api.SignalException: Process got signa
 
 ## 13. 下一步计划
 
-### 13.1 对照结论：baseline 直接 0.75 剪枝已完成
+### 13.1 对照结论：baseline 直接 0.75 剪枝与 learnable lambda 对照已完成
 
 baseline 直接 0.75 剪枝结果为 `0.6574`，略高于 Vulcan 0.75 剪枝的 `0.6454`。因此，至少在 yes/no 子集上，当前 Collapse Loss 配置尚不能证明带来了剪枝鲁棒性收益。
+
+从零初始化 learnable lambda 的 0.75 剪枝结果为 `0.6653`，但由于训练后 `lambda1/lambda2` 均变为负值，collapse loss 变成 anti-collapse 方向，不能作为正则项有效的证据。
 
 下一步应转向分析原因，而不是继续直接宣称 Vulcan 有效：
 
 - 对比 baseline 与 Vulcan SFT 的簇内 L1/L2/cosine，确认 Collapse Loss 是否确实让同簇权重更接近。
-- 检查 `collapse_lambda1/lambda2` 是否过弱，导致构造冗余不足。
+- 检查固定正 `collapse_lambda1/lambda2` 是否过弱，导致构造冗余不足。
 - 检查 yes/no accuracy 之外的完整 VQA-RAD 指标，避免只在闭合题上做判断。
-- 尝试更强正则、更长 Vulcan SFT 或分层剪枝。
+- 尝试更强固定正则、手动 lambda schedule、更长 Vulcan SFT 或分层剪枝。
 
 ### 13.2 补充完整 test set 评估
 
@@ -786,12 +873,15 @@ baseline 直接 0.75 剪枝结果为 `0.6574`，略高于 Vulcan 0.75 剪枝的 
 - Vulcan pruned 0.75
 - baseline pruned 0.75
 - Vulcan pruned 0.50
+- Vulcan pruned 0.75 learnable lambda（仅作负 lambda 对照）
 
 完整 test 指标可以继续使用 LlamaFactory 自带 BLEU/ROUGE，并结合 `eval_vqa_predictions.py` 的 normalized exact / token F1。
 
 ### 13.3 后续可探索方向
 
-- 调大 `collapse_lambda1/lambda2` 或延长 Vulcan SFT，再重新挑战 `keep_ratio=0.50`。
+- 固定 `collapse_lambda1/lambda2` 为正数，做强度 sweep，优先尝试只开 L1：`collapse_lambda1=1e-8, 3e-8, 1e-7, 3e-7`，`collapse_lambda2=0`。
+- 若继续探索 learnable lambda，必须使用非负约束或手动 schedule，避免裸参数被优化到负值。
+- 调大固定正则或延长 Vulcan SFT 后，再重新挑战 `keep_ratio=0.50`。
 - 尝试分层剪枝：浅层保留更高比例，中后层压缩更强。
 - 使用 `inspect_model_redundancy.py` 对比 baseline、Vulcan SFT 的簇内 L1/L2/cosine，证明正则项确实增强了簇内冗余。
 
@@ -806,6 +896,7 @@ vulcan-sft yes/no eval
 vulcan-pruned-0.75 yes/no eval
 vulcan-pruned-0.50 yes/no eval
 baseline-pruned-0.75 yes/no eval
+vulcan-pruned-0.75-learnable yes/no eval
 ```
 
 并补充：

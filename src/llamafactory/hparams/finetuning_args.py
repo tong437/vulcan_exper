@@ -544,6 +544,10 @@ class FinetuningArguments(
         default=False,
         metadata={"help": "Whether to learn positive collapse loss coefficients via softplus parameters."},
     )
+    collapse_lambda_lr: float | None = field(
+        default=None,
+        metadata={"help": "Optional separate learning rate for learnable Vulcan lambda parameters."},
+    )
     collapse_use_weight_proxy: bool = field(
         default=True,
         metadata={"help": "Whether to use detached weight proxies and backward hooks for collapse loss."},

@@ -16,6 +16,7 @@ from types import SimpleNamespace
 
 import pytest
 import torch
+from transformers import TrainingArguments
 
 from llamafactory.train.vulcan import (
     build_layerwise_cluster_idx,
@@ -26,6 +27,7 @@ from llamafactory.train.vulcan import (
     init_collapse_lambdas,
     weight_collapse_loss,
 )
+from llamafactory.train.trainer_utils import create_custom_optimizer
 from llamafactory.train.vulcan.pruning import pruning_mlp
 
 
@@ -116,6 +118,32 @@ def test_learnable_collapse_lambdas_init_to_config_values():
     assert isinstance(model.vulcan_lambda2, torch.nn.Parameter)
     assert torch.equal(lambda1.detach(), torch.tensor(0.0))
     assert torch.equal(lambda2.detach(), torch.tensor(0.0))
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_learnable_collapse_lambdas_use_separate_lr(tmp_path):
+    model = TinyModel(num_layers=1)
+    finetuning_args = SimpleNamespace(
+        collapse_learnable_lambda=True,
+        collapse_lambda1=0.0,
+        collapse_lambda2=0.0,
+        collapse_lambda_lr=-1.0,
+        use_galore=False,
+        use_apollo=False,
+        loraplus_lr_ratio=None,
+        use_badam=False,
+        use_adam_mini=False,
+        use_muon=False,
+    )
+    init_collapse_lambdas(model, finetuning_args)
+    training_args = TrainingArguments(output_dir=str(tmp_path), learning_rate=1e-5, optim="adamw_torch")
+    optimizer = create_custom_optimizer(model, training_args, finetuning_args)
+
+    lambda_group = next(
+        group for group in optimizer.param_groups if any(param is model.vulcan_lambda1 for param in group["params"])
+    )
+    assert lambda_group["lr"] == -1.0
+    assert lambda_group["weight_decay"] == 0.0
 
 
 @pytest.mark.runs_on(["cpu", "mps"])

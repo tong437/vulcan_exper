@@ -29,6 +29,7 @@ collapse_cluster_idx_path: saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_m
 collapse_lambda1: 0.0
 collapse_lambda2: 0.0
 collapse_learnable_lambda: true
+collapse_lambda_lr: -1.0
 collapse_use_weight_proxy: true
 
 ### output

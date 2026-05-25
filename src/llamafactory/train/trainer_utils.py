@@ -409,6 +409,43 @@ def _create_loraplus_optimizer(
     return optimizer
 
 
+def _create_vulcan_lambda_optimizer(
+    model: "PreTrainedModel",
+    training_args: "TrainingArguments",
+    finetuning_args: "FinetuningArguments",
+) -> "torch.optim.Optimizer":
+    lambda_param_names = {"vulcan_lambda1", "vulcan_lambda2"}
+    decay_param_names = _get_decay_parameter_names(model)
+    decay_params, nodecay_params, lambda_params = [], [], []
+
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+
+        if name in lambda_param_names:
+            lambda_params.append(param)
+        elif name in decay_param_names:
+            decay_params.append(param)
+        else:
+            nodecay_params.append(param)
+
+    if not lambda_params:
+        raise ValueError("`collapse_lambda_lr` is set, but learnable Vulcan lambda parameters were not found.")
+
+    optim_class, optim_kwargs = Trainer.get_optimizer_cls_and_kwargs(training_args)
+    param_groups = [
+        dict(params=nodecay_params, weight_decay=0.0),
+        dict(params=decay_params, weight_decay=training_args.weight_decay),
+        dict(params=lambda_params, lr=finetuning_args.collapse_lambda_lr, weight_decay=0.0),
+    ]
+    optimizer = optim_class(param_groups, **optim_kwargs)
+    logger.info_rank0(
+        "Using Vulcan lambda optimizer group with "
+        f"lr={finetuning_args.collapse_lambda_lr} for {len(lambda_params)} lambda params."
+    )
+    return optimizer
+
+
 def _create_badam_optimizer(
     model: "PreTrainedModel",
     training_args: "TrainingArguments",
@@ -529,6 +566,12 @@ def create_custom_optimizer(
     training_args: "TrainingArguments",
     finetuning_args: "FinetuningArguments",
 ) -> Optional["torch.optim.Optimizer"]:
+    if finetuning_args.collapse_lambda_lr is not None:
+        if not finetuning_args.collapse_learnable_lambda:
+            raise ValueError("`collapse_lambda_lr` requires `collapse_learnable_lambda=true`.")
+
+        return _create_vulcan_lambda_optimizer(model, training_args, finetuning_args)
+
     if finetuning_args.use_galore:
         return _create_galore_optimizer(model, training_args, finetuning_args)
 
