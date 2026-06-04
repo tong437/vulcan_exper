@@ -401,6 +401,36 @@ class BAdamArgument:
 
 
 @dataclass
+class ActivationAlignArguments:
+    r"""Arguments pertaining to top-k activation mask alignment regularization."""
+
+    use_activation_align: bool = field(
+        default=False,
+        metadata={"help": "Whether to add top-k activation mask alignment loss between visual and text tokens."},
+    )
+    align_lambda: float = field(
+        default=1.0,
+        metadata={"help": "Weight coefficient for the activation alignment loss."},
+    )
+    align_temperature: float = field(
+        default=0.1,
+        metadata={"help": "Temperature for the sigmoid soft top-k mask."},
+    )
+    align_quantile: float = field(
+        default=0.8,
+        metadata={"help": "Quantile threshold (0-1) for selecting top-k neurons."},
+    )
+    align_pool_type: Literal["mean", "max"] = field(
+        default="mean",
+        metadata={"help": "Pooling type over token dimension: mean or max."},
+    )
+    align_loss_type: Literal["l1", "neg_iou"] = field(
+        default="l1",
+        metadata={"help": "Type of alignment loss: l1 (L1 distance) or neg_iou (negative IoU)."},
+    )
+
+
+@dataclass
 class SwanLabArguments:
     use_swanlab: bool = field(
         default=False,
@@ -450,6 +480,7 @@ class FinetuningArguments(
     LoraArguments,
     OFTArguments,
     FreezeArguments,
+    ActivationAlignArguments,
 ):
     r"""Arguments pertaining to which techniques we are going to fine-tuning with."""
 
@@ -556,6 +587,24 @@ class FinetuningArguments(
         default=True,
         metadata={"help": "Whether ot not to freeze the vision tower in MLLM training."},
     )
+    unfreeze_vision_tower_last_n: int = field(
+        default=0,
+        metadata={
+            "help": "Unfreeze the last N transformer blocks in the vision tower (requires freeze_vision_tower=True)."
+        },
+    )
+    vision_tower_lr: float | None = field(
+        default=None,
+        metadata={"help": "Learning rate for unfrozen vision tower layers. Defaults to learning_rate if not set."},
+    )
+    projector_lr: float | None = field(
+        default=None,
+        metadata={"help": "Learning rate for multi-modal projector. Defaults to learning_rate if not set."},
+    )
+    language_model_lr: float | None = field(
+        default=None,
+        metadata={"help": "Learning rate for language model. Defaults to learning_rate if not set."},
+    )
     freeze_multi_modal_projector: bool = field(
         default=True,
         metadata={"help": "Whether or not to freeze the multi modal projector in MLLM training."},
@@ -631,6 +680,18 @@ class FinetuningArguments(
 
         if self.use_collapse_loss and self.stage != "sft":
             raise ValueError("`use_collapse_loss` is only supported for SFT.")
+
+        if self.use_activation_align and self.stage != "sft":
+            raise ValueError("`use_activation_align` is only supported for SFT.")
+
+        if self.use_activation_align and self.align_lambda < 0:
+            raise ValueError("`align_lambda` must be non-negative.")
+
+        if self.use_activation_align and not (0.0 < self.align_quantile < 1.0):
+            raise ValueError("`align_quantile` must be between 0 and 1 (exclusive).")
+
+        if self.use_activation_align and self.align_temperature <= 0:
+            raise ValueError("`align_temperature` must be positive.")
 
         if self.pissa_init and (self.stage in ["ppo", "kto"] or self.use_ref_model):
             raise ValueError("Cannot use PiSSA for current training stage.")

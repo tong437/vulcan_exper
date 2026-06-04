@@ -25,7 +25,7 @@ from ...extras.packages import is_transformers_version_greater_than
 from ...extras.ploting import plot_loss
 from ...model import load_model, load_tokenizer
 from ..trainer_utils import create_modelcard_and_push, create_ref_model
-from ..vulcan import find_mlp_layers, init_collapse_lambdas, load_cluster_idx
+from ..vulcan import ActivationAligner, find_mlp_layers, init_collapse_lambdas, load_cluster_idx
 from .metric import ComputeAccuracy, ComputeSimilarity, eval_logit_processor
 from .trainer import CustomSeq2SeqTrainer
 
@@ -68,6 +68,19 @@ def run_sft(
 
         init_collapse_lambdas(model, finetuning_args)
         logger.info_rank0(f"Loaded Vulcan cluster_idx from {finetuning_args.collapse_cluster_idx_path}.")
+
+    activation_aligner = None
+    if finetuning_args.use_activation_align:
+        image_token_id = getattr(model.config, "image_token_id", None)
+        if image_token_id is None and tokenizer_module.get("processor") is not None:
+            image_token_id = getattr(tokenizer_module["processor"], "image_token_id", None)
+        if image_token_id is None:
+            raise ValueError(
+                "Cannot determine `image_token_id` for activation alignment. "
+                "Please ensure the model config or processor provides `image_token_id`."
+            )
+        activation_aligner = ActivationAligner(model, finetuning_args, int(image_token_id))
+        logger.info_rank0("Initialized Vulcan activation aligner.")
 
     ref_model = None
     if finetuning_args.use_asft_loss:
@@ -129,6 +142,7 @@ def run_sft(
         gen_kwargs=gen_kwargs,
         ref_model=ref_model,
         vulcan_cluster_idx=vulcan_cluster_idx,
+        activation_aligner=activation_aligner,
         **dataset_module,
         **tokenizer_module,
         **metric_module,

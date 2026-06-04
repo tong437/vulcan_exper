@@ -1,5 +1,4 @@
 ### model
-# Replace with the local server path if the model has already been downloaded.
 model_name_or_path: Qwen/Qwen3.5-0.8B
 trust_remote_code: true
 
@@ -11,8 +10,8 @@ deepspeed: examples/deepspeed/ds_z2_config.json
 
 ### dataset
 dataset_dir: datasets/vqa_rad
-dataset: vqa_rad_train_yesno
-eval_dataset: vqa_rad_test_yesno
+dataset: vqa_rad_train
+eval_dataset: vqa_rad_test
 template: qwen3_5_nothink
 cutoff_len: 2048
 preprocessing_num_workers: 8
@@ -23,8 +22,25 @@ enable_thinking: false
 image_max_pixels: 262144
 image_min_pixels: 1024
 
+### vulcan collapse loss
+use_collapse_loss: true
+collapse_cluster_idx_path: saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50.json
+collapse_lambda1: 0.0
+collapse_lambda2: 0.0
+collapse_learnable_lambda: true
+collapse_lambda_lr: -0.01
+collapse_use_weight_proxy: true
+
+### vulcan activation alignment
+use_activation_align: true
+align_lambda: 0.5
+align_temperature: 0.1
+align_quantile: 0.8
+align_pool_type: mean
+align_loss_type: l1
+
 ### output
-output_dir: saves/qwen35-0_8b-vqa-rad/full/sft-yesno
+output_dir: saves/qwen35-0_8b-vqa-rad/full/vulcan-align-collapse-sft
 logging_steps: 10
 save_steps: 200
 plot_loss: true
@@ -35,7 +51,7 @@ report_to: none
 ### train
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 8
-learning_rate: 5.0e-6
+learning_rate: 1.0e-5
 num_train_epochs: 3.0
 lr_scheduler_type: cosine
 warmup_ratio: 0.03

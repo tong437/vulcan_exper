@@ -55,6 +55,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         gen_kwargs: Optional[dict[str, Any]] = None,
         ref_model: Optional["torch.nn.Module"] = None,
         vulcan_cluster_idx: Optional[list[Optional[list[dict[str, Any]]]]] = None,
+        activation_aligner: Optional[Any] = None,
         **kwargs,
     ) -> None:
         kwargs["processing_class"] = kwargs.pop("tokenizer")
@@ -87,6 +88,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         self.ref_model = ref_model
         self.vulcan_cluster_idx = vulcan_cluster_idx
+        self.activation_aligner = activation_aligner
         self._vulcan_log_cache: dict[str, float] = {}
 
         if ref_model is not None:
@@ -133,7 +135,56 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
     @override
     def create_optimizer(self) -> "torch.optim.Optimizer":
         if self.optimizer is None:
-            self.optimizer = create_custom_optimizer(self.model, self.args, self.finetuning_args)
+            custom_optim = create_custom_optimizer(self.model, self.args, self.finetuning_args)
+            if custom_optim is not None:
+                self.optimizer = custom_optim
+            else:
+                vision_lr = getattr(self.finetuning_args, "vision_tower_lr", None)
+                proj_lr = getattr(self.finetuning_args, "projector_lr", None)
+                lang_lr = getattr(self.finetuning_args, "language_model_lr", None)
+                if any(lr is not None for lr in (vision_lr, proj_lr, lang_lr)):
+                    base_lr = self.args.learning_rate
+                    vision_params, projector_params, language_params = [], [], []
+                    for name, param in self.model.named_parameters():
+                        if not param.requires_grad:
+                            continue
+                        if "visual.blocks" in name or "visual.pos_embed" in name or "visual.patch_embed" in name:
+                            vision_params.append(param)
+                        elif "visual.merger" in name or "multi_modal_projector" in name:
+                            projector_params.append(param)
+                        else:
+                            language_params.append(param)
+
+                    param_groups = []
+                    if vision_params:
+                        param_groups.append(
+                            {
+                                "params": vision_params,
+                                "lr": vision_lr or base_lr,
+                                "weight_decay": self.args.weight_decay,
+                            }
+                        )
+                    if projector_params:
+                        param_groups.append(
+                            {
+                                "params": projector_params,
+                                "lr": proj_lr or base_lr,
+                                "weight_decay": self.args.weight_decay,
+                            }
+                        )
+                    if language_params:
+                        param_groups.append(
+                            {
+                                "params": language_params,
+                                "lr": lang_lr or base_lr,
+                                "weight_decay": self.args.weight_decay,
+                            }
+                        )
+
+                    optim_class, optim_kwargs = self.get_optimizer_cls_and_kwargs(self.args)
+                    self.optimizer = optim_class(param_groups, **optim_kwargs)
+                else:
+                    self.optimizer = None
         return super().create_optimizer()
 
     @override
@@ -168,18 +219,33 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             lambda2,
             use_weight_proxy=self.finetuning_args.collapse_use_weight_proxy,
         )
+        print(f"[DEBUG _add_vulcan_loss] main_loss={loss.item():.4f}, collapse_loss={loss_collapse.item():.4f}, lambda1={lambda1.item():.4f}, lambda2={lambda2.item():.4f}, learnable={self.finetuning_args.collapse_learnable_lambda}")
         self._vulcan_log_cache = {
             "collapse_loss": loss_collapse.detach().float().item(),
             "collapse_lambda1": lambda1.detach().float().item(),
             "collapse_lambda2": lambda2.detach().float().item(),
         }
-        return loss + loss_collapse.to(loss.device, dtype=loss.dtype)
+        return loss + loss_collapse.float()
+
+    def _add_align_loss(self, loss: "torch.Tensor") -> "torch.Tensor":
+        if self.activation_aligner is None:
+            return loss
+
+        align_loss = self.activation_aligner.compute_alignment_loss()
+        if align_loss.item() > 0:
+            self._vulcan_log_cache["align_loss"] = align_loss.detach().float().item()
+
+        return loss + align_loss.to(loss.device, dtype=loss.dtype)
 
     @override
     def compute_loss(self, model, inputs, *args, **kwargs):
         return_outputs = kwargs.get("return_outputs", False)
         if len(args) > 0:
             return_outputs = args[0]
+
+        self._vulcan_log_cache = {}
+        if self.activation_aligner is not None:
+            self.activation_aligner.set_input_ids(inputs["input_ids"])
 
         if self.finetuning_args.use_asft_loss:
             with torch.no_grad():
@@ -198,6 +264,8 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                 loss, outputs = loss_outputs, None
 
         loss = self._add_vulcan_loss(model, loss)
+        loss = self._add_align_loss(loss)
+        print(f"[DEBUG compute_loss] Step complete: main_loss={loss.item():.4f}, vulcan_log_cache={self._vulcan_log_cache}")
         if return_outputs:
             return loss, outputs
 

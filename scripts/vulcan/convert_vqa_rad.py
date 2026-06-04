@@ -14,7 +14,9 @@
 
 import argparse
 import json
+import re
 import shutil
+import string
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -33,6 +35,7 @@ DATASET_INFO = {
             "content_tag": "content",
             "user_tag": "user",
             "assistant_tag": "assistant",
+            "system_tag": "system",
         },
     },
     "vqa_rad_test": {
@@ -47,9 +50,17 @@ DATASET_INFO = {
             "content_tag": "content",
             "user_tag": "user",
             "assistant_tag": "assistant",
+            "system_tag": "system",
         },
     },
 }
+
+
+def normalize_answer(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r"\b(a|an|the)\b", " ", text)
+    text = "".join(ch for ch in text if ch not in string.punctuation)
+    return " ".join(text.split())
 
 
 def parse_args() -> argparse.Namespace:
@@ -76,6 +87,16 @@ def parse_args() -> argparse.Namespace:
         "--prompt_template",
         default="<image>{question}",
         help="Prompt text template. Must contain {question}; include exactly one <image> token.",
+    )
+    parser.add_argument(
+        "--system_prompt",
+        default=None,
+        help="Optional system prompt prepended to each conversation.",
+    )
+    parser.add_argument(
+        "--yesno_only",
+        action="store_true",
+        help="Only keep samples whose answer normalizes to yes or no. Normalizes answers to lowercase.",
     )
     parser.add_argument("--max_samples", type=int, default=None, help="Optionally keep only the first N samples.")
     parser.add_argument("--overwrite", action="store_true", help="Overwrite an existing output directory.")
@@ -168,8 +189,11 @@ def convert_split(
     image_column: str,
     prompt_template: str,
     max_samples: int | None,
-) -> int:
+    system_prompt: str | None = None,
+    yesno_only: bool = False,
+) -> tuple[int, int]:
     count = 0
+    skipped = 0
     limit = len(dataset) if max_samples is None else min(max_samples, len(dataset))
     with output_file.open("w", encoding="utf-8") as f:
         for index in range(limit):
@@ -179,19 +203,28 @@ def convert_split(
             if not question or not answer:
                 continue
 
+            if yesno_only:
+                normalized = normalize_answer(answer)
+                if normalized not in {"yes", "no"}:
+                    skipped += 1
+                    continue
+                answer = normalized
+
             image_relpath = f"images/{split_name}_{index:06d}.png"
             regularize_image(example[image_column], image_dir / f"{split_name}_{index:06d}.png")
+            messages: list[dict[str, str]] = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt_template.format(question=question)})
+            messages.append({"role": "assistant", "content": answer})
             record = {
-                "messages": [
-                    {"role": "user", "content": prompt_template.format(question=question)},
-                    {"role": "assistant", "content": answer},
-                ],
+                "messages": messages,
                 "images": [image_relpath],
             }
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
             count += 1
 
-    return count
+    return count, skipped
 
 
 def main() -> None:
@@ -214,7 +247,7 @@ def main() -> None:
     train_dataset = load_split(args.dataset_name_or_path, args.train_split)
     eval_dataset = load_split(args.dataset_name_or_path, args.eval_split)
 
-    train_count = convert_split(
+    train_count, train_skipped = convert_split(
         train_dataset,
         "train",
         output_dir / "train.jsonl",
@@ -224,8 +257,10 @@ def main() -> None:
         args.image_column,
         args.prompt_template,
         args.max_samples,
+        system_prompt=args.system_prompt,
+        yesno_only=args.yesno_only,
     )
-    eval_count = convert_split(
+    eval_count, eval_skipped = convert_split(
         eval_dataset,
         "test",
         output_dir / "test.jsonl",
@@ -235,15 +270,29 @@ def main() -> None:
         args.image_column,
         args.prompt_template,
         args.max_samples,
+        system_prompt=args.system_prompt,
+        yesno_only=args.yesno_only,
     )
 
+    dataset_info = dict(DATASET_INFO)
+    if args.yesno_only:
+        dataset_info["vqa_rad_train_yesno"] = dataset_info.pop("vqa_rad_train")
+        dataset_info["vqa_rad_test_yesno"] = dataset_info.pop("vqa_rad_test")
+        dataset_info["vqa_rad_train_yesno"]["file_name"] = "train.jsonl"
+        dataset_info["vqa_rad_test_yesno"]["file_name"] = "test.jsonl"
+
     with (output_dir / "dataset_info.json").open("w", encoding="utf-8") as f:
-        json.dump(DATASET_INFO, f, indent=2, ensure_ascii=False)
+        json.dump(dataset_info, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
     print(f"Saved {train_count} train examples and {eval_count} test examples to {output_dir}.")
-    print(f"LlamaFactory dataset_dir: {output_dir}")
-    print("Use dataset: vqa_rad_train and eval_dataset: vqa_rad_test")
+    if args.yesno_only:
+        print(f"  Filtered out {train_skipped} non-yes/no train samples, {eval_skipped} non-yes/no eval samples.")
+        print(f"LlamaFactory dataset_dir: {output_dir}")
+        print("Use dataset: vqa_rad_train_yesno and eval_dataset: vqa_rad_test_yesno")
+    else:
+        print(f"LlamaFactory dataset_dir: {output_dir}")
+        print("Use dataset: vqa_rad_train and eval_dataset: vqa_rad_test")
 
 
 if __name__ == "__main__":

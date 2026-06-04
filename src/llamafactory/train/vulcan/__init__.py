@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .collapse_loss import get_collapse_lambdas, init_collapse_lambdas, weight_collapse_loss
+from .activation_align import ActivationAligner
 from .clustering import (
     build_layerwise_cluster_idx,
     build_third_keep_ratios,
@@ -20,19 +20,21 @@ from .clustering import (
     collect_mlp_activations,
     get_cluster_greedy_match,
 )
+from .collapse_loss import get_collapse_lambdas, init_collapse_lambdas, weight_collapse_loss
 from .modeling import find_mlp_layers
 from .pruning import pruning_mlp
 from .schema import load_cluster_idx, save_cluster_idx
 
 
 __all__ = [
-    "find_mlp_layers",
+    "ActivationAligner",
     "build_layerwise_cluster_idx",
     "build_third_keep_ratios",
     "build_uniform_cluster_idx",
     "collect_mlp_activations",
-    "get_collapse_lambdas",
+    "find_mlp_layers",
     "get_cluster_greedy_match",
+    "get_collapse_lambdas",
     "init_collapse_lambdas",
     "load_cluster_idx",
     "pruning_mlp",

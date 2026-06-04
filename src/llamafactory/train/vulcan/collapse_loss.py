@@ -29,9 +29,11 @@ if TYPE_CHECKING:
 
 def init_collapse_lambdas(model: "nn.Module", finetuning_args: "FinetuningArguments") -> None:
     if not finetuning_args.collapse_learnable_lambda:
+        print(f"[DEBUG init_collapse_lambdas] learnable=False, skipping parameter registration")
         return
 
     if hasattr(model, "vulcan_lambda1") or hasattr(model, "vulcan_lambda2"):
+        print(f"[DEBUG init_collapse_lambdas] model already has vulcan_lambda1/2, skipping")
         return
 
     model.register_parameter(
@@ -42,6 +44,19 @@ def init_collapse_lambdas(model: "nn.Module", finetuning_args: "FinetuningArgume
         "vulcan_lambda2",
         torch.nn.Parameter(torch.tensor(finetuning_args.collapse_lambda2, dtype=torch.float32)),
     )
+    print(f"[DEBUG init_collapse_lambdas] Registered vulcan_lambda1={finetuning_args.collapse_lambda1}, vulcan_lambda2={finetuning_args.collapse_lambda2}")
+    print(f"[DEBUG init_collapse_lambdas] vulcan_lambda1.requires_grad={model.vulcan_lambda1.requires_grad}, vulcan_lambda2.requires_grad={model.vulcan_lambda2.requires_grad}")
+
+    def lambda_grad_hook(param_name: str):
+        def hook(grad):
+            if grad is not None:
+                print(f"[DEBUG init_collapse_lambdas] GRADIENT for {param_name}: grad={grad.item():.6f}, shape={grad.shape}, dtype={grad.dtype}")
+            else:
+                print(f"[DEBUG init_collapse_lambdas] GRADIENT for {param_name}: grad is None")
+        return hook
+
+    model.vulcan_lambda1.register_hook(lambda_grad_hook("vulcan_lambda1"))
+    model.vulcan_lambda2.register_hook(lambda_grad_hook("vulcan_lambda2"))
 
 
 def get_collapse_lambdas(
@@ -49,17 +64,21 @@ def get_collapse_lambdas(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     if finetuning_args.collapse_learnable_lambda:
         if hasattr(model, "vulcan_lambda1") and hasattr(model, "vulcan_lambda2"):
-            return getattr(model, "vulcan_lambda1"), getattr(model, "vulcan_lambda2")
+            lambda1 = getattr(model, "vulcan_lambda1")
+            lambda2 = getattr(model, "vulcan_lambda2")
+            print(f"[DEBUG get_collapse_lambdas] learnable=True, returning direct params: lambda1={lambda1.item():.4f}, lambda2={lambda2.item():.4f}, requires_grad={lambda1.requires_grad}")
+            return lambda1, lambda2
 
         lambda1 = F.softplus(getattr(model, "vulcan_raw_lambda1"))
         lambda2 = F.softplus(getattr(model, "vulcan_raw_lambda2"))
+        print(f"[DEBUG get_collapse_lambdas] learnable=True, raw lambda path: lambda1={lambda1.item():.4f}, lambda2={lambda2.item():.4f}")
         return lambda1, lambda2
 
     device = next(model.parameters()).device
-    return (
-        torch.tensor(finetuning_args.collapse_lambda1, device=device, dtype=torch.float32),
-        torch.tensor(finetuning_args.collapse_lambda2, device=device, dtype=torch.float32),
-    )
+    lambda1_t = torch.tensor(finetuning_args.collapse_lambda1, device=device, dtype=torch.float32)
+    lambda2_t = torch.tensor(finetuning_args.collapse_lambda2, device=device, dtype=torch.float32)
+    print(f"[DEBUG get_collapse_lambdas] learnable=False, using config: lambda1={finetuning_args.collapse_lambda1}, lambda2={finetuning_args.collapse_lambda2}")
+    return lambda1_t, lambda2_t
 
 
 def _make_grad_hook(up_proj_w: torch.Tensor, gate_proj_w: torch.Tensor, up_width: int):
@@ -145,6 +164,26 @@ def weight_collapse_loss(
 
     loss = torch.zeros((), device=lambda1.device, dtype=torch.float32)
     cluster_tensor_cache = _get_cluster_tensor_cache(model, cluster_idx, lambda1.device)
+    total_diff_L1 = 0.0
+    total_diff_L2 = 0.0
+    for layer_ref, layer_tensors in zip(mlp_layers, cluster_tensor_cache):
+        if layer_tensors is None:
+            continue
+
+        up_proj_w = layer_ref.mlp.up_proj.weight
+        gate_proj_w = layer_ref.mlp.gate_proj.weight
+        weight_proxy = _get_weight_proxy(up_proj_w, gate_proj_w, use_weight_proxy)
+
+        neuron_idxs, anchor_idxs = layer_tensors
+        diff_w = weight_proxy.index_select(0, neuron_idxs) - weight_proxy.index_select(0, anchor_idxs)
+        diff_L1 = diff_w.abs().sum().item()
+        diff_L2 = diff_w.pow(2).sum().item()
+        total_diff_L1 += diff_L1
+        total_diff_L2 += diff_L2
+
+    print(f"[DEBUG weight_collapse_loss] lambda1={lambda1.item():.4f}, lambda2={lambda2.item():.4f}, total_diff_L1={total_diff_L1:.2f}, total_diff_L2={total_diff_L2:.2f}, loss={loss.item():.4f}")
+    print(f"[DEBUG weight_collapse_loss] lambda1*diff_L1 + lambda2*diff_L2 = {lambda1.item()*total_diff_L1 + lambda2.item()*total_diff_L2:.2f}")
+
     for layer_ref, layer_tensors in zip(mlp_layers, cluster_tensor_cache):
         if layer_tensors is None:
             continue

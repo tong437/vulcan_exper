@@ -432,6 +432,9 @@ def _create_vulcan_lambda_optimizer(
     if not lambda_params:
         raise ValueError("`collapse_lambda_lr` is set, but learnable Vulcan lambda parameters were not found.")
 
+    print(f"[DEBUG _create_vulcan_lambda_optimizer] Creating optimizer for {len(lambda_params)} lambda params: {[p.name for p in lambda_params]}")
+    print(f"[DEBUG _create_vulcan_lambda_optimizer] lambda lr = {finetuning_args.collapse_lambda_lr}")
+
     optim_class, optim_kwargs = Trainer.get_optimizer_cls_and_kwargs(training_args)
     param_groups = [
         dict(params=nodecay_params, weight_decay=0.0),
@@ -439,10 +442,18 @@ def _create_vulcan_lambda_optimizer(
         dict(params=lambda_params, lr=finetuning_args.collapse_lambda_lr, weight_decay=0.0),
     ]
     optimizer = optim_class(param_groups, **optim_kwargs)
+    print(f"[DEBUG _create_vulcan_lambda_optimizer] Optimizer param_groups lengths: nodecay={len(nodecay_params)}, decay={len(decay_params)}, lambda={len(lambda_params)}")
+    # Verify lambda params are actually in the optimizer
+    opt_params = list(optimizer.state.keys())
+    print(f"[DEBUG _create_vulcan_lambda_optimizer] optimizer.state has {len(opt_params)} parameters")
+    if lambda_params:
+        for lp in lambda_params:
+            print(f"[DEBUG _create_vulcan_lambda_optimizer] lambda param '{lp.name}' id={id(lp)}, in optimizer state: {id(lp) in [id(p) for p in optimizer.state.keys()]}")
     logger.info_rank0(
         "Using Vulcan lambda optimizer group with "
         f"lr={finetuning_args.collapse_lambda_lr} for {len(lambda_params)} lambda params."
     )
+    print(f"[DEBUG _create_vulcan_lambda_optimizer] Optimizer created successfully")
     return optimizer
 
 

@@ -181,3 +181,9 @@ wandb/
 swanlog/
 generated_predictions.jsonl
 predictions_score.json
+
+# datasets
+datasets/
+
+# node binary
+node-v20.12.2-linux-x64.tar.xz

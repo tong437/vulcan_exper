@@ -19,23 +19,20 @@ trust_remote_code: true
 ### method
 stage: sft
 do_train: true
-finetuning_type: full
+finetuning_type: lora
+lora_rank: 16
+lora_alpha: 32
+lora_target: all
 deepspeed: examples/deepspeed/ds_z2_config.json
 
-### multimodal: freeze vision tower to prevent catastrophic forgetting on small dataset
+### multimodal
 freeze_vision_tower: true
-unfreeze_vision_tower_last_n: 0
 freeze_multi_modal_projector: false
 freeze_language_model: false
 
-### per-component learning rates (when unfreeze_vision_tower_last_n > 0)
-vision_tower_lr: 1.0e-7
-projector_lr: 3.0e-7
-language_model_lr: 5.0e-7
-
 ### dataset
 dataset_dir: datasets/vqa_rad
-dataset: vqa_rad_train
+dataset: vqa_rad_train_yesno_augmented
 eval_dataset: vqa_rad_test
 template: qwen3_5_nothink
 cutoff_len: 2048
@@ -48,7 +45,7 @@ image_max_pixels: 262144
 image_min_pixels: 1024
 
 ### output
-output_dir: saves/qwen35-0_8b-vqa-rad/full/sft-unfreeze-vl
+output_dir: saves/qwen35-0_8b-vqa-rad/lora/sft-augmented
 logging_steps: 10
 save_steps: 100
 save_total_limit: 5
@@ -58,10 +55,10 @@ save_only_model: false
 report_to: none
 
 ### train
-per_device_train_batch_size: 1
-gradient_accumulation_steps: 8
-learning_rate: 3.0e-7
-num_train_epochs: 8.0
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 4
+learning_rate: 2.0e-4
+num_train_epochs: 10.0
 lr_scheduler_type: cosine
 warmup_ratio: 0.05
 bf16: true
@@ -70,10 +67,10 @@ resume_from_checkpoint: null
 
 ### eval
 predict_with_generate: false
-per_device_eval_batch_size: 1
+per_device_eval_batch_size: 2
 eval_strategy: steps
 eval_steps: 100
 load_best_model_at_end: true
 metric_for_best_model: eval_loss
 greater_is_better: false
-early_stopping_steps: 3
+early_stopping_steps: 5

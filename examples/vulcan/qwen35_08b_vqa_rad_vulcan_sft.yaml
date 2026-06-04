@@ -1,18 +1,17 @@
 ### model
 # Replace with the local server path if the model has already been downloaded.
-model_name_or_path: Qwen/Qwen3.5-0.8B
+model_name_or_path: /root/autodl-pub-RTX4090-hdd-1/models/qwen3.5-0.8b
 trust_remote_code: true
 
 ### method
 stage: sft
 do_train: true
 finetuning_type: full
-deepspeed: examples/deepspeed/ds_z2_config.json
 
 ### dataset
 dataset_dir: datasets/vqa_rad
-dataset: vqa_rad_train
-eval_dataset: vqa_rad_test
+dataset: vqa_rad_train_yesno
+eval_dataset: vqa_rad_test_yesno
 template: qwen3_5_nothink
 cutoff_len: 2048
 preprocessing_num_workers: 8
@@ -49,7 +48,6 @@ num_train_epochs: 3.0
 lr_scheduler_type: cosine
 warmup_ratio: 0.03
 bf16: true
-ddp_timeout: 180000000
 resume_from_checkpoint: null
 
 ### eval

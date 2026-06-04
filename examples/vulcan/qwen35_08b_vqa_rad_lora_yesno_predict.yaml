@@ -1,0 +1,37 @@
+### model
+model_name_or_path: /root/autodl-pub-RTX4090-hdd-1/models/qwen3.5-0.8b
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: false
+do_predict: true
+finetuning_type: lora
+
+### dataset
+dataset_dir: datasets/vqa_rad
+eval_dataset: vqa_rad_test_yesno
+template: qwen3_5_nothink
+cutoff_len: 2048
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+enable_thinking: false
+
+### processor
+image_max_pixels: 262144
+image_min_pixels: 1024
+
+### output
+output_dir: outputs/lora-yesno-predict
+overwrite_output_dir: true
+report_to: none
+
+### generation
+predict_with_generate: true
+max_new_tokens: 8
+do_sample: false
+num_beams: 1
+skip_special_tokens: true
+
+### eval
+per_device_eval_batch_size: 1

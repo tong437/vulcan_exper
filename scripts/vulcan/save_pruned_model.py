@@ -20,6 +20,7 @@ from typing import Any
 import torch
 import yaml
 
+
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in sys.path:

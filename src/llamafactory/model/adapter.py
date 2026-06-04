@@ -46,11 +46,33 @@ def _setup_full_tuning(
 
     logger.info_rank0("Fine-tuning method: Full")
     forbidden_modules = get_forbidden_modules(model.config, finetuning_args)
+
+    unfreeze_last_n = getattr(finetuning_args, "unfreeze_vision_tower_last_n", 0)
+    vision_depth = 0
+    if unfreeze_last_n > 0:
+        vision_config = getattr(model.config, "vision_config", None)
+        if vision_config is not None:
+            vision_depth = getattr(vision_config, "depth", 0)
+        if vision_depth > 0:
+            logger.info_rank0(
+                f"Unfreezing last {unfreeze_last_n} vision tower blocks (blocks {vision_depth - unfreeze_last_n}-{vision_depth - 1})."
+            )
+        else:
+            unfreeze_last_n = 0
+
     for name, param in model.named_parameters():
         if not any(forbidden_module in name for forbidden_module in forbidden_modules):
             if cast_trainable_params_to_fp32:
                 param.data = param.data.to(torch.float32)
         else:
+            if unfreeze_last_n > 0:
+                m = re.search(r"visual\.blocks\.(\d+)", name)
+                if m:
+                    block_idx = int(m.group(1))
+                    if block_idx >= vision_depth - unfreeze_last_n:
+                        if cast_trainable_params_to_fp32:
+                            param.data = param.data.to(torch.float32)
+                        continue
             param.requires_grad_(False)
 
 

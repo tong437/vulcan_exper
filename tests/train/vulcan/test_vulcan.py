@@ -18,6 +18,7 @@ import pytest
 import torch
 from transformers import TrainingArguments
 
+from llamafactory.train.trainer_utils import create_custom_optimizer
 from llamafactory.train.vulcan import (
     build_layerwise_cluster_idx,
     build_third_keep_ratios,
@@ -27,7 +28,6 @@ from llamafactory.train.vulcan import (
     init_collapse_lambdas,
     weight_collapse_loss,
 )
-from llamafactory.train.trainer_utils import create_custom_optimizer
 from llamafactory.train.vulcan.pruning import pruning_mlp
 
 
