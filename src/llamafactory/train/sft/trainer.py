@@ -219,7 +219,6 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             lambda2,
             use_weight_proxy=self.finetuning_args.collapse_use_weight_proxy,
         )
-        print(f"[DEBUG _add_vulcan_loss] main_loss={loss.item():.4f}, collapse_loss={loss_collapse.item():.4f}, lambda1={lambda1.item():.4f}, lambda2={lambda2.item():.4f}, learnable={self.finetuning_args.collapse_learnable_lambda}")
         self._vulcan_log_cache = {
             "collapse_loss": loss_collapse.detach().float().item(),
             "collapse_lambda1": lambda1.detach().float().item(),
@@ -265,7 +264,6 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         loss = self._add_vulcan_loss(model, loss)
         loss = self._add_align_loss(loss)
-        print(f"[DEBUG compute_loss] Step complete: main_loss={loss.item():.4f}, vulcan_log_cache={self._vulcan_log_cache}")
         if return_outputs:
             return loss, outputs
 
