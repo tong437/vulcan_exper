@@ -24,7 +24,7 @@ deepspeed: examples/deepspeed/ds_z2_config.json
 
 ### multimodal: freeze vision tower to prevent catastrophic forgetting on small dataset
 freeze_vision_tower: true
-unfreeze_vision_tower_last_n: 0
+unfreeze_vision_tower_last_n: 8
 freeze_multi_modal_projector: false
 freeze_language_model: false
 
@@ -35,8 +35,8 @@ language_model_lr: 5.0e-7
 
 ### dataset
 dataset_dir: datasets/vqa_rad
-dataset: vqa_rad_train
-eval_dataset: vqa_rad_test
+dataset: vqa_rad_train_yesno
+eval_dataset: vqa_rad_test_yesno
 template: qwen3_5_nothink
 cutoff_len: 2048
 preprocessing_num_workers: 8
@@ -63,9 +63,9 @@ gradient_accumulation_steps: 8
 learning_rate: 3.0e-7
 num_train_epochs: 8.0
 lr_scheduler_type: cosine
-warmup_ratio: 0.05
+warmup_ratio: 0.1
 bf16: true
-ddp_timeout: 180000000
+ddp_timeout: 3600
 resume_from_checkpoint: null
 
 ### eval

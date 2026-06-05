@@ -100,30 +100,38 @@ def _get_cluster_tensor_cache(
     model: "nn.Module",
     cluster_idx: ClusterIdx,
     device: torch.device,
-) -> list[tuple[torch.Tensor, torch.Tensor] | None]:
+) -> list[tuple[torch.Tensor, torch.Tensor, int] | None]:
     cache_key = (id(cluster_idx), str(device))
     cached_key = getattr(model, "_vulcan_cluster_tensor_cache_key", None)
     cached_value = getattr(model, "_vulcan_cluster_tensor_cache", None)
     if cached_key == cache_key and cached_value is not None:
         return cached_value
 
-    tensor_cache: list[tuple[torch.Tensor, torch.Tensor] | None] = []
+    tensor_cache: list[tuple[torch.Tensor, torch.Tensor, int] | None] = []
     for layer_clusters in cluster_idx:
         if not layer_clusters:
             tensor_cache.append(None)
             continue
 
-        neuron_idxs: list[int] = []
-        anchor_idxs: list[int] = []
+        all_idxs: list[int] = []
+        all_anchor_idxs: list[int] = []
+        cnt = 0
         for cluster in layer_clusters:
             neurons = [int(idx) for idx in cluster["neuron"]]
-            neuron_idxs.extend(neurons)
-            anchor_idxs.extend([int(cluster["anchor"])] * len(neurons))
+            anchor = int(cluster["anchor"])
+            if len(neurons) <= 1:
+                continue
+            cnt += 1
+            for neuron in neurons:
+                if neuron != anchor:
+                    all_idxs.append(neuron)
+                    all_anchor_idxs.append(anchor)
 
         tensor_cache.append(
             (
-                torch.tensor(neuron_idxs, device=device, dtype=torch.long),
-                torch.tensor(anchor_idxs, device=device, dtype=torch.long),
+                torch.tensor(all_idxs, device=device, dtype=torch.long),
+                torch.tensor(all_anchor_idxs, device=device, dtype=torch.long),
+                cnt,
             )
         )
 
@@ -146,33 +154,22 @@ def weight_collapse_loss(
 
     loss = torch.zeros((), device=lambda1.device, dtype=torch.float32)
     cluster_tensor_cache = _get_cluster_tensor_cache(model, cluster_idx, lambda1.device)
-    total_diff_L1 = 0.0
-    total_diff_L2 = 0.0
+
     for layer_ref, layer_tensors in zip(mlp_layers, cluster_tensor_cache):
         if layer_tensors is None:
+            continue
+
+        neuron_idxs, anchor_idxs, cnt = layer_tensors
+        if cnt == 0:
             continue
 
         up_proj_w = layer_ref.mlp.up_proj.weight
         gate_proj_w = layer_ref.mlp.gate_proj.weight
         weight_proxy = _get_weight_proxy(up_proj_w, gate_proj_w, use_weight_proxy)
 
-        neuron_idxs, anchor_idxs = layer_tensors
-        diff_w = weight_proxy.index_select(0, neuron_idxs) - weight_proxy.index_select(0, anchor_idxs)
-        diff_L1 = diff_w.abs().sum().item()
-        diff_L2 = diff_w.pow(2).sum().item()
-        total_diff_L1 += diff_L1
-        total_diff_L2 += diff_L2
-
-    for layer_ref, layer_tensors in zip(mlp_layers, cluster_tensor_cache):
-        if layer_tensors is None:
-            continue
-
-        up_proj_w = layer_ref.mlp.up_proj.weight
-        gate_proj_w = layer_ref.mlp.gate_proj.weight
-        weight_proxy = _get_weight_proxy(up_proj_w, gate_proj_w, use_weight_proxy)
-
-        neuron_idxs, anchor_idxs = layer_tensors
-        diff_w = weight_proxy.index_select(0, neuron_idxs) - weight_proxy.index_select(0, anchor_idxs)
-        loss = loss + lambda1 * diff_w.abs().sum() + lambda2 * diff_w.pow(2).sum()
+        diff_w = weight_proxy[neuron_idxs] - weight_proxy[anchor_idxs]
+        diff_w = diff_w.float()
+        loss_cluster = lambda1 * diff_w.abs().sum() + lambda2 * diff_w.pow(2).sum()
+        loss = loss + loss_cluster / (cnt + 1e-10)
 
     return loss

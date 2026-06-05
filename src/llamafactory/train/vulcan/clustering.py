@@ -17,7 +17,7 @@ from typing import Any
 
 import numpy as np
 import torch
-from scipy.spatial.distance import cdist
+from sklearn.metrics.pairwise import euclidean_distances
 
 from .modeling import find_mlp_layers, get_intermediate_size
 from .schema import ClusterIdx
@@ -48,27 +48,32 @@ def get_cluster_greedy_match(
     if activation.shape[0] != num_vectors:
         raise ValueError(f"activation length {activation.shape[0]} does not match vectors {num_vectors}.")
 
-    dist = cdist(vectors, vectors, metric="euclidean").astype(np.float32)
+    dist = euclidean_distances(vectors).astype(np.float32)
     assigned = np.zeros(num_vectors, dtype=bool)
     cluster_list: list[dict[str, Any]] = []
+    cluster_size = num_vectors // n_clusters
 
     while not assigned.all():
         unassigned = np.where(~assigned)[0]
-        remaining_clusters = n_clusters - len(cluster_list)
-        if remaining_clusters <= 1:
-            anchor_idx = int(unassigned[np.argmax(activation[unassigned])])
+        if len(unassigned) <= cluster_size:
+            act = activation[unassigned]
+            max_idx_in_cluster = int(np.argmax(act))
+            anchor_idx = int(unassigned[max_idx_in_cluster])
             cluster_list.append({"anchor": anchor_idx, "neuron": unassigned.astype(int).tolist()})
             assigned[unassigned] = True
-            break
+            continue
 
-        cluster_size = int(np.ceil(len(unassigned) / remaining_clusters))
-        sub_dist = dist[np.ix_(unassigned, unassigned)].copy()
+        sub_dist = dist[np.ix_(unassigned, unassigned)]
         np.fill_diagonal(sub_dist, np.inf)
         nearest = sub_dist.min(axis=1)
         seed = int(unassigned[nearest.argmin()])
         seed_dists = dist[seed, unassigned]
-        members = unassigned[np.argsort(seed_dists)[:cluster_size]]
-        anchor_idx = int(members[np.argmax(activation[members])])
+        k = cluster_size
+        nearest_local = np.argsort(seed_dists)[:k]
+        members = unassigned[nearest_local]
+        act = activation[members]
+        max_idx_in_cluster = int(np.argmax(act))
+        anchor_idx = int(members[max_idx_in_cluster])
         cluster_list.append({"anchor": anchor_idx, "neuron": members.astype(int).tolist()})
         assigned[members] = True
 

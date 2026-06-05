@@ -53,6 +53,9 @@ class YesNoLogitsProcessor(LogitsProcessor):
         self.eos_token_id = eos_token_id
         self._generated_first = False
 
+    def __len__(self) -> int:
+        return 1
+
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor) -> torch.FloatTensor:
         if not self._generated_first:
             mask = torch.full_like(scores, float("-inf"))
@@ -230,7 +233,7 @@ def main() -> None:
         input_ids = torch.tensor([prompt_ids], device=device)
         attention_mask = torch.ones_like(input_ids)
 
-        logits_processor = YesNoLogitsProcessor(allowed_ids, eos_id)
+        logits_processor = [YesNoLogitsProcessor(allowed_ids, eos_id)]
 
         with torch.no_grad():
             output_ids = model.generate(
