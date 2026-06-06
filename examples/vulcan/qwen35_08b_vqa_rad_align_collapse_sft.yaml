@@ -23,21 +23,24 @@ image_max_pixels: 262144
 image_min_pixels: 1024
 
 ### vulcan collapse loss
+# Keep the collapse side aligned with the v3 recommendation.
+# Activation alignment remains experimental.
 use_collapse_loss: true
 collapse_cluster_idx_path: saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50.json
 collapse_lambda1: 0.0
 collapse_lambda2: 0.0
 collapse_learnable_lambda: true
-collapse_lambda_lr: -0.01
-collapse_use_weight_proxy: true
+collapse_lambda_lr: -1.0
+collapse_use_weight_proxy: false
 
 ### vulcan activation alignment
 use_activation_align: true
-align_lambda: 0.5
-align_temperature: 0.1
+align_lambda: 10.0
+align_temperature: 0.05
 align_quantile: 0.8
 align_pool_type: mean
-align_loss_type: l1
+align_loss_type: soft_iou
+align_text_mode: answer
 
 ### output
 output_dir: saves/qwen35-0_8b-vqa-rad/full/vulcan-align-collapse-sft
@@ -50,11 +53,11 @@ report_to: none
 
 ### train
 per_device_train_batch_size: 1
-gradient_accumulation_steps: 8
-learning_rate: 1.0e-5
-num_train_epochs: 3.0
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-4
+num_train_epochs: 6.0
 lr_scheduler_type: cosine
-warmup_ratio: 0.03
+warmup_ratio: 0.1
 bf16: true
 ddp_timeout: 180000000
 resume_from_checkpoint: null

@@ -424,9 +424,18 @@ class ActivationAlignArguments:
         default="mean",
         metadata={"help": "Pooling type over token dimension: mean or max."},
     )
-    align_loss_type: Literal["l1", "neg_iou"] = field(
-        default="l1",
-        metadata={"help": "Type of alignment loss: l1 (L1 distance) or neg_iou (negative IoU)."},
+    align_loss_type: Literal["l1", "soft_iou", "neg_iou"] = field(
+        default="soft_iou",
+        metadata={"help": "Type of alignment loss: l1, soft_iou (1 - IoU), or neg_iou (legacy negative IoU)."},
+    )
+    align_text_mode: Literal["answer", "question", "qa"] = field(
+        default="answer",
+        metadata={
+            "help": (
+                "Which non-visual tokens to align with visual tokens: answer uses labels != IGNORE_INDEX, "
+                "question uses prompt tokens, and qa uses all non-visual valid tokens."
+            )
+        },
     )
 
 
@@ -573,11 +582,16 @@ class FinetuningArguments(
     )
     collapse_learnable_lambda: bool = field(
         default=False,
-        metadata={"help": "Whether to learn positive collapse loss coefficients via softplus parameters."},
+        metadata={"help": "Whether to learn raw collapse loss coefficients during SFT."},
     )
     collapse_lambda_lr: float | None = field(
         default=None,
-        metadata={"help": "Optional separate learning rate for learnable Vulcan lambda parameters."},
+        metadata={
+            "help": (
+                "Optional separate learning rate for learnable Vulcan lambda parameters. "
+                "A negative value enables gradient-ascent-style lambda growth in the current Vulcan optimizer."
+            )
+        },
     )
     collapse_use_weight_proxy: bool = field(
         default=True,
@@ -692,6 +706,12 @@ class FinetuningArguments(
 
         if self.use_activation_align and self.align_temperature <= 0:
             raise ValueError("`align_temperature` must be positive.")
+
+        if self.use_activation_align and self.align_loss_type not in ["l1", "soft_iou", "neg_iou"]:
+            raise ValueError("`align_loss_type` must be one of: l1, soft_iou, neg_iou.")
+
+        if self.use_activation_align and self.align_text_mode not in ["answer", "question", "qa"]:
+            raise ValueError("`align_text_mode` must be one of: answer, question, qa.")
 
         if self.pissa_init and (self.stage in ["ppo", "kto"] or self.use_ref_model):
             raise ValueError("Cannot use PiSSA for current training stage.")

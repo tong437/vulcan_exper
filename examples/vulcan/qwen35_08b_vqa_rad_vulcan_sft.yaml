@@ -23,6 +23,8 @@ image_max_pixels: 262144
 image_min_pixels: 1024
 
 ### vulcan collapse loss
+# v3 recommended setting for VQA-RAD yes/no 0.50 pruning:
+# raw learnable lambda + plain SGD gradient ascent, with direct MLP gradients.
 use_collapse_loss: true
 collapse_cluster_idx_path: saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_yesno.json
 collapse_lambda1: 0.0

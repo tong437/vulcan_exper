@@ -111,15 +111,58 @@ WANDB_DISABLED=true python src/train.py \
   output_dir=/path/to/output/vulcan-sft
 ```
 
+Recommended collapse settings for the current VQA-RAD yes/no experiment are:
+
+```yaml
+use_collapse_loss: true
+collapse_lambda1: 0.0
+collapse_lambda2: 0.0
+collapse_learnable_lambda: true
+collapse_lambda_lr: -1.0
+collapse_use_weight_proxy: false
+learning_rate: 1.0e-4
+gradient_accumulation_steps: 4
+num_train_epochs: 6.0
+```
+
+The best 0.50 run so far uses plain SGD gradient ascent for the lambda parameters. `collapse_use_weight_proxy: true`
+was useful for the original DeepSpeed compatibility design, but it failed in the current server experiment because the
+collapse gradients did not produce the desired MLP redundancy; keep it disabled for the main VQA-RAD run.
+
+## Activation Alignment
+
+Activation alignment is the multimodal extension path for Vulcan. It aligns the soft top-k MLP activation masks between
+visual tokens and task-relevant text tokens. Start with the align-only config before combining it with collapse loss:
+
+```yaml
+use_activation_align: true
+align_lambda: 10.0
+align_temperature: 0.05
+align_quantile: 0.8
+align_pool_type: mean
+align_loss_type: soft_iou
+align_text_mode: answer
+```
+
+`align_text_mode: answer` pools only assistant response tokens (`labels != IGNORE_INDEX`). Use `question` and `qa` for
+ablation runs after the answer-token baseline is stable.
+
 You can compare intra-cluster redundancy before and after collapse SFT:
 
 ```bash
 python scripts/vulcan/inspect_model_redundancy.py \
-  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/vulcan-sft \
-  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50.json \
+  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/sft \
+  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_yesno.json \
   --template qwen3_5_nothink \
   --trust_remote_code \
-  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_vulcan_sft.json
+  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_baseline_sft_0_50_yesno.json
+
+python scripts/vulcan/inspect_model_redundancy.py \
+  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/vulcan-sft-v3 \
+  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_yesno.json \
+  --template qwen3_5_nothink \
+  --trust_remote_code \
+  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_vulcan_sft_v3_0_50_yesno.json
 ```
 
 ## Prune Model

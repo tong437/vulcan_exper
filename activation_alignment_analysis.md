@@ -277,17 +277,36 @@ image tokens : text tokens = 120 : 24 = 5 : 1
 
 | 问题 | 建议 |
 |------|------|
-| Text 侧异质 | 只对 answer tokens 做 pool，不包含问题 token 和模板 token |
-| Align loss 太小 | `align_lambda` 至少设到 10 以上，才能和 collapse 抗衡 |
-| 视觉主导 | 在 text 侧内部做对比，而不是和 visual 对比 |
+| Text 侧异质 | 默认只对 answer tokens 做 pool，即 `labels != IGNORE_INDEX`，不包含问题 token 和模板 token |
+| Question 也有价值 | 新实现保留 `align_text_mode: question` 和 `align_text_mode: qa`，用于后续消融 |
+| Align loss 太小 | `align_lambda` 先设到 10 左右，并记录 `align_raw_loss`、`align_soft_iou`、token 数和 mask 均值 |
+| Top-K 目标 | 默认使用 `align_loss_type: soft_iou`，直接优化 visual/text soft top-k mask 的重叠度 |
+| 模态尺度差异 | visual/text 分别计算自己的 quantile threshold，避免用单侧阈值导致 mask 偏置 |
+
+新版实现要点：
+
+```yaml
+use_activation_align: true
+align_lambda: 10.0
+align_temperature: 0.05
+align_quantile: 0.8
+align_pool_type: mean
+align_loss_type: soft_iou
+align_text_mode: answer
+```
+
+`answer` 模式是第一版主实验，因为它只使用 SFT 真正监督的 assistant response token。`question` 模式会使用 prompt 侧非视觉 token，能测试“视觉证据是否应对齐问题语义”；但在当前数据管线里它仍可能包含模板、role 和换行 token，因此需要作为消融而不是默认主线。
 
 ### 对于 Collapse
 
 | 问题 | 建议 |
 |------|------|
-| Lambda 失控增长 | `collapse_learnable_lambda: false`，固定 lambda 值 |
-| 负 lr | 如果用可学习 lambda，`collapse_lambda_lr: 0.0001`（正的，极小） |
-| Lambda 太大 | 固定 `λ1=λ2=0.1`，控制 collapse loss 量级 |
+| Lambda 失控增长 | 避免 v1 的 `weight_proxy=true` + 低主学习率组合，当前服务器实验中 lambda 到 `149` 后训练不稳定 |
+| 负 lr | 当前 v3 主线保留 `collapse_lambda_lr: -1.0`，配合 plain SGD 对 lambda 做梯度上升 |
+| Lambda 太大 | v3 的最终 lambda 约 `55.64`，比 v2 的 `69.65` 和 v1 的 `149` 更稳 |
+| 推荐配置 | `collapse_use_weight_proxy: false`、`learning_rate: 1.0e-4`、`gradient_accumulation_steps: 4`、`num_train_epochs: 6.0` |
+
+注：本节早期分析曾建议固定正 lambda 或极小正 lr。最新服务器 v2/v3 结果显示，在当前 VQA-RAD yes/no 0.50 剪枝主线中，裸 learnable lambda + 负 lr 梯度上升可以实现剪枝零损失；因此主实验以 v3 配置为准。
 
 ### 正确的实验对照设计
 

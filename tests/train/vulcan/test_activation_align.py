@@ -59,6 +59,7 @@ def _make_finetuning_args(**kwargs):
         align_quantile=0.8,
         align_pool_type="mean",
         align_loss_type="l1",
+        align_text_mode="answer",
     )
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
@@ -81,6 +82,43 @@ def test_activation_aligner_l1_loss_scalar():
     input_ids = torch.tensor([[99, 99, 1, 1], [99, 1, 1, 1]])
     aligner.set_input_ids(input_ids)
     x = torch.randn(2, 4, 2)
+    model(x)
+    loss = aligner.compute_alignment_loss()
+
+    assert loss.shape == ()
+    assert loss.item() >= 0
+    aligner.remove_hooks()
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_activation_aligner_answer_text_mode_uses_labels():
+    model = TinyModel(num_layers=1)
+    aligner = ActivationAligner(model, _make_finetuning_args(), image_token_id=99)
+
+    input_ids = torch.tensor([[99, 10, 11, 12]])
+    labels = torch.tensor([[-100, -100, 11, -100]])
+    attention_mask = torch.ones_like(input_ids)
+    aligner.set_batch(input_ids=input_ids, labels=labels, attention_mask=attention_mask)
+    x = torch.randn(1, 4, 2)
+    model(x)
+    loss = aligner.compute_alignment_loss()
+    logs = aligner.get_log()
+
+    assert loss.shape == ()
+    assert logs["align_visual_tokens"] == 1.0
+    assert logs["align_text_tokens"] == 1.0
+    aligner.remove_hooks()
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_activation_aligner_soft_iou_loss():
+    model = TinyModel(num_layers=1)
+    aligner = ActivationAligner(model, _make_finetuning_args(align_loss_type="soft_iou"), image_token_id=99)
+
+    input_ids = torch.tensor([[99, 1]])
+    labels = torch.tensor([[-100, 1]])
+    aligner.set_batch(input_ids=input_ids, labels=labels, attention_mask=torch.ones_like(input_ids))
+    x = torch.randn(1, 2, 2)
     model(x)
     loss = aligner.compute_alignment_loss()
 

@@ -24,11 +24,12 @@ image_min_pixels: 1024
 
 ### vulcan activation alignment
 use_activation_align: true
-align_lambda: 1.0
-align_temperature: 0.1
+align_lambda: 10.0
+align_temperature: 0.05
 align_quantile: 0.8
 align_pool_type: mean
-align_loss_type: l1
+align_loss_type: soft_iou
+align_text_mode: answer
 
 ### output
 output_dir: saves/qwen35-0_8b-vqa-rad/full/vulcan-align-sft

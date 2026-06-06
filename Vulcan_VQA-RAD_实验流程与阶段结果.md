@@ -34,6 +34,18 @@ limitations under the License.
 - 训练方式：full SFT
 - 评估重点：VQA-RAD test split 中答案严格为 `yes` 或 `no` 的 251 条样本
 
+### 1.1 当前最新结论
+
+最新服务器实验已完成 `keep_ratio=0.50` 的关键对照。结论从早期的“0.50 过于激进”更新为：
+
+> Vulcan v3 在 50% MLP 剪枝下实现剪枝零损失：未剪枝 yes/no accuracy 为 `0.6056`，剪枝后仍为 `0.6056`。相比 baseline 直接 0.50 剪枝的 `0.4980`，Vulcan 剪枝模型高出 `10.76` 个百分点；但相比 baseline SFT 未剪枝的 `0.6733`，Vulcan 正则训练本身带来约 `6.77` 个百分点任务性能代价。
+
+因此当前最准确的阶段判断是：
+
+- Collapse Loss 成功把 0.50 结构化 MLP 剪枝从灾难性退化变成可控退化。
+- 直接剪 baseline 会严重偏向 `yes`，Vulcan v3 剪枝后显著缓解该偏置。
+- 当前瓶颈不再是“剪枝后是否掉点”，而是“如何降低 Collapse 训练对未剪枝模型的原任务能力损伤”。
+
 ## 2. 仓库新增内容概览
 
 ### 2.1 配置文件
@@ -414,9 +426,11 @@ model.config.text_config.intermediate_size = target_intermediate_size
 - 保存为 HuggingFace 模型时，config 必须和实际线性层形状一致。
 - 当前实现要求所有 MLP 层使用统一剪枝比例，否则 config 无法简单表达每层不同 intermediate size。
 
-## 9. 0.50 剪枝后 yes/no 结果
+## 9. 早期 0.50 剪枝后 yes/no 结果
 
-`vulcan-pruned` 的 yes/no 评估结果：
+本节记录的是早期 0.50 配置结果。该结果已被第 13 节的 v2/v3 服务器实验更新覆盖；最新结论以第 13 节为准。
+
+早期 `vulcan-pruned` 的 yes/no 评估结果：
 
 ```json
 {
@@ -451,8 +465,8 @@ model.config.text_config.intermediate_size = target_intermediate_size
 | 模型 | keep ratio | yes/no accuracy | prediction coverage |
 | --- | ---: | ---: | ---: |
 | baseline SFT | 无剪枝 | 0.6733 | 0.9880 |
-| Vulcan SFT 未剪枝 | 无剪枝 | 0.6733 | 0.9960 |
-| Vulcan pruned | 0.50 | 0.4980 | 0.9960 |
+| 早期 Vulcan SFT 未剪枝 | 无剪枝 | 0.6733 | 0.9960 |
+| 早期 Vulcan pruned | 0.50 | 0.4980 | 0.9960 |
 
 关键观察：
 
@@ -461,13 +475,15 @@ model.config.text_config.intermediate_size = target_intermediate_size
 - 混淆矩阵显示模型严重偏向 `yes`：251 条中预测 `yes` 232 条。
 - `no` 类被破坏最严重：真实 `no` 的 133 条中有 120 条被预测成 `yes`。
 
-当前结论：
+当时结论：
 
 > 在当前 lambda 和训练轮数下，`keep_ratio=0.50` 对 VQA-RAD yes/no 子集过于激进。Collapse Loss 没有破坏未剪枝模型，但尚不足以让 50% MLP 剪枝保持判断能力。
 
+更新：第 13 节的 v2/v3 结果显示，改用 `collapse_use_weight_proxy=false`、`learning_rate=1e-4`、6 epoch，并在 v3 中使用 plain SGD lambda 后，0.50 剪枝可以达到剪枝零损失。
+
 ## 10. 0.75 剪枝实验结果
 
-由于 `keep_ratio=0.50` 掉点明显，继续做了更保守的 `keep_ratio=0.75` 对照。
+由于早期 `keep_ratio=0.50` 掉点明显，当时继续做了更保守的 `keep_ratio=0.75` 对照。
 
 ### 10.1 0.75 聚类、训练与剪枝命令
 
@@ -609,8 +625,8 @@ python scripts/vulcan/save_pruned_model.py \
 | 模型 | keep ratio | yes/no accuracy | prediction coverage | 备注 |
 | --- | ---: | ---: | ---: | --- |
 | baseline SFT | 无剪枝 | 0.6733 | 0.9880 | 主基线 |
-| Vulcan SFT 未剪枝 | 无剪枝 | 0.6733 | 0.9960 | 正则训练未掉点 |
-| Vulcan pruned | 0.50 | 0.4980 | 0.9960 | 掉点明显，严重偏向 `yes` |
+| 早期 Vulcan SFT 未剪枝 | 无剪枝 | 0.6733 | 0.9960 | 正则训练未掉点 |
+| 早期 Vulcan pruned | 0.50 | 0.4980 | 0.9960 | 掉点明显，严重偏向 `yes` |
 | Vulcan pruned | 0.75 | 0.6454 | 0.9960 | 只比 baseline 低约 2.79 个百分点 |
 | baseline pruned | 0.75 | 0.6574 | 0.9880 | 不经 Collapse Loss，略高于 Vulcan 0.75 |
 
@@ -627,9 +643,11 @@ python scripts/vulcan/save_pruned_model.py \
 
 > 当前方法在 `keep_ratio=0.75` 下可以保留大部分 yes/no 能力，但与 baseline 直接 0.75 剪枝相比，当前 Collapse Loss 配置没有带来 yes/no accuracy 收益。`keep_ratio=0.50` 对当前任务、模型和正则强度过于激进。
 
+更新：该阶段结论是 v2/v3 之前的历史判断。第 13 节显示，在最终 v3 配置下，0.50 剪枝本身已经可以做到零损失，新的主要问题转为 Collapse SFT 的未剪枝性能代价。
+
 ### 10.4 从零初始化 learnable lambda 对照实验
 
-为了对齐原始实验指导中的“可学习 lambda，初始为 0”设定，又补充了一组 `keep_ratio=0.75` 的 learnable lambda 对照。该实验仍使用 uniform `cluster_idx_greedy_match_0_75.json`，不做分层聚类或分层剪枝。
+为了对齐原始实验指导中的“可学习 lambda，初始为 0”设定，又补充了一组 `keep_ratio=0.75` 的 learnable lambda 对照。该实验仍使用 uniform `cluster_idx_greedy_match_0_75.json`，不做分层聚类或分层剪枝。注意：本节记录的是旧 optimizer 方案下的负 lambda 问题，不代表第 13 节 v3 的 plain SGD 梯度上升方案。
 
 配置差异：
 
@@ -708,9 +726,9 @@ step=675 collapse_loss=-1812.0928 lambda1=-0.0033722 lambda2=-0.0034027
 
 后续处理：
 
-- 不再把无约束 learnable lambda 作为主实验路线。
-- 若继续做 learnable 版本，必须使用非负约束、外部调度或其他约束优化方式，避免 lambda 变成负值。
-- 当前主线回到固定正系数或手动 schedule，例如只使用 `collapse_lambda1 > 0`、`collapse_lambda2 = 0` 做强度 sweep。
+- 该旧对照不再作为主线。
+- 最新主线使用裸 learnable lambda + `collapse_lambda_lr=-1.0` + plain SGD 梯度上升，避免普通梯度下降把 lambda 推成负值。
+- 是否还需要固定正系数或手动 schedule，可作为降低未剪枝性能代价的后续对照，而不是当前 0.50 剪枝能否成立的前置条件。
 
 ## 11. 评估脚本指标解析
 
@@ -849,58 +867,138 @@ torch.distributed.elastic.multiprocessing.api.SignalException: Process got signa
 - 设置较合理的 `save_steps`，避免中断后丢失太多 step。
 - 若已有 checkpoint，使用 `resume_from_checkpoint=<checkpoint-path>` 恢复。
 
-## 13. 下一步计划
+## 13. 0.50 最新服务器实验：v2/v3
 
-### 13.1 对照结论：baseline 直接 0.75 剪枝与 learnable lambda 对照已完成
+### 13.1 实验配置对比
 
-baseline 直接 0.75 剪枝结果为 `0.6574`，略高于 Vulcan 0.75 剪枝的 `0.6454`。因此，至少在 yes/no 子集上，当前 Collapse Loss 配置尚不能证明带来了剪枝鲁棒性收益。
+最新 0.50 实验仍使用 yes/no 子集：
 
-从零初始化 learnable lambda 的 0.75 剪枝结果为 `0.6653`，但由于训练后 `lambda1/lambda2` 均变为负值，collapse loss 变成 anti-collapse 方向，不能作为正则项有效的证据。
+- 训练集：`vqa_rad_train_yesno`，940 条样本。
+- 测试集：`vqa_rad_test_yesno`，251 条样本。
+- 聚类：Greedy Match，`3584 -> 1792`，特征为 `concat(up_proj.weight, gate_proj.weight)` 行向量，anchor 为簇内激活最大 neuron。
 
-下一步应转向分析原因，而不是继续直接宣称 Vulcan 有效：
+Vulcan 训练配置对比：
 
-- 对比 baseline 与 Vulcan SFT 的簇内 L1/L2/cosine，确认 Collapse Loss 是否确实让同簇权重更接近。
-- 检查固定正 `collapse_lambda1/lambda2` 是否过弱，导致构造冗余不足。
-- 检查 yes/no accuracy 之外的完整 VQA-RAD 指标，避免只在闭合题上做判断。
-- 尝试更强固定正则、手动 lambda schedule、更长 Vulcan SFT 或分层剪枝。
+| 配置项 | v1（失败） | v2 | v3（最终推荐） |
+| --- | --- | --- | --- |
+| `collapse_use_weight_proxy` | `true` | `false` | `false` |
+| lambda 优化器 | AdamW | AdamW | plain SGD（梯度上升） |
+| `collapse_lambda_lr` | `-1.0` | `-1.0` | `-1.0` |
+| 主学习率 | `5e-6` | `1e-4` | `1e-4` |
+| `num_train_epochs` | `3` | `6` | `6` |
+| `gradient_accumulation_steps` | `8` | `4` | `4` |
+| 训练趋势 | loss 持续上升 | 先升后降 | 先升后降 |
+| lambda 最终值 | `149`，失控 | `69.65` | `55.64` |
 
-### 13.2 补充完整 test set 评估
+当前推荐配置已经写入 `examples/vulcan/qwen35_08b_vqa_rad_vulcan_sft.yaml`：
 
-当前主要评估 yes/no 子集，下一步应对这些模型跑完整 VQA-RAD test split：
-
-- baseline SFT
-- Vulcan SFT 未剪枝
-- Vulcan pruned 0.75
-- baseline pruned 0.75
-- Vulcan pruned 0.50
-- Vulcan pruned 0.75 learnable lambda（仅作负 lambda 对照）
-
-完整 test 指标可以继续使用 LlamaFactory 自带 BLEU/ROUGE，并结合 `eval_vqa_predictions.py` 的 normalized exact / token F1。
-
-### 13.3 后续可探索方向
-
-- 固定 `collapse_lambda1/lambda2` 为正数，做强度 sweep，优先尝试只开 L1：`collapse_lambda1=1e-8, 3e-8, 1e-7, 3e-7`，`collapse_lambda2=0`。
-- 若继续探索 learnable lambda，必须使用非负约束或手动 schedule，避免裸参数被优化到负值。
-- 调大固定正则或延长 Vulcan SFT 后，再重新挑战 `keep_ratio=0.50`。
-- 尝试分层剪枝：浅层保留更高比例，中后层压缩更强。
-- 使用 `inspect_model_redundancy.py` 对比 baseline、Vulcan SFT 的簇内 L1/L2/cosine，证明正则项确实增强了簇内冗余。
-
-### 13.4 建议后续补充指标
-
-建议继续记录：
-
-```text
-baseline full eval
-baseline yes/no eval
-vulcan-sft yes/no eval
-vulcan-pruned-0.75 yes/no eval
-vulcan-pruned-0.50 yes/no eval
-baseline-pruned-0.75 yes/no eval
-vulcan-pruned-0.75-learnable yes/no eval
+```yaml
+use_collapse_loss: true
+collapse_lambda1: 0.0
+collapse_lambda2: 0.0
+collapse_learnable_lambda: true
+collapse_lambda_lr: -1.0
+collapse_use_weight_proxy: false
+learning_rate: 1.0e-4
+gradient_accumulation_steps: 4
+num_train_epochs: 6.0
 ```
 
-并补充：
+关键工程判断：
 
+- `collapse_use_weight_proxy=false` 是当前 VQA-RAD 服务器实验的必要设置。`weight_proxy=true` 的 v1 没有形成稳定有效的 MLP 冗余，训练 loss 持续上升，lambda 最终到 `149`。
+- `collapse_lambda_lr=-1.0` 与自定义 plain SGD lambda optimizer 配合，用梯度上升让 lambda 随 collapse loss 梯度增大。
+- 主学习率 `1e-4` 与 lambda lr 保持足够大的比例差异后，v2/v3 训练从“持续上升”变为“先升后降”。
+- v3 的 plain SGD 去掉 AdamW 动量和自适应项后，lambda 最终值从 v2 的 `69.65` 降到 `55.64`，训练更稳。
+
+### 13.2 Yes/No 准确率
+
+| 模型 | keep ratio | yes/no accuracy | vs baseline SFT | 备注 |
+| --- | ---: | ---: | ---: | --- |
+| baseline SFT | 无剪枝 | `0.6733` | - | 主基线 |
+| baseline 0.50 剪枝 | `0.50` | `0.4980` | `-0.1753` | 直接剪枝掉 `17.5` 个百分点 |
+| vulcan-sft-v2 未剪枝 | 无剪枝 | `0.6135` | `-0.0598` | AdamW lambda |
+| vulcan-sft-v2 0.50 剪枝 | `0.50` | `0.6135` | `-0.0598` | 剪枝零损失 |
+| vulcan-sft-v3 未剪枝 | 无剪枝 | `0.6056` | `-0.0677` | plain SGD lambda |
+| vulcan-sft-v3 0.50 剪枝 | `0.50` | `0.6056` | `-0.0677` | 剪枝零损失 |
+
+核心对比：
+
+- baseline 直接 0.50 剪枝：`0.6733 -> 0.4980`，掉 `17.53` 个百分点。
+- Vulcan v3 0.50 剪枝：`0.6056 -> 0.6056`，剪枝零损失。
+- Vulcan v3 剪枝模型比 baseline 直接 0.50 剪枝高 `10.76` 个百分点。
+- Vulcan v3 剪枝模型仍比 baseline SFT 未剪枝低 `6.77` 个百分点，说明当前主要代价发生在 Collapse SFT 阶段，而不是剪枝阶段。
+
+### 13.3 混淆矩阵
+
+baseline SFT 未剪枝：
+
+```text
+no->no: 89,  no->yes: 44
+yes->no: 35, yes->yes: 83
+```
+
+baseline 0.50 剪枝：
+
+```text
+no->no: 13,  no->yes: 120
+yes->no: 5,  yes->yes: 112
+```
+
+baseline 直接剪枝后严重偏向 `yes`，真实 `no` 的 133 条中有 120 条被预测为 `yes`。
+
+vulcan-sft-v3 0.50 剪枝：
+
+```text
+no->no: 85,  no->yes: 48
+yes->no: 51, yes->yes: 67
+```
+
+Vulcan v3 剪枝后显著缓解了直接剪枝造成的 `yes` 偏置：`no->yes` 从 120 降到 48。代价是 `yes` 类召回下降，`yes->no` 从 baseline 未剪枝的 35 上升到 51。
+
+### 13.4 阶段结论
+
+当前 0.50 实验说明：
+
+- Collapse Loss 确实提升了 MLP 结构化剪枝鲁棒性。
+- “剪枝零损失”已经在 v2/v3 两组配置上复现。
+- 与 baseline 直接剪枝相比，Vulcan v3 0.50 剪枝模型收益明显。
+- 与 baseline 未剪枝相比，Vulcan v3 仍有约 `6-7` 个百分点任务性能代价。
+
+因此当前下一步不应再只问“0.50 能不能剪”，而应围绕两个问题推进：
+
+- 用 redundancy 统计证明剪枝零损失来自簇内权重坍缩。
+- 降低 Collapse SFT 对未剪枝 yes/no accuracy 的副作用。
+
+## 14. 冗余分析命令
+
+本地仓库没有服务器上的 `saves/` 模型权重目录，因此 redundancy 统计需要在服务器上执行。建议用同一个 `cluster_idx_greedy_match_0_50_yesno.json` 分别检查 baseline SFT 和 vulcan-sft-v3：
+
+```bash
+python scripts/vulcan/inspect_model_redundancy.py \
+  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/sft \
+  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_yesno.json \
+  --template qwen3_5_nothink \
+  --trust_remote_code \
+  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_baseline_sft_0_50_yesno.json
+
+python scripts/vulcan/inspect_model_redundancy.py \
+  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/vulcan-sft-v3 \
+  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_yesno.json \
+  --template qwen3_5_nothink \
+  --trust_remote_code \
+  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_vulcan_sft_v3_0_50_yesno.json
+```
+
+期望现象：
+
+- `redundancy_vulcan_sft_v3_0_50_yesno.json` 的 `mean_l1`、`mean_l2` 应明显低于 baseline。
+- `redundancy_vulcan_sft_v3_0_50_yesno.json` 的 `mean_cosine` 应高于 baseline。
+- 若该趋势成立，可支撑“Vulcan v3 的剪枝零损失来自 Collapse Loss 构造出的簇内权重冗余，而不是 yes/no 指标偶然波动”。
+
+### 14.1 建议继续补充
+
+- 完整 VQA-RAD test split 指标：baseline SFT、baseline pruned 0.50、vulcan-sft-v3、vulcan-pruned-v3 0.50。
 - 剪枝前后参数量与模型目录大小。
-- `inspect_model_redundancy.py` 的簇内 L1/L2/cosine 统计。
-- yes/no 混淆矩阵，尤其关注 `no->yes` 是否仍严重。
+- v2/v3 的 `trainer_log.jsonl` 中 lambda、collapse loss、main loss 曲线。
+- yes/no 分类报告，重点观察 `no->yes` 偏置和 `yes->no` 代价之间的权衡。

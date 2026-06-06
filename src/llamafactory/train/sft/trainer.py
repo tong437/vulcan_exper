@@ -223,8 +223,12 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             "collapse_loss": loss_collapse.detach().float().item(),
             "collapse_lambda1": lambda1.detach().float().item(),
             "collapse_lambda2": lambda2.detach().float().item(),
-            "collapse_lambda1_grad_norm": lambda1.grad.detach().float().norm().item() if lambda1.grad is not None else 0.0,
-            "collapse_lambda2_grad_norm": lambda2.grad.detach().float().norm().item() if lambda2.grad is not None else 0.0,
+            "collapse_lambda1_grad_norm": (
+                lambda1.grad.detach().float().norm().item() if lambda1.grad is not None else 0.0
+            ),
+            "collapse_lambda2_grad_norm": (
+                lambda2.grad.detach().float().norm().item() if lambda2.grad is not None else 0.0
+            ),
         }
         return loss + loss_collapse.float()
 
@@ -233,8 +237,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             return loss
 
         align_loss = self.activation_aligner.compute_alignment_loss()
-        if align_loss.item() > 0:
-            self._vulcan_log_cache["align_loss"] = align_loss.detach().float().item()
+        self._vulcan_log_cache.update(self.activation_aligner.get_log())
 
         return loss + align_loss.to(loss.device, dtype=loss.dtype)
 
@@ -246,7 +249,11 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         self._vulcan_log_cache = {}
         if self.activation_aligner is not None:
-            self.activation_aligner.set_input_ids(inputs["input_ids"])
+            self.activation_aligner.set_batch(
+                input_ids=inputs["input_ids"],
+                labels=inputs.get("labels"),
+                attention_mask=inputs.get("attention_mask"),
+            )
 
         if self.finetuning_args.use_asft_loss:
             with torch.no_grad():
