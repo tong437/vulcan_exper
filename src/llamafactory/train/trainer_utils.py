@@ -432,29 +432,64 @@ def _create_vulcan_lambda_optimizer(
     if not lambda_params:
         raise ValueError("`collapse_lambda_lr` is set, but learnable Vulcan lambda parameters were not found.")
 
-    print(f"[DEBUG _create_vulcan_lambda_optimizer] Creating optimizer for {len(lambda_params)} lambda params: {[p.name for p in lambda_params]}")
+    print(f"[DEBUG _create_vulcan_lambda_optimizer] Creating optimizer for {len(lambda_params)} lambda params")
     print(f"[DEBUG _create_vulcan_lambda_optimizer] lambda lr = {finetuning_args.collapse_lambda_lr}")
 
     optim_class, optim_kwargs = Trainer.get_optimizer_cls_and_kwargs(training_args)
     param_groups = [
         dict(params=nodecay_params, weight_decay=0.0),
         dict(params=decay_params, weight_decay=training_args.weight_decay),
-        dict(params=lambda_params, lr=finetuning_args.collapse_lambda_lr, weight_decay=0.0),
     ]
     optimizer = optim_class(param_groups, **optim_kwargs)
+
+    class PlainSGDGradientAscent(torch.optim.Optimizer):
+        def __init__(self, params, lr):
+            defaults = dict(lr=lr)
+            super().__init__(params, defaults)
+
+        def step(self, closure=None):
+            for group in self.param_groups:
+                for p in group["params"]:
+                    if p.grad is not None:
+                        p.data.add_(p.grad, alpha=group["lr"])
+
+    lambda_optimizer = PlainSGDGradientAscent(lambda_params, lr=abs(finetuning_args.collapse_lambda_lr))
+
     print(f"[DEBUG _create_vulcan_lambda_optimizer] Optimizer param_groups lengths: nodecay={len(nodecay_params)}, decay={len(decay_params)}, lambda={len(lambda_params)}")
-    # Verify lambda params are actually in the optimizer
-    opt_params = list(optimizer.state.keys())
-    print(f"[DEBUG _create_vulcan_lambda_optimizer] optimizer.state has {len(opt_params)} parameters")
-    if lambda_params:
-        for lp in lambda_params:
-            print(f"[DEBUG _create_vulcan_lambda_optimizer] lambda param '{lp.name}' id={id(lp)}, in optimizer state: {id(lp) in [id(p) for p in optimizer.state.keys()]}")
+    print(f"[DEBUG _create_vulcan_lambda_optimizer] Lambda uses plain gradient ascent (no momentum), lr = {finetuning_args.collapse_lambda_lr}")
     logger.info_rank0(
         "Using Vulcan lambda optimizer group with "
-        f"lr={finetuning_args.collapse_lambda_lr} for {len(lambda_params)} lambda params."
+        f"lr={finetuning_args.collapse_lambda_lr} for {len(lambda_params)} lambda params (plain gradient ascent)."
     )
-    print(f"[DEBUG _create_vulcan_lambda_optimizer] Optimizer created successfully")
-    return optimizer
+    print("[DEBUG _create_vulcan_lambda_optimizer] Optimizer created successfully")
+
+    class CombinedOptimizer(torch.optim.Optimizer):
+        def __init__(self, main_opt, lambda_opt):
+            self.main_optimizer = main_opt
+            self.lambda_optimizer = lambda_opt
+
+        @property
+        def param_groups(self):
+            return self.main_optimizer.param_groups + self.lambda_optimizer.param_groups
+
+        def step(self, closure=None):
+            self.main_optimizer.step(closure)
+            self.lambda_optimizer.step()
+
+        def zero_grad(self, set_to_none=False):
+            self.main_optimizer.zero_grad(set_to_none)
+            self.lambda_optimizer.zero_grad()
+
+        def state_dict(self):
+            return self.main_optimizer.state_dict()
+
+        def load_state_dict(self, state_dict):
+            self.main_optimizer.load_state_dict(state_dict)
+
+        def add_param_group(self, param_group):
+            self.main_optimizer.add_param_group(param_group)
+
+    return CombinedOptimizer(optimizer, lambda_optimizer)
 
 
 def _create_badam_optimizer(
