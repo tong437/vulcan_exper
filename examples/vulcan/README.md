@@ -151,19 +151,24 @@ You can compare intra-cluster redundancy before and after collapse SFT:
 
 ```bash
 python scripts/vulcan/inspect_model_redundancy.py \
-  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/sft \
-  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_yesno.json \
+  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/baseline-full-vqa \
+  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_baseline_full_vqa.json \
   --template qwen3_5_nothink \
   --trust_remote_code \
-  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_baseline_sft_0_50_yesno.json
+  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_baseline_full_vqa_0_50.json
 
 python scripts/vulcan/inspect_model_redundancy.py \
-  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/vulcan-sft-v3 \
-  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_yesno.json \
+  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/vulcan-from-baseline-full-vqa-lr1e5-lam01 \
+  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_baseline_full_vqa.json \
   --template qwen3_5_nothink \
   --trust_remote_code \
-  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_vulcan_sft_v3_0_50_yesno.json
+  --output_path saves/qwen35-0_8b-vqa-rad/vulcan/redundancy_vulcan_from_baseline_full_vqa_lr1e5_lam01_0_50.json
 ```
+
+During Vulcan training, do not use total loss alone as the stopping signal. Track `sft_loss`, `collapse_loss`, and
+`collapse_loss_ratio` from the trainer logs, then run generated yes/no accuracy and redundancy inspection on saved
+checkpoints. A useful checkpoint should keep unpruned yes/no accuracy close to `baseline-full-vqa` while clearly
+reducing intra-cluster distance.
 
 ## Prune Model
 
@@ -171,9 +176,9 @@ Prune the baseline or Vulcan checkpoint with the same cluster file:
 
 ```bash
 python scripts/vulcan/save_pruned_model.py \
-  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/vulcan-sft \
-  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50.json \
-  --output_dir saves/qwen35-0_8b-vqa-rad/full/vulcan-pruned \
+  --model_name_or_path saves/qwen35-0_8b-vqa-rad/full/vulcan-from-baseline-full-vqa-lr1e5-lam01 \
+  --cluster_idx_path saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_baseline_full_vqa.json \
+  --output_dir saves/qwen35-0_8b-vqa-rad/full/vulcan-from-baseline-full-vqa-lr1e5-lam01-pruned-0_50 \
   --template qwen3_5_nothink \
   --trust_remote_code
 ```

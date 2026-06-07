@@ -1,6 +1,6 @@
 ### model
-# Replace with the local server path if the model has already been downloaded.
-model_name_or_path: /root/autodl-pub-RTX4090-hdd-1/models/qwen3.5-0.8b
+# Standard Vulcan run starts from the full-VQA baseline checkpoint.
+model_name_or_path: saves/qwen35-0_8b-vqa-rad/full/baseline-full-vqa
 trust_remote_code: true
 
 ### method
@@ -10,8 +10,8 @@ finetuning_type: full
 
 ### dataset
 dataset_dir: datasets/vqa_rad
-dataset: vqa_rad_train_yesno
-eval_dataset: vqa_rad_test_yesno
+dataset: vqa_rad_train
+eval_dataset: vqa_rad_test
 template: qwen3_5_nothink
 cutoff_len: 2048
 preprocessing_num_workers: 8
@@ -26,15 +26,15 @@ image_min_pixels: 1024
 # v3 recommended setting for VQA-RAD yes/no 0.50 pruning:
 # raw learnable lambda + plain SGD gradient ascent, with direct MLP gradients.
 use_collapse_loss: true
-collapse_cluster_idx_path: saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_yesno.json
+collapse_cluster_idx_path: saves/qwen35-0_8b-vqa-rad/vulcan/cluster_idx_greedy_match_0_50_baseline_full_vqa.json
 collapse_lambda1: 0.0
 collapse_lambda2: 0.0
 collapse_learnable_lambda: true
-collapse_lambda_lr: -1.0
+collapse_lambda_lr: -0.1
 collapse_use_weight_proxy: false
 
 ### output
-output_dir: saves/qwen35-0_8b-vqa-rad/full/vulcan-sft-v3
+output_dir: saves/qwen35-0_8b-vqa-rad/full/vulcan-from-baseline-full-vqa-lr1e5-lam01
 logging_steps: 10
 save_steps: 200
 plot_loss: true
@@ -45,10 +45,11 @@ report_to: none
 ### train
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 4
-learning_rate: 1.0e-4
-num_train_epochs: 6.0
-lr_scheduler_type: cosine
-warmup_ratio: 0.1
+learning_rate: 1.0e-5
+num_train_epochs: 3.0
+max_steps: 2188
+lr_scheduler_type: constant
+warmup_ratio: 0.0
 bf16: true
 resume_from_checkpoint: null
 
