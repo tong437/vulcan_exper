@@ -1,0 +1,53 @@
+# Copyright 2026 the LlamaFactory team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+### model
+# Point this to the trained baseline, balanced, or Vulcan checkpoint.
+model_name_or_path: /path/to/saves/qwen35-0_8b-vqa-med-cls/full/baseline
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: false
+do_predict: true
+finetuning_type: full
+
+### dataset
+dataset_dir: /path/to/datasets/vqa_med_cls
+# Change this to vqa_med_val_plane or vqa_med_val_organ for per-category evaluation.
+eval_dataset: vqa_med_val_modality
+template: qwen3_5_nothink
+cutoff_len: 1024
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+enable_thinking: false
+
+### processor
+image_max_pixels: 262144
+image_min_pixels: 1024
+
+### output
+output_dir: /path/to/outputs/qwen35-0_8b-vqa-med-cls/predict-modality
+overwrite_output_dir: true
+report_to: none
+
+### generation
+predict_with_generate: true
+max_new_tokens: 24
+do_sample: false
+num_beams: 1
+skip_special_tokens: true
+
+### eval
+per_device_eval_batch_size: 1
