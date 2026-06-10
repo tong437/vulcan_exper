@@ -58,6 +58,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max_batches", type=int, default=None, help="Limit activation collection batches.")
     parser.add_argument("--batch_size", type=int, default=None, help="Override dataloader batch size.")
     parser.add_argument("--num_workers", type=int, default=None, help="Override dataloader num_workers.")
+    parser.add_argument(
+        "--shuffle",
+        action="store_true",
+        help="Shuffle the training split before collecting activations. Recommended for category-grouped datasets.",
+    )
+    parser.add_argument("--seed", type=int, default=42, help="Random seed used when --shuffle is enabled.")
     args, overrides = parser.parse_known_args()
     args.overrides = overrides
     return args
@@ -113,11 +119,18 @@ def main() -> None:
         compute_dtype=model_args.compute_dtype,
         **tokenizer_module,
     )
+    generator = None
+    if args.shuffle:
+        generator = torch.Generator()
+        generator.manual_seed(args.seed)
+
     dataloader = DataLoader(
         dataset_module["train_dataset"],
         batch_size=args.batch_size or training_args.per_device_train_batch_size,
         collate_fn=data_collator,
         num_workers=args.num_workers if args.num_workers is not None else training_args.dataloader_num_workers,
+        shuffle=args.shuffle,
+        generator=generator,
     )
     activations = collect_mlp_activations(model, dataloader, max_batches=args.max_batches)
     if any(ratio is not None for ratio in (args.first_keep_ratio, args.middle_keep_ratio, args.last_keep_ratio)):
