@@ -49,14 +49,14 @@ collapse_cluster_idx_path: saves/qwen35-0_8b-vqa-med-cls/vulcan/cluster_idx_gree
 collapse_lambda1: 0.0
 collapse_lambda2: 0.0
 collapse_learnable_lambda: true
-collapse_lambda_lr: -0.1
+collapse_lambda_lr: -1.0
 collapse_use_weight_proxy: false
 
 ### output
-output_dir: saves/qwen35-0_8b-vqa-med-cls/full/vulcan-from-ckpt1200-keep050-lr1e5-lam01
+output_dir: saves/qwen35-0_8b-vqa-med-cls/full/vulcan-from-ckpt1200-keep050-lr1e4-lam1
 logging_steps: 10
-save_steps: 100
-save_total_limit: 3
+save_steps: 300
+save_total_limit: 8
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
@@ -65,7 +65,7 @@ report_to: none
 ### train
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 4
-learning_rate: 1.0e-5
+learning_rate: 1.0e-4
 num_train_epochs: 3.0
 # Step budget follows total_steps = 6250 * R^2 + 1250 * R.
 # For keep ratio R=0.5: total_steps = 2187.5, rounded to 2188.
@@ -81,4 +81,4 @@ gradient_checkpointing: true
 predict_with_generate: false
 per_device_eval_batch_size: 1
 eval_strategy: steps
-eval_steps: 100
+eval_steps: 300
