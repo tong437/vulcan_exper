@@ -13,14 +13,14 @@
 # limitations under the License.
 
 ### model
-# Start Vulcan from the VQA-Med classification baseline checkpoint, not from VQA-RAD.
-model_name_or_path: /root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/saves/qwen35-0_8b-vqa-med-cls/checkpoint-archive-1200
+model_name_or_path: saves/qwen35-0_8b-vqa-med-cls/checkpoint-archive-1200
 trust_remote_code: true
 
 ### method
 stage: sft
 do_train: true
 finetuning_type: full
+deepspeed: examples/deepspeed/ds_z2_config.json
 
 ### multimodal
 freeze_vision_tower: true
@@ -41,24 +41,21 @@ enable_thinking: false
 image_max_pixels: 262144
 image_min_pixels: 1024
 
-### vulcan collapse loss
-# Recompute this cluster file from the VQA-Med classification baseline checkpoint.
-# Never reuse the VQA-RAD cluster_idx file.
-use_collapse_loss: true
-collapse_cluster_idx_path: saves/qwen35-0_8b-vqa-med-cls/vulcan/cluster_idx_greedy_match_0_50_ckpt1200.json
-collapse_lambda1: 0.0
-collapse_lambda2: 0.0
-collapse_learnable_lambda: true
-# The paper uses rho=1 with batch size 256. For single-GPU generative VQA,
-# rho=0.1 preserves the augmented-Lagrangian update without overwhelming SFT.
-collapse_lambda_lr: -0.1
-collapse_use_weight_proxy: false
+### vulcan activation alignment
+# VQA-Med answers are short labels, so pool question and answer tokens together.
+use_activation_align: true
+align_lambda: 0.25
+align_temperature: 0.05
+align_quantile: 0.8
+align_pool_type: mean
+align_loss_type: soft_iou
+align_text_mode: qa
 
 ### output
-output_dir: saves/qwen35-0_8b-vqa-med-cls/full/vulcan-from-ckpt1200-keep050-lr1e5-rho01-bs16
+output_dir: saves/qwen35-0_8b-vqa-med-cls/full/align-only-from-ckpt1200-qa-lam025-lr5e6
 logging_steps: 10
-save_steps: 200
-save_total_limit: 12
+save_steps: 100
+save_total_limit: 7
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
@@ -66,24 +63,18 @@ report_to: none
 
 ### train
 per_device_train_batch_size: 1
-gradient_accumulation_steps: 16
-learning_rate: 1.0e-5
-weight_decay: 0.05
-num_train_epochs: 3.0
-# The paper defines R as pruning ratio. Here pruning ratio=1-keep_ratio=0.5.
-# total_steps = 6250 * R^2 + 1250 * R = 2187.5, rounded to 2188.
-max_steps: 2188
+gradient_accumulation_steps: 8
+learning_rate: 5.0e-6
+max_steps: 600
 lr_scheduler_type: constant
-warmup_ratio: 0.0
+warmup_steps: 0
 bf16: true
 ddp_timeout: 180000000
 resume_from_checkpoint: null
 gradient_checkpointing: true
-seed: 42
-data_seed: 42
 
 ### eval
 predict_with_generate: false
 per_device_eval_batch_size: 1
 eval_strategy: steps
-eval_steps: 200
+eval_steps: 100
