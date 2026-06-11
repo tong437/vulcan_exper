@@ -20,7 +20,9 @@ trust_remote_code: true
 stage: sft
 do_train: true
 finetuning_type: full
-deepspeed: examples/deepspeed/ds_z2_config.json
+# Activation alignment retains per-layer MLP activations. Offload AdamW states
+# to CPU so the first optimizer step fits on a 24 GB GPU.
+deepspeed: examples/deepspeed/ds_z2_offload_config.json
 
 ### multimodal
 freeze_vision_tower: true
