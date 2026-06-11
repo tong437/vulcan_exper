@@ -275,6 +275,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             else:
                 loss, outputs = loss_outputs, None
 
+        self._vulcan_log_cache["sft_loss"] = loss.detach().float().item()
         loss = self._add_vulcan_loss(model, loss)
         loss = self._add_align_loss(loss)
         if return_outputs:

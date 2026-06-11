@@ -46,7 +46,7 @@ image_min_pixels: 1024
 ### vulcan activation alignment
 # VQA-Med answers are short labels, so pool question and answer tokens together.
 use_activation_align: true
-align_lambda: 0.25
+align_lambda: 0.05
 align_temperature: 0.05
 align_quantile: 0.8
 align_pool_type: mean
@@ -54,10 +54,10 @@ align_loss_type: soft_iou
 align_text_mode: qa
 
 ### output
-output_dir: saves/qwen35-0_8b-vqa-med-cls/full/align-only-from-ckpt1200-qa-lam025-lr5e6
+output_dir: saves/qwen35-0_8b-vqa-med-cls/full/align-only-from-ckpt1200-qa-lam005-lr3e6
 logging_steps: 10
-save_steps: 100
-save_total_limit: 7
+save_steps: 50
+save_total_limit: 5
 plot_loss: true
 overwrite_output_dir: true
 save_only_model: false
@@ -66,8 +66,8 @@ report_to: none
 ### train
 per_device_train_batch_size: 1
 gradient_accumulation_steps: 8
-learning_rate: 5.0e-6
-max_steps: 600
+learning_rate: 3.0e-6
+max_steps: 200
 lr_scheduler_type: constant
 warmup_steps: 0
 bf16: true
@@ -79,4 +79,4 @@ gradient_checkpointing: true
 predict_with_generate: false
 per_device_eval_batch_size: 1
 eval_strategy: steps
-eval_steps: 100
+eval_steps: 50
