@@ -290,6 +290,13 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             and torch.is_grad_enabled()
         )
         if run_diagnostic:
+            if self.is_deepspeed_enabled:
+                raise RuntimeError(
+                    "VULCAN_ALIGN_GRAD_DIAGNOSTIC is incompatible with DeepSpeed ZeRO because "
+                    "torch.autograd.grad triggers DeepSpeed's incomplete-backward hooks. "
+                    "Run the one-step diagnostic with `deepspeed=null optim=sgd`."
+                )
+
             activation_items = self.activation_aligner.get_captured_activations()
             if not activation_items:
                 raise RuntimeError("Cannot run activation gradient diagnostic without captured MLP activations.")
