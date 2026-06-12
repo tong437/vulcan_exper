@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import copy
 import sys
 from pathlib import Path
 from typing import Any
@@ -27,15 +28,21 @@ SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from llamafactory.data import SFTDataCollatorWith4DAttentionMask, get_dataset, get_template_and_fix_tokenizer
-from llamafactory.extras.constants import IGNORE_INDEX
-from llamafactory.hparams import get_train_args
-from llamafactory.model import load_model, load_tokenizer
-from llamafactory.train.vulcan import (
+from llamafactory.data import (  # noqa: E402
+    SFTDataCollatorWith4DAttentionMask,
+    get_dataset,
+    get_template_and_fix_tokenizer,
+)
+from llamafactory.extras.constants import IGNORE_INDEX  # noqa: E402
+from llamafactory.hparams import get_train_args  # noqa: E402
+from llamafactory.model import load_model, load_tokenizer  # noqa: E402
+from llamafactory.train.vulcan import (  # noqa: E402
     build_layerwise_cluster_idx,
+    build_multimodal_cluster_idx,
     build_third_keep_ratios,
     build_uniform_cluster_idx,
     collect_mlp_activations,
+    collect_multimodal_mlp_activations,
     find_mlp_layers,
     save_cluster_idx,
 )
@@ -50,12 +57,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--middle_keep_ratio", type=float, default=None, help="Keep ratio for the middle layer group.")
     parser.add_argument("--last_keep_ratio", type=float, default=None, help="Keep ratio for the last layer group.")
     parser.add_argument(
+        "--keep_ratios_path",
+        type=str,
+        default=None,
+        help="JSON/YAML file containing a per-layer ratio list, or a mapping with a keep_ratios field.",
+    )
+    parser.add_argument(
         "--first_layer_ratio", type=float, default=1.0 / 3.0, help="Fraction of layers in the first group."
     )
     parser.add_argument(
         "--last_layer_ratio", type=float, default=1.0 / 3.0, help="Fraction of layers in the last group."
     )
-    parser.add_argument("--max_batches", type=int, default=None, help="Limit activation collection batches.")
+    parser.add_argument(
+        "--max_batches",
+        type=int,
+        default=None,
+        help="Limit batches globally in legacy mode or per category dataset in multimodal mode.",
+    )
     parser.add_argument("--batch_size", type=int, default=None, help="Override dataloader batch size.")
     parser.add_argument("--num_workers", type=int, default=None, help="Override dataloader num_workers.")
     parser.add_argument(
@@ -64,6 +82,36 @@ def parse_args() -> argparse.Namespace:
         help="Shuffle the training split before collecting activations. Recommended for category-grouped datasets.",
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed used when --shuffle is enabled.")
+    parser.add_argument(
+        "--activation_mode",
+        choices=["legacy", "multimodal"],
+        default="legacy",
+        help="Use legacy all-token activation means or VQA modality-aware sample/category macro means.",
+    )
+    parser.add_argument(
+        "--category_datasets",
+        default="vqa_train_modality,vqa_train_plane,vqa_train_organ",
+        help="Comma-separated training datasets macro-averaged in multimodal mode.",
+    )
+    parser.add_argument("--image_activation_weight", type=float, default=0.4)
+    parser.add_argument("--question_activation_weight", type=float, default=0.4)
+    parser.add_argument("--prediction_activation_weight", type=float, default=0.2)
+    parser.add_argument(
+        "--disable_down_proj_weighting",
+        action="store_true",
+        help="Do not multiply activation signatures by the corresponding down_proj column norm.",
+    )
+    parser.add_argument(
+        "--disable_weight_row_normalization",
+        action="store_true",
+        help="Use raw up/gate rows instead of direction-normalized rows for multimodal clustering.",
+    )
+    parser.add_argument(
+        "--activation_distance_weight",
+        type=float,
+        default=0.25,
+        help="Weight of standardized image/question/prediction signatures in multimodal clustering distance.",
+    )
     args, overrides = parser.parse_known_args()
     args.overrides = overrides
     return args
@@ -86,6 +134,49 @@ def load_config(path: str) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
+def build_dataloader(
+    train_config: dict[str, Any],
+    dataset_name: str,
+    model,
+    tokenizer_module,
+    template,
+    batch_size: int,
+    num_workers: int,
+    shuffle: bool,
+    seed: int,
+):
+    category_config = copy.deepcopy(train_config)
+    category_config["dataset"] = dataset_name
+    model_args, data_args, training_args, _, _ = get_train_args(category_config)
+    dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
+    data_collator = SFTDataCollatorWith4DAttentionMask(
+        template=template,
+        model=model,
+        pad_to_multiple_of=None,
+        label_pad_token_id=(
+            IGNORE_INDEX if data_args.ignore_pad_token_for_loss else tokenizer_module["tokenizer"].pad_token_id
+        ),
+        block_diag_attn=model_args.block_diag_attn,
+        neat_packing=data_args.neat_packing,
+        attn_implementation=getattr(model.config, "_attn_implementation", None),
+        compute_dtype=model_args.compute_dtype,
+        **tokenizer_module,
+    )
+    generator = None
+    if shuffle:
+        generator = torch.Generator()
+        generator.manual_seed(seed)
+
+    return DataLoader(
+        dataset_module["train_dataset"],
+        batch_size=batch_size,
+        collate_fn=data_collator,
+        num_workers=num_workers,
+        shuffle=shuffle,
+        generator=generator,
+    )
+
+
 def main() -> None:
     args = parse_args()
     train_config = load_config(args.config)
@@ -102,38 +193,34 @@ def main() -> None:
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
     template = get_template_and_fix_tokenizer(tokenizer, data_args)
-    dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
     model = load_model(tokenizer, model_args, finetuning_args, is_trainable=False)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()
 
-    data_collator = SFTDataCollatorWith4DAttentionMask(
-        template=template,
-        model=model,
-        pad_to_multiple_of=None,
-        label_pad_token_id=IGNORE_INDEX if data_args.ignore_pad_token_for_loss else tokenizer.pad_token_id,
-        block_diag_attn=model_args.block_diag_attn,
-        neat_packing=data_args.neat_packing,
-        attn_implementation=getattr(model.config, "_attn_implementation", None),
-        compute_dtype=model_args.compute_dtype,
-        **tokenizer_module,
+    batch_size = args.batch_size or training_args.per_device_train_batch_size
+    num_workers = args.num_workers if args.num_workers is not None else training_args.dataloader_num_workers
+    dataloader = build_dataloader(
+        train_config,
+        train_config["dataset"],
+        model,
+        tokenizer_module,
+        template,
+        batch_size,
+        num_workers,
+        args.shuffle,
+        args.seed,
     )
-    generator = None
-    if args.shuffle:
-        generator = torch.Generator()
-        generator.manual_seed(args.seed)
-
-    dataloader = DataLoader(
-        dataset_module["train_dataset"],
-        batch_size=args.batch_size or training_args.per_device_train_batch_size,
-        collate_fn=data_collator,
-        num_workers=args.num_workers if args.num_workers is not None else training_args.dataloader_num_workers,
-        shuffle=args.shuffle,
-        generator=generator,
-    )
-    activations = collect_mlp_activations(model, dataloader, max_batches=args.max_batches)
-    if any(ratio is not None for ratio in (args.first_keep_ratio, args.middle_keep_ratio, args.last_keep_ratio)):
+    if args.keep_ratios_path is not None:
+        with open(args.keep_ratios_path, encoding="utf-8") as f:
+            keep_ratios_data = yaml.safe_load(f)
+        if isinstance(keep_ratios_data, dict):
+            keep_ratios_data = keep_ratios_data.get("keep_ratios")
+        if not isinstance(keep_ratios_data, list):
+            raise ValueError("--keep_ratios_path must contain a list or a mapping with a keep_ratios list.")
+        keep_ratios = [float(ratio) for ratio in keep_ratios_data]
+        print(f"Using keep ratios from {args.keep_ratios_path}: {keep_ratios}", flush=True)
+    elif any(ratio is not None for ratio in (args.first_keep_ratio, args.middle_keep_ratio, args.last_keep_ratio)):
         num_layers = len(find_mlp_layers(model))
         keep_ratios = build_third_keep_ratios(
             num_layers=num_layers,
@@ -144,9 +231,58 @@ def main() -> None:
             last_layer_ratio=args.last_layer_ratio,
         )
         print(f"Using layerwise keep ratios: {keep_ratios}", flush=True)
-        cluster_idx = build_layerwise_cluster_idx(model, activations, keep_ratios=keep_ratios)
     else:
-        cluster_idx = build_uniform_cluster_idx(model, activations, keep_ratio=args.keep_ratio)
+        keep_ratios = [args.keep_ratio] * len(find_mlp_layers(model))
+
+    if args.activation_mode == "legacy":
+        activations = collect_mlp_activations(model, dataloader, max_batches=args.max_batches)
+        if len(set(keep_ratios)) == 1:
+            cluster_idx = build_uniform_cluster_idx(model, activations, keep_ratio=keep_ratios[0])
+        else:
+            cluster_idx = build_layerwise_cluster_idx(model, activations, keep_ratios=keep_ratios)
+    else:
+        category_names = [name.strip() for name in args.category_datasets.split(",") if name.strip()]
+        if not category_names:
+            raise ValueError("--category_datasets must contain at least one dataset in multimodal mode.")
+
+        dataloaders = {
+            category_name: build_dataloader(
+                train_config,
+                category_name,
+                model,
+                tokenizer_module,
+                template,
+                batch_size,
+                num_workers,
+                args.shuffle,
+                args.seed,
+            )
+            for category_name in category_names
+        }
+        image_token_id = getattr(model.config, "image_token_id", None)
+        if image_token_id is None and tokenizer_module.get("processor") is not None:
+            image_token_id = getattr(tokenizer_module["processor"], "image_token_id", None)
+        if image_token_id is None:
+            raise ValueError("Cannot determine image_token_id for multimodal activation collection.")
+
+        stats = collect_multimodal_mlp_activations(
+            model,
+            dataloaders,
+            image_token_id=int(image_token_id),
+            special_token_ids=set(tokenizer.all_special_ids),
+            max_batches=args.max_batches,
+            image_weight=args.image_activation_weight,
+            question_weight=args.question_activation_weight,
+            prediction_weight=args.prediction_activation_weight,
+            weight_by_down_proj=not args.disable_down_proj_weighting,
+        )
+        cluster_idx = build_multimodal_cluster_idx(
+            model,
+            stats,
+            keep_ratios=keep_ratios,
+            normalize_weight_rows=not args.disable_weight_row_normalization,
+            activation_distance_weight=args.activation_distance_weight,
+        )
 
     save_cluster_idx(cluster_idx, args.output_path)
     print(f"Saved Vulcan cluster_idx to {args.output_path}")

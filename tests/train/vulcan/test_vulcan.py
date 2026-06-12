@@ -23,10 +23,13 @@ from llamafactory.train.trainer_utils import create_custom_optimizer
 from llamafactory.train.vulcan import (
     ActivationAligner,
     build_layerwise_cluster_idx,
+    build_multimodal_cluster_idx,
     build_third_keep_ratios,
+    collect_multimodal_mlp_activations,
     find_mlp_layers,
     get_cluster_greedy_match,
     get_collapse_lambdas,
+    get_collapse_schedule_factor,
     init_collapse_lambdas,
     weight_collapse_loss,
 )
@@ -65,6 +68,15 @@ class TinyModel(torch.nn.Module):
         return x
 
 
+class TinyTokenModel(TinyModel):
+    def __init__(self, num_layers: int = 2):
+        super().__init__(num_layers=num_layers)
+        self.embed_tokens = torch.nn.Embedding(128, 2)
+
+    def forward(self, input_ids, labels=None, attention_mask=None):
+        return super().forward(self.embed_tokens(input_ids))
+
+
 class CheckpointTinyModel(TinyModel):
     def __init__(self, use_reentrant: bool):
         super().__init__(num_layers=1)
@@ -90,6 +102,46 @@ def test_greedy_match_cluster_count():
     assert len(clusters) == 2
     assert sorted(sum((cluster["neuron"] for cluster in clusters), [])) == [0, 1, 2, 3]
     assert sorted(cluster["anchor"] for cluster in clusters) == [1, 3]
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_multimodal_activation_collection_and_clustering():
+    model = TinyTokenModel(num_layers=1)
+    batches = {
+        "modality": [
+            {
+                "input_ids": torch.tensor([[99, 10, 11, 20]]),
+                "labels": torch.tensor([[-100, -100, -100, 20]]),
+                "attention_mask": torch.ones(1, 4, dtype=torch.long),
+            }
+        ],
+        "organ": [
+            {
+                "input_ids": torch.tensor([[99, 99, 12, 21]]),
+                "labels": torch.tensor([[-100, -100, -100, 21]]),
+                "attention_mask": torch.ones(1, 4, dtype=torch.long),
+            }
+        ],
+    }
+    stats = collect_multimodal_mlp_activations(
+        model,
+        batches,
+        image_token_id=99,
+        special_token_ids=set(),
+        image_weight=0.4,
+        question_weight=0.4,
+        prediction_weight=0.2,
+    )
+    cluster_idx = build_multimodal_cluster_idx(
+        model,
+        stats,
+        keep_ratios=[0.5],
+        activation_distance_weight=0.25,
+    )
+
+    assert stats.anchor_scores.shape == (1, 4)
+    assert stats.signatures.shape == (1, 4, 3)
+    assert len(cluster_idx[0]) == 2
 
 
 @pytest.mark.runs_on(["cpu", "mps"])
@@ -153,8 +205,16 @@ def test_learnable_collapse_lambdas_use_separate_lr(tmp_path):
     lambda_group = next(
         group for group in optimizer.param_groups if any(param is model.vulcan_lambda1 for param in group["params"])
     )
-    assert lambda_group["lr"] == -1.0
-    assert lambda_group["weight_decay"] == 0.0
+    assert lambda_group["lr"] == 1.0
+    assert lambda_group.get("weight_decay", 0.0) == 0.0
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_collapse_schedule_factor():
+    assert get_collapse_schedule_factor(0, warmup_steps=2, ramp_steps=4) == 0.0
+    assert get_collapse_schedule_factor(1, warmup_steps=2, ramp_steps=4) == 0.0
+    assert get_collapse_schedule_factor(2, warmup_steps=2, ramp_steps=4) == 0.25
+    assert get_collapse_schedule_factor(5, warmup_steps=2, ramp_steps=4) == 1.0
 
 
 @pytest.mark.runs_on(["cpu", "mps"])
@@ -172,10 +232,32 @@ def test_weight_collapse_loss_and_proxy_backward():
         lambda2=torch.tensor(0.25),
         use_weight_proxy=True,
     )
-    assert torch.isclose(loss, torch.tensor(5.5))
+    assert torch.isclose(loss, torch.tensor(2.75))
     loss.backward()
     assert model.layers[0].mlp.up_proj.weight.grad is not None
     assert model.layers[0].mlp.gate_proj.weight.grad is not None
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_normalized_weight_collapse_loss_is_elementwise_mean():
+    model = TinyModel(num_layers=1)
+    with torch.no_grad():
+        model.layers[0].mlp.up_proj.weight.zero_()
+        model.layers[0].mlp.gate_proj.weight.zero_()
+        model.layers[0].mlp.up_proj.weight[1].fill_(2.0)
+        model.layers[0].mlp.gate_proj.weight[1].fill_(2.0)
+
+    cluster_idx = [[{"anchor": 0, "neuron": [0, 1]}, {"anchor": 2, "neuron": [2, 3]}]]
+    loss = weight_collapse_loss(
+        model,
+        cluster_idx,
+        lambda1=torch.tensor(1.0),
+        lambda2=torch.tensor(0.0),
+        use_weight_proxy=False,
+        reduction="normalized",
+    )
+
+    assert torch.isclose(loss, torch.tensor(1.0))
 
 
 @pytest.mark.runs_on(["cpu", "mps"])
@@ -196,6 +278,25 @@ def test_pruning_mlp_preserves_output_for_identical_clusters():
     assert summary.pruned_intermediate_size == 2
     assert model.config.intermediate_size == 2
     assert torch.allclose(actual, expected, atol=1e-6)
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_pruning_mlp_supports_layerwise_intermediate_sizes():
+    model = TinyModel(num_layers=2)
+    second_mlp = model.layers[1].mlp
+    with torch.no_grad():
+        second_mlp.up_proj.weight[1].copy_(second_mlp.up_proj.weight[0])
+        second_mlp.gate_proj.weight[1].copy_(second_mlp.gate_proj.weight[0])
+        second_mlp.up_proj.weight[3].copy_(second_mlp.up_proj.weight[2])
+        second_mlp.gate_proj.weight[3].copy_(second_mlp.gate_proj.weight[2])
+
+    cluster_idx = [None, [{"anchor": 0, "neuron": [0, 1]}, {"anchor": 2, "neuron": [2, 3]}]]
+    summary = pruning_mlp(model, cluster_idx)
+
+    assert summary.pruned_intermediate_size == [4, 2]
+    assert model.config.vulcan_intermediate_sizes == [4, 2]
+    assert model.layers[0].mlp.up_proj.out_features == 4
+    assert model.layers[1].mlp.up_proj.out_features == 2
 
 
 def _make_align_finetuning_args(**overrides):

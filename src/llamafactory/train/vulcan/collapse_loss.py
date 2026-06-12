@@ -27,6 +27,15 @@ if TYPE_CHECKING:
     from ...hparams import FinetuningArguments
 
 
+def get_collapse_schedule_factor(current_step: int, warmup_steps: int, ramp_steps: int) -> float:
+    if current_step < warmup_steps:
+        return 0.0
+    if ramp_steps <= 0:
+        return 1.0
+
+    return min((current_step - warmup_steps + 1) / ramp_steps, 1.0)
+
+
 def init_collapse_lambdas(model: "nn.Module", finetuning_args: "FinetuningArguments") -> None:
     if not finetuning_args.collapse_learnable_lambda:
         return
@@ -146,13 +155,18 @@ def weight_collapse_loss(
     lambda1: torch.Tensor,
     lambda2: torch.Tensor,
     use_weight_proxy: bool = True,
+    reduction: str = "legacy",
 ) -> torch.Tensor:
     r"""Compute Vulcan collapse loss for Qwen/Llama-style gated MLP layers."""
     mlp_layers = find_mlp_layers(model)
     if len(cluster_idx) != len(mlp_layers):
         raise ValueError(f"cluster_idx has {len(cluster_idx)} layers, but model has {len(mlp_layers)} MLP layers.")
 
+    if reduction not in {"legacy", "normalized"}:
+        raise ValueError("Collapse reduction must be either legacy or normalized.")
+
     loss = torch.zeros((), device=lambda1.device, dtype=torch.float32)
+    active_layer_losses = []
     cluster_tensor_cache = _get_cluster_tensor_cache(model, cluster_idx, lambda1.device)
 
     for layer_ref, layer_tensors in zip(mlp_layers, cluster_tensor_cache):
@@ -169,7 +183,14 @@ def weight_collapse_loss(
 
         diff_w = weight_proxy[neuron_idxs] - weight_proxy[anchor_idxs]
         diff_w = diff_w.float()
-        loss_cluster = lambda1 * diff_w.abs().sum() + lambda2 * diff_w.pow(2).sum()
-        loss = loss + loss_cluster / (cnt + 1e-10)
+        if reduction == "legacy":
+            loss_cluster = lambda1 * diff_w.abs().sum() + lambda2 * diff_w.pow(2).sum()
+            loss = loss + loss_cluster / (cnt + 1e-10)
+        else:
+            layer_loss = lambda1 * diff_w.abs().mean() + lambda2 * diff_w.pow(2).mean()
+            active_layer_losses.append(layer_loss)
+
+    if reduction == "normalized" and active_layer_losses:
+        return torch.stack(active_layer_losses).mean()
 
     return loss

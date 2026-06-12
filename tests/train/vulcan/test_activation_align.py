@@ -17,7 +17,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
-from llamafactory.train.vulcan import ActivationAligner, find_mlp_layers
+from llamafactory.train.vulcan import ActivationAligner
 
 
 class TinyMLP(torch.nn.Module):
@@ -54,12 +54,17 @@ class TinyModel(torch.nn.Module):
 
 def _make_finetuning_args(**kwargs):
     defaults = dict(
+        align_mode="neuron",
         align_lambda=1.0,
         align_temperature=0.1,
         align_quantile=0.8,
         align_pool_type="mean",
         align_loss_type="l1",
         align_text_mode="answer",
+        align_cluster_temperature=1.0,
+        align_cluster_question_weight=1.0,
+        align_cluster_answer_weight=0.5,
+        align_layer_start_ratio=0.0,
     )
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
@@ -148,7 +153,8 @@ def test_activation_aligner_gradient_flows():
     aligner = ActivationAligner(model, _make_finetuning_args(), image_token_id=99)
 
     input_ids = torch.tensor([[99, 1]])
-    aligner.set_input_ids(input_ids)
+    labels = torch.tensor([[-100, 1]])
+    aligner.set_batch(input_ids=input_ids, labels=labels)
     x = torch.randn(1, 2, 2)
     model(x)
     loss = aligner.compute_alignment_loss()
@@ -156,7 +162,7 @@ def test_activation_aligner_gradient_flows():
 
     assert model.layers[0].mlp.up_proj.weight.grad is not None
     assert model.layers[0].mlp.gate_proj.weight.grad is not None
-    assert model.layers[0].mlp.down_proj.weight.grad is not None
+    assert model.layers[0].mlp.down_proj.weight.grad is None
     aligner.remove_hooks()
 
 

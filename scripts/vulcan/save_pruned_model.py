@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -26,12 +27,12 @@ SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from llamafactory.data import get_template_and_fix_tokenizer
-from llamafactory.extras.packages import is_transformers_version_greater_than
-from llamafactory.hparams import get_infer_args
-from llamafactory.model import load_model, load_tokenizer
-from llamafactory.train.vulcan import load_cluster_idx
-from llamafactory.train.vulcan.pruning import pruning_mlp
+from llamafactory.data import get_template_and_fix_tokenizer  # noqa: E402
+from llamafactory.extras.packages import is_transformers_version_greater_than  # noqa: E402
+from llamafactory.hparams import get_infer_args  # noqa: E402
+from llamafactory.model import load_model, load_tokenizer  # noqa: E402
+from llamafactory.train.vulcan import load_cluster_idx  # noqa: E402
+from llamafactory.train.vulcan.pruning import pruning_mlp  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -53,6 +54,26 @@ def load_yaml(path: str | None) -> dict[str, Any]:
 
     with Path(path).open(encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def install_layerwise_qwen35_loader(model, output_dir: Path, target_sizes: list[int]) -> None:
+    if getattr(model.config, "model_type", None) != "qwen3_5":
+        raise ValueError("Non-uniform Vulcan checkpoints currently support Qwen3.5 only.")
+
+    auto_map = dict(getattr(model.config, "auto_map", {}) or {})
+    remote_model = "modeling_vulcan_qwen3_5.VulcanQwen3_5ForConditionalGeneration"
+    auto_map.update(
+        {
+            "AutoConfig": "modeling_vulcan_qwen3_5.VulcanQwen3_5Config",
+            "AutoModelForCausalLM": remote_model,
+            "AutoModelForImageTextToText": remote_model,
+        }
+    )
+    model.config.auto_map = auto_map
+    model.config.vulcan_intermediate_sizes = target_sizes
+
+    loader_source = Path(__file__).with_name("modeling_vulcan_qwen3_5.py")
+    shutil.copyfile(loader_source, output_dir / loader_source.name)
 
 
 def main() -> None:
@@ -77,6 +98,11 @@ def main() -> None:
     summary = pruning_mlp(model, cluster_idx)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    layerwise_sizes = getattr(model.config, "vulcan_intermediate_sizes", None)
+    uses_non_uniform_sizes = layerwise_sizes is not None and len(set(layerwise_sizes)) > 1
+    if uses_non_uniform_sizes:
+        install_layerwise_qwen35_loader(model, output_dir, layerwise_sizes)
 
     if model_args.infer_dtype == "auto":
         output_dtype = getattr(model.config, "torch_dtype", torch.float32)

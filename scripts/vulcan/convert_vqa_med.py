@@ -15,7 +15,6 @@
 import argparse
 import json
 import re
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO
 from pathlib import Path
@@ -48,6 +47,42 @@ DATASET_INFO = {
             "messages": "messages",
             "images": "images",
         },
+        "tags": {
+            "role_tag": "role",
+            "content_tag": "content",
+            "user_tag": "user",
+            "assistant_tag": "assistant",
+            "system_tag": "system",
+        },
+    },
+    "vqa_train_modality": {
+        "file_name": "train_modality.jsonl",
+        "formatting": "sharegpt",
+        "columns": {"messages": "messages", "images": "images"},
+        "tags": {
+            "role_tag": "role",
+            "content_tag": "content",
+            "user_tag": "user",
+            "assistant_tag": "assistant",
+            "system_tag": "system",
+        },
+    },
+    "vqa_train_plane": {
+        "file_name": "train_plane.jsonl",
+        "formatting": "sharegpt",
+        "columns": {"messages": "messages", "images": "images"},
+        "tags": {
+            "role_tag": "role",
+            "content_tag": "content",
+            "user_tag": "user",
+            "assistant_tag": "assistant",
+            "system_tag": "system",
+        },
+    },
+    "vqa_train_organ": {
+        "file_name": "train_organ.jsonl",
+        "formatting": "sharegpt",
+        "columns": {"messages": "messages", "images": "images"},
         "tags": {
             "role_tag": "role",
             "content_tag": "content",
@@ -105,16 +140,40 @@ DATASET_INFO = {
 
 
 MODALITY_KEYWORDS = [
-    "modality", "kind of image", "type of imaging", "what imaging method",
-    "is this a t1", "is this a t2", "is this a ct", "is this an mri",
-    "is this a normal", "is this a contrast", "was gi contrast",
-    "was iv contrast", "was the ct", "was the mri", "what type of contrast",
-    "what was this image taken with", "how is the image taken",
-    "how was the image taken", "is this image normal", "does this image look normal",
-    "is the ct scan normal", "is the gastrointestinal", "is the nuclear medicine",
-    "is the x-ray normal", "is there something wrong", "what is the mr weighting",
-    "t1 weighted", "t2 weighted", "flair", "what kind of scan", "what part of the body",
-    "noncontrast", "is the mri normal", "is the ultrasound normal",
+    "modality",
+    "kind of image",
+    "type of imaging",
+    "what imaging method",
+    "is this a t1",
+    "is this a t2",
+    "is this a ct",
+    "is this an mri",
+    "is this a normal",
+    "is this a contrast",
+    "was gi contrast",
+    "was iv contrast",
+    "was the ct",
+    "was the mri",
+    "what type of contrast",
+    "what was this image taken with",
+    "how is the image taken",
+    "how was the image taken",
+    "is this image normal",
+    "does this image look normal",
+    "is the ct scan normal",
+    "is the gastrointestinal",
+    "is the nuclear medicine",
+    "is the x-ray normal",
+    "is there something wrong",
+    "what is the mr weighting",
+    "t1 weighted",
+    "t2 weighted",
+    "flair",
+    "what kind of scan",
+    "what part of the body",
+    "noncontrast",
+    "is the mri normal",
+    "is the ultrasound normal",
 ]
 
 PLANE_KEYWORDS = ["plane"]
@@ -185,6 +244,7 @@ def regularize_image(source_image: Any, image_path: Path) -> None:
 
         if image_source_path:
             from shutil import copyfile
+
             src = Path(image_source_path)
             if src.is_file():
                 copyfile(src, image_path)
@@ -198,7 +258,9 @@ def regularize_image(source_image: Any, image_path: Path) -> None:
     raise ValueError(f"Unsupported image value: {type(source_image)}")
 
 
-def process_row(row_data: tuple, split_name: str, image_dir: Path, prompt_template: str, system_prompt: str | None) -> dict | None:
+def process_row(
+    row_data: tuple, split_name: str, image_dir: Path, prompt_template: str, system_prompt: str | None
+) -> dict | None:
     index, row = row_data
     question = str(row["question"]).strip()
     answer = str(row["answer"]).strip()
@@ -245,7 +307,9 @@ def convert_parquet(
 
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         futures = {
-            executor.submit(process_row, (index, row), split_name, output_dir / "images", prompt_template, system_prompt): index
+            executor.submit(
+                process_row, (index, row), split_name, output_dir / "images", prompt_template, system_prompt
+            ): index
             for index, row in df.iterrows()
         }
 
@@ -334,6 +398,10 @@ def main() -> None:
     write_jsonl(output_dir / "train_cls.jsonl", train_cls, include_metadata=False)
     print(f"  train_cls.jsonl: {len(train_cls)} examples")
 
+    write_jsonl(output_dir / "train_modality.jsonl", train_records["modality"], include_metadata=False)
+    write_jsonl(output_dir / "train_plane.jsonl", train_records["plane"], include_metadata=False)
+    write_jsonl(output_dir / "train_organ.jsonl", train_records["organ system"], include_metadata=False)
+
     val_cls = val_records["modality"] + val_records["plane"] + val_records["organ system"]
     write_jsonl(output_dir / "val_cls.jsonl", val_cls, include_metadata=True)
     print(f"  val_cls.jsonl: {len(val_cls)} examples")
@@ -348,20 +416,31 @@ def main() -> None:
     print(f"  val_organ.jsonl: {len(val_records['organ system'])} examples")
 
     print("Writing label vocabularies...")
-    all_train_answers = [r["normalized_answer"] for r in train_cls]
-    all_val_answers = [r["normalized_answer"] for r in val_cls]
-    all_answers = all_train_answers + all_val_answers
+    write_label_vocab(
+        output_dir / "labels_modality.txt",
+        [r["normalized_answer"] for r in train_records["modality"] + val_records["modality"]],
+    )
+    write_label_vocab(
+        output_dir / "labels_plane.txt",
+        [r["normalized_answer"] for r in train_records["plane"] + val_records["plane"]],
+    )
+    write_label_vocab(
+        output_dir / "labels_organ.txt",
+        [r["normalized_answer"] for r in train_records["organ system"] + val_records["organ system"]],
+    )
 
-    write_label_vocab(output_dir / "labels_modality.txt",
-                      [r["normalized_answer"] for r in train_records["modality"] + val_records["modality"]])
-    write_label_vocab(output_dir / "labels_plane.txt",
-                      [r["normalized_answer"] for r in train_records["plane"] + val_records["plane"]])
-    write_label_vocab(output_dir / "labels_organ.txt",
-                      [r["normalized_answer"] for r in train_records["organ system"] + val_records["organ system"]])
-
-    print(f"  labels_modality.txt: {len(set(r['normalized_answer'] for r in train_records['modality'] + val_records['modality']))} labels")
-    print(f"  labels_plane.txt: {len(set(r['normalized_answer'] for r in train_records['plane'] + val_records['plane']))} labels")
-    print(f"  labels_organ.txt: {len(set(r['normalized_answer'] for r in train_records['organ system'] + val_records['organ system']))} labels")
+    print(
+        f"  labels_modality.txt: "
+        f"{len({r['normalized_answer'] for r in train_records['modality'] + val_records['modality']})} labels"
+    )
+    print(
+        f"  labels_plane.txt: "
+        f"{len({r['normalized_answer'] for r in train_records['plane'] + val_records['plane']})} labels"
+    )
+    print(
+        f"  labels_organ.txt: "
+        f"{len({r['normalized_answer'] for r in train_records['organ system'] + val_records['organ system']})} labels"
+    )
 
     dataset_info = dict(DATASET_INFO)
     with (output_dir / "dataset_info.json").open("w", encoding="utf-8") as f:

@@ -95,8 +95,58 @@ python scripts/vulcan/collect_cluster_idx.py \
   dataset_dir=/path/to/datasets/vqa_rad
 ```
 
-Note that a layerwise `cluster_idx` is valid for collapse SFT. The current structural pruning script still expects
-uniform target MLP sizes because standard Hugging Face configs expose a single `intermediate_size`.
+Layerwise `cluster_idx` files are supported by both collapse SFT and structural pruning. For non-uniform target widths,
+`save_pruned_model.py` stores `vulcan_intermediate_sizes` and installs a small Qwen3.5 remote-code loader in the output
+checkpoint. Reload such checkpoints with `trust_remote_code: true`.
+
+## VQA-Med Multimodal Clustering
+
+Regenerate the VQA-Med converted dataset once to create category-specific training splits, then collect image,
+question, and causal prediction-position activations separately:
+
+```bash
+python scripts/vulcan/convert_vqa_med.py \
+  --dataset_dir /path/to/raw/vqa_med \
+  --output_dir datasets/vqa_med \
+  --overwrite
+
+python scripts/vulcan/collect_cluster_idx.py \
+  --config examples/vulcan/qwen35_08b_vqa_med_cls_full_sft.yaml \
+  --output_path saves/qwen35-0_8b-vqa-med-cls/vulcan/cluster_idx_multimodal_0_50_ckpt1200.json \
+  --activation_mode multimodal \
+  --category_datasets vqa_train_modality,vqa_train_plane,vqa_train_organ \
+  --image_activation_weight 0.4 \
+  --question_activation_weight 0.4 \
+  --prediction_activation_weight 0.2 \
+  --activation_distance_weight 0.25 \
+  --keep_ratio 0.5 \
+  --max_batches 200 \
+  --shuffle \
+  --seed 42 \
+  model_name_or_path=/path/to/checkpoint-1200 \
+  dataset_dir=datasets/vqa_med \
+  deepspeed=null
+```
+
+In multimodal mode, `--max_batches` is applied to each category, so the example above collects at most 600 batches
+in total. For arbitrary adaptive layer budgets, pass a JSON/YAML list with `--keep_ratios_path`; nonuniform Qwen3.5
+checkpoints saved by Vulcan are reloadable with `trust_remote_code=True`.
+
+The multimodal mode averages tokens within each sample and samples within each category before macro-averaging the
+three categories. Anchor scores use `0.4 image + 0.4 question + 0.2 prediction` contributions, optionally weighted by
+the corresponding `down_proj` column norm. Clustering combines normalized up/gate weight directions with standardized
+modality signatures. Legacy collection remains the default.
+
+For normalized collapse with a delayed ramp, use:
+
+```yaml
+collapse_reduction: normalized
+collapse_warmup_steps: 200
+collapse_ramp_steps: 800
+collapse_loss_scale: 1.0
+```
+
+See `qwen35_08b_vqa_med_cls_multimodal_vulcan_sft.yaml` for a complete configuration.
 
 ## Collapse SFT
 

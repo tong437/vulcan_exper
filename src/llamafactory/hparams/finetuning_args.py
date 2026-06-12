@@ -626,6 +626,27 @@ class FinetuningArguments(
         default=True,
         metadata={"help": "Whether to use detached weight proxies and backward hooks for collapse loss."},
     )
+    collapse_reduction: Literal["legacy", "normalized"] = field(
+        default="legacy",
+        metadata={
+            "help": (
+                "Collapse loss reduction. legacy preserves the original sum-per-cluster behavior; normalized "
+                "averages over weight elements, neuron pairs, and active layers."
+            )
+        },
+    )
+    collapse_warmup_steps: int = field(
+        default=0,
+        metadata={"help": "Number of initial optimizer steps with collapse loss disabled."},
+    )
+    collapse_ramp_steps: int = field(
+        default=0,
+        metadata={"help": "Number of optimizer steps used to linearly ramp collapse loss after warmup."},
+    )
+    collapse_loss_scale: float = field(
+        default=1.0,
+        metadata={"help": "Additional multiplier applied to the reduced collapse loss."},
+    )
     freeze_vision_tower: bool = field(
         default=True,
         metadata={"help": "Whether ot not to freeze the vision tower in MLLM training."},
@@ -723,6 +744,15 @@ class FinetuningArguments(
 
         if self.use_collapse_loss and self.stage != "sft":
             raise ValueError("`use_collapse_loss` is only supported for SFT.")
+
+        if self.collapse_reduction not in ["legacy", "normalized"]:
+            raise ValueError("`collapse_reduction` must be one of: legacy, normalized.")
+
+        if self.collapse_warmup_steps < 0 or self.collapse_ramp_steps < 0:
+            raise ValueError("Collapse warmup and ramp steps must be non-negative.")
+
+        if self.collapse_loss_scale < 0:
+            raise ValueError("`collapse_loss_scale` must be non-negative.")
 
         if self.use_activation_align and self.stage != "sft":
             raise ValueError("`use_activation_align` is only supported for SFT.")

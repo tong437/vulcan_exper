@@ -209,7 +209,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         if self.vulcan_cluster_idx is None:
             raise ValueError("Vulcan collapse loss is enabled, but cluster_idx was not loaded.")
 
-        from ..vulcan import get_collapse_lambdas, weight_collapse_loss
+        from ..vulcan import get_collapse_lambdas, get_collapse_schedule_factor, weight_collapse_loss
 
         unwrapped_model = self.accelerator.unwrap_model(model)
         lambda1, lambda2 = get_collapse_lambdas(unwrapped_model, self.finetuning_args)
@@ -219,13 +219,22 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             lambda1,
             lambda2,
             use_weight_proxy=self.finetuning_args.collapse_use_weight_proxy,
+            reduction=self.finetuning_args.collapse_reduction,
         )
+        current_step = int(self.state.global_step)
+        warmup_steps = self.finetuning_args.collapse_warmup_steps
+        ramp_steps = self.finetuning_args.collapse_ramp_steps
+        schedule_factor = get_collapse_schedule_factor(current_step, warmup_steps, ramp_steps)
+
+        weighted_collapse_loss = loss_collapse * self.finetuning_args.collapse_loss_scale * schedule_factor
         sft_loss = loss.detach().float()
-        collapse_loss = loss_collapse.detach().float()
+        collapse_loss = weighted_collapse_loss.detach().float()
         self._vulcan_log_cache = {
             "sft_loss": sft_loss.item(),
             "collapse_loss": collapse_loss.item(),
+            "collapse_raw_loss": loss_collapse.detach().float().item(),
             "collapse_loss_ratio": (collapse_loss / sft_loss.clamp_min(1e-8)).item(),
+            "collapse_schedule_factor": schedule_factor,
             "collapse_lambda1": lambda1.detach().float().item(),
             "collapse_lambda2": lambda2.detach().float().item(),
             "collapse_lambda1_grad_norm": (
@@ -235,7 +244,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
                 lambda2.grad.detach().float().norm().item() if lambda2.grad is not None else 0.0
             ),
         }
-        return loss + loss_collapse.float()
+        return loss + weighted_collapse_loss.float()
 
     def _run_align_grad_diagnostic(
         self,
