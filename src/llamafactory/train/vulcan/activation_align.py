@@ -141,7 +141,9 @@ class ActivationAligner:
 
         return 1.0 - soft_iou, soft_iou
 
-    def compute_alignment_loss(self) -> torch.Tensor:
+    def compute_alignment_loss(
+        self, return_raw_loss: bool = False
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         device = next(self.model.parameters()).device
         input_ids = self._input_ids
         if not self._act_store or input_ids is None:
@@ -199,6 +201,9 @@ class ActivationAligner:
             "align_mask_t_mean": torch.stack(soft_t_means).mean().item(),
         }
         self._clear_batch_state()
+        if return_raw_loss:
+            return final_loss, raw_loss
+
         return final_loss
 
     def _clear_batch_state(self) -> None:

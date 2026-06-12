@@ -90,6 +90,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         self.vulcan_cluster_idx = vulcan_cluster_idx
         self.activation_aligner = activation_aligner
         self._vulcan_log_cache: dict[str, float] = {}
+        self._align_grad_diagnostic_done = False
 
         if ref_model is not None:
             from trl.models.utils import prepare_deepspeed, prepare_fsdp
@@ -236,11 +237,65 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         }
         return loss + loss_collapse.float()
 
+    def _run_align_grad_diagnostic(
+        self, sft_loss: "torch.Tensor", align_raw_loss: "torch.Tensor", align_lambda: float
+    ) -> None:
+        layer_refs = self.activation_aligner.mlp_layers
+        sample_indices = sorted({0, len(layer_refs) // 2, len(layer_refs) - 1})
+        parameters = []
+        sampled_layers = []
+        for layer_idx in sample_indices:
+            layer_ref = layer_refs[layer_idx]
+            sampled_layers.append(layer_ref.index)
+            parameters.extend([layer_ref.mlp.up_proj.weight, layer_ref.mlp.gate_proj.weight])
+
+        sft_grads = torch.autograd.grad(sft_loss.float(), parameters, retain_graph=True, allow_unused=True)
+        align_grads = torch.autograd.grad(align_raw_loss, parameters, retain_graph=True, allow_unused=True)
+
+        device = sft_loss.device
+        sft_sq = torch.zeros((), device=device, dtype=torch.float32)
+        align_sq = torch.zeros((), device=device, dtype=torch.float32)
+        dot = torch.zeros((), device=device, dtype=torch.float32)
+        for sft_grad, align_grad in zip(sft_grads, align_grads):
+            if sft_grad is not None:
+                sft_sq = sft_sq + sft_grad.detach().float().square().sum()
+            if align_grad is not None:
+                align_sq = align_sq + align_grad.detach().float().square().sum()
+            if sft_grad is not None and align_grad is not None:
+                dot = dot + (sft_grad.detach().float() * align_grad.detach().float()).sum()
+
+        sft_norm = sft_sq.sqrt()
+        align_raw_norm = align_sq.sqrt()
+        weighted_align_norm = abs(align_lambda) * align_raw_norm
+        ratio = weighted_align_norm / sft_norm.clamp_min(1e-12)
+        cosine = dot / (sft_norm * align_raw_norm).clamp_min(1e-12)
+        diagnostic = {
+            "sampled_layers": sampled_layers,
+            "sft_grad_norm": sft_norm.item(),
+            "align_raw_grad_norm": align_raw_norm.item(),
+            "align_weighted_grad_norm": weighted_align_norm.item(),
+            "align_to_sft_grad_ratio": ratio.item(),
+            "sft_align_grad_cosine": cosine.item(),
+        }
+        logger.info_rank0(f"Vulcan align gradient diagnostic: {json.dumps(diagnostic)}")
+
     def _add_align_loss(self, loss: "torch.Tensor") -> "torch.Tensor":
         if self.activation_aligner is None:
             return loss
 
-        align_loss = self.activation_aligner.compute_alignment_loss()
+        run_diagnostic = (
+            os.environ.get("VULCAN_ALIGN_GRAD_DIAGNOSTIC", "0") == "1"
+            and not self._align_grad_diagnostic_done
+            and self.model.training
+            and torch.is_grad_enabled()
+        )
+        if run_diagnostic:
+            align_loss, align_raw_loss = self.activation_aligner.compute_alignment_loss(return_raw_loss=True)
+            self._run_align_grad_diagnostic(loss, align_raw_loss, self.activation_aligner.lambda_)
+            self._align_grad_diagnostic_done = True
+        else:
+            align_loss = self.activation_aligner.compute_alignment_loss()
+
         self._vulcan_log_cache.update(self.activation_aligner.get_log())
 
         return loss + align_loss.to(loss.device, dtype=loss.dtype)

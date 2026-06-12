@@ -236,6 +236,22 @@ def test_align_loss_requires_grad():
 
 
 @pytest.mark.runs_on(["cpu", "mps"])
+def test_align_loss_can_return_raw_loss():
+    model = TinyModel(num_layers=1)
+    aligner = _make_aligner(model, align_lambda=0.5)
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 1, 2, 3, 4]])
+    labels = torch.tensor([[-100, -100, 1, 2, 3, 4]])
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    model(torch.randn(1, 6, 2, requires_grad=True))
+    weighted_loss, raw_loss = aligner.compute_alignment_loss(return_raw_loss=True)
+
+    assert weighted_loss.requires_grad
+    assert raw_loss.requires_grad
+    assert torch.allclose(weighted_loss, 0.5 * raw_loss)
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
 def test_align_loss_backward_produces_param_gradients():
     model = TinyModel(num_layers=1)
     aligner = _make_aligner(model)
