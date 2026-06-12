@@ -15,6 +15,7 @@
 import argparse
 import shutil
 import sys
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +30,13 @@ if str(SRC_DIR) not in sys.path:
 
 from llamafactory.data import get_template_and_fix_tokenizer  # noqa: E402
 from llamafactory.extras.packages import is_transformers_version_greater_than  # noqa: E402
-from llamafactory.hparams import get_infer_args  # noqa: E402
+from llamafactory.hparams import (  # noqa: E402
+    DataArguments,
+    FinetuningArguments,
+    GeneratingArguments,
+    ModelArguments,
+    get_infer_args,
+)
 from llamafactory.model import load_model, load_tokenizer  # noqa: E402
 from llamafactory.train.vulcan import load_cluster_idx  # noqa: E402
 from llamafactory.train.vulcan.pruning import pruning_mlp  # noqa: E402
@@ -56,6 +63,12 @@ def load_yaml(path: str | None) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
+def filter_infer_config(config: dict[str, Any]) -> dict[str, Any]:
+    infer_classes = (ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments)
+    allowed_keys = {field.name for dataclass_type in infer_classes for field in fields(dataclass_type)}
+    return {key: value for key, value in config.items() if key in allowed_keys}
+
+
 def install_layerwise_qwen35_loader(model, output_dir: Path, target_sizes: list[int]) -> None:
     if getattr(model.config, "model_type", None) != "qwen3_5":
         raise ValueError("Non-uniform Vulcan checkpoints currently support Qwen3.5 only.")
@@ -78,7 +91,7 @@ def install_layerwise_qwen35_loader(model, output_dir: Path, target_sizes: list[
 
 def main() -> None:
     args = parse_args()
-    infer_config = load_yaml(args.config)
+    infer_config = filter_infer_config(load_yaml(args.config))
     infer_config.update(
         {
             "model_name_or_path": args.model_name_or_path,
