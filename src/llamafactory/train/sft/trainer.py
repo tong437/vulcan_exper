@@ -238,19 +238,18 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         return loss + loss_collapse.float()
 
     def _run_align_grad_diagnostic(
-        self, sft_loss: "torch.Tensor", align_raw_loss: "torch.Tensor", align_lambda: float
+        self,
+        sft_loss: "torch.Tensor",
+        align_raw_loss: "torch.Tensor",
+        align_lambda: float,
+        sampled_layers: list[int],
+        sampled_activations: list["torch.Tensor"],
     ) -> None:
-        layer_refs = self.activation_aligner.mlp_layers
-        sample_indices = sorted({0, len(layer_refs) // 2, len(layer_refs) - 1})
-        parameters = []
-        sampled_layers = []
-        for layer_idx in sample_indices:
-            layer_ref = layer_refs[layer_idx]
-            sampled_layers.append(layer_ref.index)
-            parameters.extend([layer_ref.mlp.up_proj.weight, layer_ref.mlp.gate_proj.weight])
-
-        sft_grads = torch.autograd.grad(sft_loss.float(), parameters, retain_graph=True, allow_unused=True)
-        align_grads = torch.autograd.grad(align_raw_loss, parameters, retain_graph=True, allow_unused=True)
+        # Diagnose gradients in activation space instead of parameter space.
+        # Calling autograd.grad on ZeRO-managed parameters triggers DeepSpeed's
+        # incomplete-backward hooks and corrupts its partition-reduction state.
+        sft_grads = torch.autograd.grad(sft_loss.float(), sampled_activations, retain_graph=True, allow_unused=True)
+        align_grads = torch.autograd.grad(align_raw_loss, sampled_activations, retain_graph=True, allow_unused=True)
 
         device = sft_loss.device
         sft_sq = torch.zeros((), device=device, dtype=torch.float32)
@@ -270,12 +269,13 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         ratio = weighted_align_norm / sft_norm.clamp_min(1e-12)
         cosine = dot / (sft_norm * align_raw_norm).clamp_min(1e-12)
         diagnostic = {
+            "gradient_space": "mlp_down_proj_input",
             "sampled_layers": sampled_layers,
-            "sft_grad_norm": sft_norm.item(),
-            "align_raw_grad_norm": align_raw_norm.item(),
-            "align_weighted_grad_norm": weighted_align_norm.item(),
-            "align_to_sft_grad_ratio": ratio.item(),
-            "sft_align_grad_cosine": cosine.item(),
+            "sft_activation_grad_norm": sft_norm.item(),
+            "align_raw_activation_grad_norm": align_raw_norm.item(),
+            "align_weighted_activation_grad_norm": weighted_align_norm.item(),
+            "align_to_sft_activation_grad_ratio": ratio.item(),
+            "sft_align_activation_grad_cosine": cosine.item(),
         }
         logger.info_rank0(f"Vulcan align gradient diagnostic: {json.dumps(diagnostic)}")
 
@@ -290,8 +290,21 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             and torch.is_grad_enabled()
         )
         if run_diagnostic:
+            activation_items = self.activation_aligner.get_captured_activations()
+            if not activation_items:
+                raise RuntimeError("Cannot run activation gradient diagnostic without captured MLP activations.")
+
+            sample_indices = sorted({0, len(activation_items) // 2, len(activation_items) - 1})
+            sampled_layers = [activation_items[idx][0] for idx in sample_indices]
+            sampled_activations = [activation_items[idx][1] for idx in sample_indices]
             align_loss, align_raw_loss = self.activation_aligner.compute_alignment_loss(return_raw_loss=True)
-            self._run_align_grad_diagnostic(loss, align_raw_loss, self.activation_aligner.lambda_)
+            self._run_align_grad_diagnostic(
+                loss,
+                align_raw_loss,
+                self.activation_aligner.lambda_,
+                sampled_layers,
+                sampled_activations,
+            )
             self._align_grad_diagnostic_done = True
         else:
             align_loss = self.activation_aligner.compute_alignment_loss()

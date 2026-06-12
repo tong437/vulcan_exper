@@ -92,6 +92,9 @@ class ActivationAligner:
     def get_log(self) -> dict[str, float]:
         return self._last_log
 
+    def get_captured_activations(self) -> list[tuple[int, torch.Tensor]]:
+        return sorted(self._act_store.items())
+
     def _build_token_masks(self, seq_len: int, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
         input_ids = self._input_ids[:, :seq_len].to(device)
         visual_mask = input_ids == self.image_token_id
