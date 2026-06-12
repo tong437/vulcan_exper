@@ -47,12 +47,24 @@ def run_sft(
     generating_args: "GeneratingArguments",
     callbacks: Optional[list["TrainerCallback"]] = None,
 ):
-    if finetuning_args.use_activation_align and model_args.use_reentrant_gc:
-        model_args.use_reentrant_gc = False
-        logger.warning_rank0(
-            "Activation alignment requires non-reentrant gradient checkpointing. "
-            "`use_reentrant_gc` has been set to False before model initialization."
-        )
+    if finetuning_args.use_activation_align:
+        if model_args.use_reentrant_gc:
+            model_args.use_reentrant_gc = False
+            logger.warning_rank0(
+                "Activation alignment requires non-reentrant gradient checkpointing. "
+                "`use_reentrant_gc` has been set to False before model initialization."
+            )
+
+        if training_args.gradient_checkpointing:
+            gc_kwargs = dict(training_args.gradient_checkpointing_kwargs or {})
+            if gc_kwargs.get("use_reentrant") is not False:
+                logger.warning_rank0(
+                    "Activation alignment requires non-reentrant gradient checkpointing. "
+                    "Trainer `gradient_checkpointing_kwargs.use_reentrant` has been set to False."
+                )
+
+            gc_kwargs["use_reentrant"] = False
+            training_args.gradient_checkpointing_kwargs = gc_kwargs
 
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]

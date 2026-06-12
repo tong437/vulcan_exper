@@ -75,6 +75,8 @@ ddp_timeout: 180000000
 resume_from_checkpoint: null
 gradient_checkpointing: true
 use_reentrant_gc: false
+gradient_checkpointing_kwargs:
+  use_reentrant: false
 
 ### eval
 predict_with_generate: false
