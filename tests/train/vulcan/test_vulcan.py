@@ -200,12 +200,17 @@ def test_pruning_mlp_preserves_output_for_identical_clusters():
 
 def _make_align_finetuning_args(**overrides):
     defaults = dict(
+        align_mode="neuron",
         align_lambda=0.05,
         align_temperature=0.05,
         align_quantile=0.8,
         align_pool_type="mean",
         align_loss_type="soft_iou",
         align_text_mode="qa",
+        align_cluster_temperature=1.0,
+        align_cluster_question_weight=1.0,
+        align_cluster_answer_weight=0.5,
+        align_layer_start_ratio=0.0,
     )
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
@@ -214,9 +219,9 @@ def _make_align_finetuning_args(**overrides):
 IMAGE_TOKEN_ID = 99
 
 
-def _make_aligner(model, **overrides):
+def _make_aligner(model, cluster_idx=None, **overrides):
     finetuning_args = _make_align_finetuning_args(**overrides)
-    return ActivationAligner(model, finetuning_args, IMAGE_TOKEN_ID)
+    return ActivationAligner(model, finetuning_args, IMAGE_TOKEN_ID, cluster_idx=cluster_idx)
 
 
 @pytest.mark.runs_on(["cpu", "mps"])
@@ -333,3 +338,77 @@ def test_align_loss_allows_no_grad_evaluation():
         loss = aligner.compute_alignment_loss()
 
     assert not loss.requires_grad
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_cluster_align_separates_question_and_answer_distributions():
+    model = TinyModel(num_layers=1)
+    cluster_idx = [[{"anchor": 0, "neuron": [0, 1]}, {"anchor": 2, "neuron": [2, 3]}]]
+    aligner = _make_aligner(
+        model,
+        cluster_idx=cluster_idx,
+        align_mode="cluster",
+        align_lambda=0.1,
+        align_cluster_question_weight=1.0,
+        align_cluster_answer_weight=0.5,
+    )
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 10, 11, 1, 2]])
+    labels = torch.tensor([[-100, -100, -100, -100, 1, 2]])
+    activations = torch.tensor(
+        [
+            [
+                [8.0, 8.0, 1.0, 1.0],
+                [8.0, 8.0, 1.0, 1.0],
+                [1.0, 1.0, 8.0, 8.0],
+                [1.0, 1.0, 8.0, 8.0],
+                [8.0, 8.0, 1.0, 1.0],
+                [8.0, 8.0, 1.0, 1.0],
+            ]
+        ],
+        requires_grad=True,
+    )
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    aligner._act_store[0] = activations
+    weighted_loss, raw_loss = aligner.compute_alignment_loss(return_raw_loss=True)
+    logs = aligner.get_log()
+
+    assert weighted_loss.requires_grad
+    assert torch.allclose(weighted_loss, 0.1 * raw_loss)
+    assert logs["align_cluster_js_question"] > 0.0
+    assert logs["align_cluster_js_answer"] == pytest.approx(0.0, abs=1e-7)
+    assert logs["align_cluster_layers"] == 1.0
+    weighted_loss.backward()
+    assert activations.grad is not None and activations.grad.abs().sum() > 0
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_cluster_align_uses_mean_salience_per_cluster():
+    model = TinyModel(num_layers=1)
+    cluster_idx = [[{"anchor": 0, "neuron": [0]}, {"anchor": 1, "neuron": [1, 2, 3]}]]
+    aligner = _make_aligner(model, cluster_idx=cluster_idx, align_mode="cluster")
+
+    distribution = aligner._cluster_distribution(torch.ones(1, 4), layer_position=0)
+
+    assert torch.allclose(distribution, torch.tensor([[0.5, 0.5]]))
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_cluster_align_can_skip_early_layers():
+    model = TinyModel(num_layers=2)
+    clusters = [{"anchor": 0, "neuron": [0, 1]}, {"anchor": 2, "neuron": [2, 3]}]
+    aligner = _make_aligner(
+        model,
+        cluster_idx=[None, clusters],
+        align_mode="cluster",
+        align_layer_start_ratio=0.5,
+    )
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 10, 11, 1, 2]])
+    labels = torch.tensor([[-100, -100, -100, -100, 1, 2]])
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    model(torch.randn(1, 6, 2, requires_grad=True))
+    loss = aligner.compute_alignment_loss()
+
+    assert loss.requires_grad
+    assert aligner.get_log()["align_cluster_layers"] == 1.0

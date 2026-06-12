@@ -402,11 +402,20 @@ class BAdamArgument:
 
 @dataclass
 class ActivationAlignArguments:
-    r"""Arguments pertaining to top-k activation mask alignment regularization."""
+    r"""Arguments pertaining to visual-text activation alignment regularization."""
 
     use_activation_align: bool = field(
         default=False,
-        metadata={"help": "Whether to add top-k activation mask alignment loss between visual and text tokens."},
+        metadata={"help": "Whether to add activation alignment loss between visual and text tokens."},
+    )
+    align_mode: Literal["neuron", "cluster"] = field(
+        default="neuron",
+        metadata={
+            "help": (
+                "Alignment granularity: neuron preserves the soft top-k neuron-mask loss, while cluster aligns "
+                "visual/question/answer salience distributions over precomputed Vulcan clusters."
+            )
+        },
     )
     align_lambda: float = field(
         default=1.0,
@@ -436,6 +445,26 @@ class ActivationAlignArguments:
                 "question uses prompt tokens, and qa uses all non-visual valid tokens."
             )
         },
+    )
+    align_cluster_idx_path: str | None = field(
+        default=None,
+        metadata={"help": "Path to a Vulcan cluster_idx JSON file used by cluster-aware alignment."},
+    )
+    align_cluster_temperature: float = field(
+        default=1.0,
+        metadata={"help": "Temperature applied when normalizing cluster salience into a probability distribution."},
+    )
+    align_cluster_question_weight: float = field(
+        default=1.0,
+        metadata={"help": "Relative weight of image-question cluster alignment inside the raw alignment loss."},
+    )
+    align_cluster_answer_weight: float = field(
+        default=0.5,
+        metadata={"help": "Relative weight of image-answer cluster alignment inside the raw alignment loss."},
+    )
+    align_layer_start_ratio: float = field(
+        default=0.0,
+        metadata={"help": "Fraction of early MLP layers excluded from activation alignment (range: 0 to <1)."},
     )
 
 
@@ -701,6 +730,9 @@ class FinetuningArguments(
         if self.use_activation_align and self.align_lambda < 0:
             raise ValueError("`align_lambda` must be non-negative.")
 
+        if self.use_activation_align and self.align_mode not in ["neuron", "cluster"]:
+            raise ValueError("`align_mode` must be one of: neuron, cluster.")
+
         if self.use_activation_align and not (0.0 < self.align_quantile < 1.0):
             raise ValueError("`align_quantile` must be between 0 and 1 (exclusive).")
 
@@ -712,6 +744,22 @@ class FinetuningArguments(
 
         if self.use_activation_align and self.align_text_mode not in ["answer", "question", "qa"]:
             raise ValueError("`align_text_mode` must be one of: answer, question, qa.")
+
+        if self.use_activation_align and not (0.0 <= self.align_layer_start_ratio < 1.0):
+            raise ValueError("`align_layer_start_ratio` must be in the range [0, 1).")
+
+        if self.use_activation_align and self.align_mode == "cluster":
+            if not self.align_cluster_idx_path:
+                raise ValueError("`align_cluster_idx_path` is required when `align_mode` is cluster.")
+
+            if self.align_cluster_temperature <= 0:
+                raise ValueError("`align_cluster_temperature` must be positive.")
+
+            if self.align_cluster_question_weight < 0 or self.align_cluster_answer_weight < 0:
+                raise ValueError("Cluster alignment weights must be non-negative.")
+
+            if self.align_cluster_question_weight == 0 and self.align_cluster_answer_weight == 0:
+                raise ValueError("At least one cluster alignment weight must be positive.")
 
         if self.pissa_init and (self.stage in ["ppo", "kto"] or self.use_ref_model):
             raise ValueError("Cannot use PiSSA for current training stage.")

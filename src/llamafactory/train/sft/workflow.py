@@ -90,6 +90,20 @@ def run_sft(
 
     activation_aligner = None
     if finetuning_args.use_activation_align:
+        align_cluster_idx = None
+        if finetuning_args.align_mode == "cluster":
+            align_cluster_idx = load_cluster_idx(finetuning_args.align_cluster_idx_path)
+            num_mlp_layers = len(find_mlp_layers(model))
+            if len(align_cluster_idx) != num_mlp_layers:
+                raise ValueError(
+                    f"Loaded activation-align cluster_idx for {len(align_cluster_idx)} layers, "
+                    f"but the model has {num_mlp_layers} MLP layers."
+                )
+
+            logger.info_rank0(
+                f"Loaded activation-align Vulcan cluster_idx from {finetuning_args.align_cluster_idx_path}."
+            )
+
         image_token_id = getattr(model.config, "image_token_id", None)
         if image_token_id is None and tokenizer_module.get("processor") is not None:
             image_token_id = getattr(tokenizer_module["processor"], "image_token_id", None)
@@ -98,8 +112,13 @@ def run_sft(
                 "Cannot determine `image_token_id` for activation alignment. "
                 "Please ensure the model config or processor provides `image_token_id`."
             )
-        activation_aligner = ActivationAligner(model, finetuning_args, int(image_token_id))
-        logger.info_rank0("Initialized Vulcan activation aligner.")
+        activation_aligner = ActivationAligner(
+            model,
+            finetuning_args,
+            int(image_token_id),
+            cluster_idx=align_cluster_idx,
+        )
+        logger.info_rank0(f"Initialized Vulcan {finetuning_args.align_mode} activation aligner.")
 
     ref_model = None
     if finetuning_args.use_asft_loss:
