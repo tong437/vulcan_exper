@@ -275,6 +275,10 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
             else:
                 loss, outputs = loss_outputs, None
 
+        # NOTE: sft_loss, align_loss, etc. in _vulcan_log_cache come from the *last*
+        # micro-batch within a gradient-accumulation window.  The HuggingFace Trainer's
+        # own `loss` key in trainer_log.jsonl is the *average* over the logging interval.
+        # Do not treat them as the same statistical quantity.
         self._vulcan_log_cache["sft_loss"] = loss.detach().float().item()
         loss = self._add_vulcan_loss(model, loss)
         loss = self._add_align_loss(loss)

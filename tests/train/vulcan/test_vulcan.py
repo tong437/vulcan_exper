@@ -16,10 +16,12 @@ from types import SimpleNamespace
 
 import pytest
 import torch
+from torch.utils.checkpoint import checkpoint
 from transformers import TrainingArguments
 
 from llamafactory.train.trainer_utils import create_custom_optimizer
 from llamafactory.train.vulcan import (
+    ActivationAligner,
     build_layerwise_cluster_idx,
     build_third_keep_ratios,
     find_mlp_layers,
@@ -61,6 +63,15 @@ class TinyModel(torch.nn.Module):
         for layer in self.layers:
             x = layer(x)
         return x
+
+
+class CheckpointTinyModel(TinyModel):
+    def __init__(self, use_reentrant: bool):
+        super().__init__(num_layers=1)
+        self.use_reentrant = use_reentrant
+
+    def forward(self, x):
+        return checkpoint(self.layers[0], x, use_reentrant=self.use_reentrant)
 
 
 @pytest.mark.runs_on(["cpu", "mps"])
@@ -151,9 +162,7 @@ def test_weight_collapse_loss_and_proxy_backward():
     model = TinyModel(num_layers=1)
     with torch.no_grad():
         model.layers[0].mlp.up_proj.weight.copy_(torch.tensor([[1.0, 1.0], [2.0, 1.0], [3.0, 1.0], [4.0, 1.0]]))
-        model.layers[0].mlp.gate_proj.weight.copy_(
-            torch.tensor([[1.0, 1.0], [1.0, 3.0], [1.0, 5.0], [1.0, 7.0]])
-        )
+        model.layers[0].mlp.gate_proj.weight.copy_(torch.tensor([[1.0, 1.0], [1.0, 3.0], [1.0, 5.0], [1.0, 7.0]]))
 
     cluster_idx = [[{"anchor": 0, "neuron": [0, 1]}, {"anchor": 2, "neuron": [2, 3]}]]
     loss = weight_collapse_loss(
@@ -187,3 +196,124 @@ def test_pruning_mlp_preserves_output_for_identical_clusters():
     assert summary.pruned_intermediate_size == 2
     assert model.config.intermediate_size == 2
     assert torch.allclose(actual, expected, atol=1e-6)
+
+
+def _make_align_finetuning_args(**overrides):
+    defaults = dict(
+        align_lambda=0.05,
+        align_temperature=0.05,
+        align_quantile=0.8,
+        align_pool_type="mean",
+        align_loss_type="soft_iou",
+        align_text_mode="qa",
+    )
+    defaults.update(overrides)
+    return SimpleNamespace(**defaults)
+
+
+IMAGE_TOKEN_ID = 99
+
+
+def _make_aligner(model, **overrides):
+    finetuning_args = _make_align_finetuning_args(**overrides)
+    return ActivationAligner(model, finetuning_args, IMAGE_TOKEN_ID)
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_align_loss_requires_grad():
+    model = TinyModel(num_layers=2)
+    aligner = _make_aligner(model)
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 1, 2, 3, 4]])
+    labels = torch.tensor([[-100, -100, 1, 2, 3, 4]])
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    x = torch.randn(1, 6, 2, requires_grad=True)
+    model(x)
+
+    loss = aligner.compute_alignment_loss()
+    assert loss.requires_grad, "alignment loss must have requires_grad=True"
+    assert loss.grad_fn is not None, "alignment loss must have a grad_fn"
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_align_loss_backward_produces_param_gradients():
+    model = TinyModel(num_layers=1)
+    aligner = _make_aligner(model)
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 1, 2, 3, 4]])
+    labels = torch.tensor([[-100, -100, 1, 2, 3, 4]])
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    x = torch.randn(1, 6, 2, requires_grad=True)
+    model(x)
+
+    loss = aligner.compute_alignment_loss()
+    loss.backward()
+
+    mlp = model.layers[0].mlp
+    assert mlp.up_proj.weight.grad is not None and mlp.up_proj.weight.grad.abs().sum() > 0
+    assert mlp.gate_proj.weight.grad is not None and mlp.gate_proj.weight.grad.abs().sum() > 0
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_align_loss_supports_non_reentrant_gradient_checkpointing():
+    model = CheckpointTinyModel(use_reentrant=False)
+    aligner = _make_aligner(model)
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 1, 2, 3, 4]])
+    labels = torch.tensor([[-100, -100, 1, 2, 3, 4]])
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    model(torch.randn(1, 6, 2, requires_grad=True))
+    loss = aligner.compute_alignment_loss()
+    loss.backward()
+
+    mlp = model.layers[0].mlp
+    assert loss.requires_grad
+    assert mlp.up_proj.weight.grad is not None and mlp.up_proj.weight.grad.abs().sum() > 0
+    assert not aligner._act_store
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_align_loss_rejects_reentrant_gradient_checkpointing():
+    model = CheckpointTinyModel(use_reentrant=True)
+    aligner = _make_aligner(model)
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 1, 2, 3, 4]])
+    labels = torch.tensor([[-100, -100, 1, 2, 3, 4]])
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    model(torch.randn(1, 6, 2, requires_grad=True))
+
+    with pytest.raises(RuntimeError, match="requires_grad=False"):
+        aligner.compute_alignment_loss()
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_align_fail_fast_on_detached_activations():
+    model = TinyModel(num_layers=2)
+    aligner = _make_aligner(model)
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 1, 2, 3, 4]])
+    labels = torch.tensor([[-100, -100, 1, 2, 3, 4]])
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    x = torch.randn(1, 6, 2)
+    with torch.no_grad():
+        model(x)
+
+    with pytest.raises(RuntimeError, match="requires_grad=False"):
+        aligner.compute_alignment_loss()
+
+    aligner.remove_hooks()
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_align_loss_allows_no_grad_evaluation():
+    model = TinyModel(num_layers=1).eval()
+    aligner = _make_aligner(model)
+    input_ids = torch.tensor([[IMAGE_TOKEN_ID, IMAGE_TOKEN_ID, 1, 2, 3, 4]])
+    labels = torch.tensor([[-100, -100, 1, 2, 3, 4]])
+
+    aligner.set_batch(input_ids=input_ids, labels=labels)
+    with torch.no_grad():
+        model(torch.randn(1, 6, 2))
+        loss = aligner.compute_alignment_loss()
+
+    assert not loss.requires_grad

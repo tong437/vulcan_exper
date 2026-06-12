@@ -50,7 +50,6 @@ class ActivationAligner:
         self.loss_type: Literal["l1", "soft_iou", "neg_iou"] = finetuning_args.align_loss_type
         self.text_mode: Literal["answer", "question", "qa"] = finetuning_args.align_text_mode
         self.image_token_id = image_token_id
-
         self.mlp_layers = find_mlp_layers(model)
         self._hooks: list[torch.utils.hooks.RemovableHook] = []
         self._input_ids: torch.Tensor | None = None
@@ -61,18 +60,19 @@ class ActivationAligner:
 
         self._register_hooks()
 
-    @staticmethod
-    def _make_hook(layer_idx: int, act_store: dict[int, torch.Tensor]):
+    def _make_hook(self, layer_idx: int):
         def hook_fn(module, args, output):
-            act_store[layer_idx] = args[0]
+            # Non-reentrant checkpointing may execute this hook again during
+            # backward recomputation. The batch state has already been cleared
+            # by then, so do not retain a stale autograd graph.
+            if self._input_ids is not None:
+                self._act_store[layer_idx] = args[0]
 
         return hook_fn
 
     def _register_hooks(self) -> None:
         for layer_ref in self.mlp_layers:
-            self._hooks.append(
-                layer_ref.mlp.down_proj.register_forward_hook(self._make_hook(layer_ref.index, self._act_store))
-            )
+            self._hooks.append(layer_ref.mlp.down_proj.register_forward_hook(self._make_hook(layer_ref.index)))
 
     def set_input_ids(self, input_ids: torch.Tensor) -> None:
         self.set_batch(input_ids=input_ids)
@@ -119,15 +119,16 @@ class ActivationAligner:
         return visual_mask, text_mask
 
     def _pool_activation(self, act: torch.Tensor, token_mask: torch.Tensor) -> torch.Tensor:
-        selected = act[token_mask].abs()
+        selected = act[token_mask].float().abs()
         if self.pool_type == "mean":
             return selected.mean(dim=0)
 
         return selected.max(dim=0).values
 
     def _soft_topk_mask(self, pooled_activation: torch.Tensor) -> torch.Tensor:
-        tau = torch.quantile(pooled_activation.detach().float(), self.quantile)
-        return torch.sigmoid((pooled_activation - tau.to(pooled_activation.device)) / self.temperature)
+        pooled_f32 = pooled_activation.float()
+        tau = torch.quantile(pooled_f32.detach(), self.quantile)
+        return torch.sigmoid((pooled_f32 - tau) / self.temperature)
 
     def _compute_layer_loss(self, soft_v: torch.Tensor, soft_t: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         intersection = (soft_v * soft_t).sum()
@@ -181,6 +182,13 @@ class ActivationAligner:
 
         raw_loss = torch.stack(losses).mean()
         final_loss = self.lambda_ * raw_loss
+        if self.model.training and torch.is_grad_enabled() and not final_loss.requires_grad:
+            raise RuntimeError(
+                "Activation alignment loss has requires_grad=False. "
+                "This is likely caused by reentrant gradient checkpointing running the first "
+                "forward pass under torch.no_grad(), so forward hooks capture detached activations. "
+                "Fix: set `use_reentrant_gc: false` in your training config."
+            )
         self._last_log = {
             "align_loss": final_loss.detach().float().item(),
             "align_raw_loss": raw_loss.detach().float().item(),
