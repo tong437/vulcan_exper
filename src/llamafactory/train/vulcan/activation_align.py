@@ -226,14 +226,19 @@ class ActivationAligner:
 
         return 1.0 - soft_iou, soft_iou
 
-    def _rank_margin_loss(self, pooled_text: torch.Tensor, visual_topk_mask: torch.Tensor) -> torch.Tensor:
+    def _rank_margin_loss(
+        self, pooled_text: torch.Tensor, visual_topk_mask: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if visual_topk_mask.all():
-            return pooled_text.sum() * 0.0
+            zero = pooled_text.sum() * 0.0
+            return zero, zero.detach(), zero.detach(), zero.detach()
 
         normalized_text = pooled_text.float() / pooled_text.detach().float().mean().clamp_min(1e-8)
         top_score = normalized_text[visual_topk_mask].mean()
         other_score = normalized_text[~visual_topk_mask].mean()
-        return torch.relu(top_score.new_tensor(self.margin) - top_score + other_score)
+        gap = top_score - other_score
+        loss = torch.relu(top_score.new_tensor(self.margin) - gap)
+        return loss, gap.detach().float(), top_score.detach().float(), other_score.detach().float()
 
     def _compute_rank_margin_alignment_loss(
         self, seq_len: int, device: torch.device
@@ -255,6 +260,12 @@ class ActivationAligner:
         layer_losses = []
         question_losses = []
         answer_losses = []
+        question_gaps = []
+        answer_gaps = []
+        question_top_scores = []
+        question_other_scores = []
+        answer_top_scores = []
+        answer_other_scores = []
         soft_ious = []
         hard_ious = []
         soft_v_means = []
@@ -278,15 +289,25 @@ class ActivationAligner:
 
             if self.question_weight > 0 and question_tokens > 0:
                 pooled_question = self._pool_activation(act, question_mask)
-                question_loss = self._rank_margin_loss(pooled_question, visual_topk_mask)
+                question_loss, question_gap, question_top_score, question_other_score = self._rank_margin_loss(
+                    pooled_question, visual_topk_mask
+                )
                 weighted_losses.append(self.question_weight * question_loss)
                 question_losses.append(question_loss.detach().float())
+                question_gaps.append(question_gap)
+                question_top_scores.append(question_top_score)
+                question_other_scores.append(question_other_score)
 
             if self.answer_weight > 0 and answer_tokens > 0:
                 pooled_answer = self._pool_activation(act, answer_mask)
-                answer_loss = self._rank_margin_loss(pooled_answer, visual_topk_mask)
+                answer_loss, answer_gap, answer_top_score, answer_other_score = self._rank_margin_loss(
+                    pooled_answer, visual_topk_mask
+                )
                 weighted_losses.append(self.answer_weight * answer_loss)
                 answer_losses.append(answer_loss.detach().float())
+                answer_gaps.append(answer_gap)
+                answer_top_scores.append(answer_top_score)
+                answer_other_scores.append(answer_other_score)
 
             if weighted_losses:
                 layer_losses.append(torch.stack(weighted_losses).sum())
@@ -322,8 +343,14 @@ class ActivationAligner:
         }
         if question_losses:
             log_values["align_rank_question_loss"] = torch.stack(question_losses).mean().item()
+            log_values["align_rank_question_gap"] = torch.stack(question_gaps).mean().item()
+            log_values["align_rank_question_top_score"] = torch.stack(question_top_scores).mean().item()
+            log_values["align_rank_question_other_score"] = torch.stack(question_other_scores).mean().item()
         if answer_losses:
             log_values["align_rank_answer_loss"] = torch.stack(answer_losses).mean().item()
+            log_values["align_rank_answer_gap"] = torch.stack(answer_gaps).mean().item()
+            log_values["align_rank_answer_top_score"] = torch.stack(answer_top_scores).mean().item()
+            log_values["align_rank_answer_other_score"] = torch.stack(answer_other_scores).mean().item()
         if soft_ious:
             log_values["align_soft_iou"] = torch.stack(soft_ious).mean().item()
             log_values["align_hard_topk_iou"] = torch.stack(hard_ious).mean().item()

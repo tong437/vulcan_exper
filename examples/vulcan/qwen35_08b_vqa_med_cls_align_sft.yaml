@@ -50,7 +50,7 @@ align_lambda: 0.05
 align_quantile: 0.8
 align_pool_type: mean
 align_loss_type: rank_margin
-align_margin: 0.0
+align_margin: 0.2
 align_question_weight: 1.0
 align_answer_weight: 0.2
 align_layer_start_ratio: 0.5
