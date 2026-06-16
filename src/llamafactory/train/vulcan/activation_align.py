@@ -235,7 +235,9 @@ class ActivationAligner:
 
         normalized_text = pooled_text.float() / pooled_text.detach().float().mean().clamp_min(1e-8)
         top_score = normalized_text[visual_topk_mask].mean()
-        other_score = normalized_text[~visual_topk_mask].mean()
+        other_values = normalized_text[~visual_topk_mask]
+        hard_negative_count = min(int(visual_topk_mask.sum().item()), other_values.numel())
+        other_score = torch.topk(other_values, k=hard_negative_count, sorted=False).values.mean()
         gap = top_score - other_score
         loss = torch.relu(top_score.new_tensor(self.margin) - gap)
         return loss, gap.detach().float(), top_score.detach().float(), other_score.detach().float()
