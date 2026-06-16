@@ -433,9 +433,18 @@ class ActivationAlignArguments:
         default="mean",
         metadata={"help": "Pooling type over token dimension: mean or max."},
     )
-    align_loss_type: Literal["l1", "soft_iou", "neg_iou"] = field(
+    align_loss_type: Literal["l1", "soft_iou", "neg_iou", "rank_margin"] = field(
         default="soft_iou",
-        metadata={"help": "Type of alignment loss: l1, soft_iou (1 - IoU), or neg_iou (legacy negative IoU)."},
+        metadata={
+            "help": (
+                "Type of alignment loss: l1, soft_iou (1 - IoU), neg_iou (legacy negative IoU), or rank_margin "
+                "for visual-anchored text salience ranking."
+            )
+        },
+    )
+    align_margin: float = field(
+        default=0.0,
+        metadata={"help": "Margin used by rank_margin activation alignment after mean-normalizing salience."},
     )
     align_text_mode: Literal["answer", "question", "qa"] = field(
         default="answer",
@@ -445,6 +454,14 @@ class ActivationAlignArguments:
                 "question uses prompt tokens, and qa uses all non-visual valid tokens."
             )
         },
+    )
+    align_question_weight: float = field(
+        default=1.0,
+        metadata={"help": "Question-token weight used by neuron rank_margin activation alignment."},
+    )
+    align_answer_weight: float = field(
+        default=0.2,
+        metadata={"help": "Answer-token weight used by neuron rank_margin activation alignment."},
     )
     align_cluster_idx_path: str | None = field(
         default=None,
@@ -465,6 +482,10 @@ class ActivationAlignArguments:
     align_layer_start_ratio: float = field(
         default=0.0,
         metadata={"help": "Fraction of early MLP layers excluded from activation alignment (range: 0 to <1)."},
+    )
+    align_layer_end_ratio: float = field(
+        default=1.0,
+        metadata={"help": "Fractional MLP layer end boundary for activation alignment (range: >start to <=1)."},
     )
 
 
@@ -769,14 +790,28 @@ class FinetuningArguments(
         if self.use_activation_align and self.align_temperature <= 0:
             raise ValueError("`align_temperature` must be positive.")
 
-        if self.use_activation_align and self.align_loss_type not in ["l1", "soft_iou", "neg_iou"]:
-            raise ValueError("`align_loss_type` must be one of: l1, soft_iou, neg_iou.")
+        if self.use_activation_align and self.align_loss_type not in ["l1", "soft_iou", "neg_iou", "rank_margin"]:
+            raise ValueError("`align_loss_type` must be one of: l1, soft_iou, neg_iou, rank_margin.")
 
         if self.use_activation_align and self.align_text_mode not in ["answer", "question", "qa"]:
             raise ValueError("`align_text_mode` must be one of: answer, question, qa.")
 
-        if self.use_activation_align and not (0.0 <= self.align_layer_start_ratio < 1.0):
-            raise ValueError("`align_layer_start_ratio` must be in the range [0, 1).")
+        if self.use_activation_align and self.align_margin < 0:
+            raise ValueError("`align_margin` must be non-negative.")
+
+        if self.use_activation_align and (self.align_question_weight < 0 or self.align_answer_weight < 0):
+            raise ValueError("Neuron alignment question/answer weights must be non-negative.")
+
+        if (
+            self.use_activation_align
+            and self.align_loss_type == "rank_margin"
+            and self.align_question_weight == 0
+            and self.align_answer_weight == 0
+        ):
+            raise ValueError("At least one neuron rank_margin alignment weight must be positive.")
+
+        if self.use_activation_align and not (0.0 <= self.align_layer_start_ratio < self.align_layer_end_ratio <= 1.0):
+            raise ValueError("`align_layer_start_ratio` and `align_layer_end_ratio` must satisfy 0 <= start < end <= 1.")
 
         if self.use_activation_align and self.align_mode == "cluster":
             if not self.align_cluster_idx_path:

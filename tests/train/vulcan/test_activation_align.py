@@ -60,11 +60,15 @@ def _make_finetuning_args(**kwargs):
         align_quantile=0.8,
         align_pool_type="mean",
         align_loss_type="l1",
+        align_margin=0.0,
         align_text_mode="answer",
+        align_question_weight=1.0,
+        align_answer_weight=0.2,
         align_cluster_temperature=1.0,
         align_cluster_question_weight=1.0,
         align_cluster_answer_weight=0.5,
         align_layer_start_ratio=0.0,
+        align_layer_end_ratio=1.0,
     )
     defaults.update(kwargs)
     return SimpleNamespace(**defaults)
@@ -152,6 +156,74 @@ def test_activation_aligner_logs_hard_topk_iou():
 
     assert loss.shape == ()
     assert logs["align_hard_topk_iou"] == pytest.approx(1.0 / 3.0)
+    aligner.remove_hooks()
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_activation_aligner_rank_margin_uses_visual_topk_anchor():
+    model = TinyModel(num_layers=1)
+    aligner = ActivationAligner(
+        model,
+        _make_finetuning_args(
+            align_loss_type="rank_margin",
+            align_quantile=0.5,
+            align_question_weight=1.0,
+            align_answer_weight=0.5,
+        ),
+        image_token_id=99,
+    )
+
+    input_ids = torch.tensor([[99, 10, 1]])
+    labels = torch.tensor([[-100, -100, 1]])
+    activations = torch.tensor(
+        [
+            [
+                [8.0, 7.0, 1.0, 0.0],  # visual top-2 anchors are neurons 0 and 1
+                [1.0, 1.0, 8.0, 8.0],  # question emphasizes non-anchor neurons
+                [8.0, 7.0, 1.0, 0.0],  # answer already follows the visual anchors
+            ]
+        ],
+        requires_grad=True,
+    )
+
+    aligner.set_batch(input_ids=input_ids, labels=labels, attention_mask=torch.ones_like(input_ids))
+    aligner._act_store[0] = activations
+    loss = aligner.compute_alignment_loss()
+    logs = aligner.get_log()
+
+    assert loss.requires_grad
+    assert loss.item() > 0
+    assert logs["align_rank_layers"] == 1.0
+    assert logs["align_rank_question_loss"] > 0.0
+    assert logs["align_rank_answer_loss"] == pytest.approx(0.0)
+    loss.backward()
+    assert activations.grad is not None and activations.grad.abs().sum() > 0
+    aligner.remove_hooks()
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
+def test_activation_aligner_neuron_mode_respects_layer_range():
+    model = TinyModel(num_layers=4)
+    aligner = ActivationAligner(
+        model,
+        _make_finetuning_args(
+            align_loss_type="rank_margin",
+            align_quantile=0.5,
+            align_layer_start_ratio=0.5,
+            align_layer_end_ratio=0.75,
+        ),
+        image_token_id=99,
+    )
+
+    input_ids = torch.tensor([[99, 10, 1]])
+    labels = torch.tensor([[-100, -100, 1]])
+    aligner.set_batch(input_ids=input_ids, labels=labels, attention_mask=torch.ones_like(input_ids))
+    model(torch.randn(1, 3, 2, requires_grad=True))
+    loss = aligner.compute_alignment_loss()
+    logs = aligner.get_log()
+
+    assert loss.shape == ()
+    assert logs["align_rank_layers"] == 1.0
     aligner.remove_hooks()
 
 

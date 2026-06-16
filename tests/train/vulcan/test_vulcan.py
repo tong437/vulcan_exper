@@ -307,11 +307,15 @@ def _make_align_finetuning_args(**overrides):
         align_quantile=0.8,
         align_pool_type="mean",
         align_loss_type="soft_iou",
+        align_margin=0.0,
         align_text_mode="qa",
+        align_question_weight=1.0,
+        align_answer_weight=0.2,
         align_cluster_temperature=1.0,
         align_cluster_question_weight=1.0,
         align_cluster_answer_weight=0.5,
         align_layer_start_ratio=0.0,
+        align_layer_end_ratio=1.0,
     )
     defaults.update(overrides)
     return SimpleNamespace(**defaults)

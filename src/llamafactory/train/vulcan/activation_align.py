@@ -52,16 +52,21 @@ class ActivationAligner:
         self.temperature = finetuning_args.align_temperature
         self.quantile = finetuning_args.align_quantile
         self.pool_type: Literal["mean", "max"] = finetuning_args.align_pool_type
-        self.loss_type: Literal["l1", "soft_iou", "neg_iou"] = finetuning_args.align_loss_type
+        self.loss_type: Literal["l1", "soft_iou", "neg_iou", "rank_margin"] = finetuning_args.align_loss_type
+        self.margin = finetuning_args.align_margin
         self.text_mode: Literal["answer", "question", "qa"] = finetuning_args.align_text_mode
+        self.question_weight = finetuning_args.align_question_weight
+        self.answer_weight = finetuning_args.align_answer_weight
         self.cluster_idx = cluster_idx
         self.cluster_temperature = finetuning_args.align_cluster_temperature
         self.cluster_question_weight = finetuning_args.align_cluster_question_weight
         self.cluster_answer_weight = finetuning_args.align_cluster_answer_weight
         self.layer_start_ratio = finetuning_args.align_layer_start_ratio
+        self.layer_end_ratio = finetuning_args.align_layer_end_ratio
         self.image_token_id = image_token_id
         self.mlp_layers = find_mlp_layers(model)
         self._layer_start_position = int(len(self.mlp_layers) * self.layer_start_ratio)
+        self._layer_end_position = math.ceil(len(self.mlp_layers) * self.layer_end_ratio)
         self._hooks: list[torch.utils.hooks.RemovableHook] = []
         self._input_ids: torch.Tensor | None = None
         self._labels: torch.Tensor | None = None
@@ -123,7 +128,7 @@ class ActivationAligner:
 
         active_cluster_layers = 0
         for layer_position, (layer_ref, layer_clusters) in enumerate(zip(self.mlp_layers, self.cluster_idx)):
-            if layer_position < self._layer_start_position or layer_clusters is None:
+            if not self._is_active_layer_position(layer_position) or layer_clusters is None:
                 continue
 
             active_cluster_layers += 1
@@ -146,7 +151,10 @@ class ActivationAligner:
                 )
 
         if active_cluster_layers == 0:
-            raise ValueError("No cluster_idx layers remain after applying `align_layer_start_ratio`.")
+            raise ValueError("No cluster_idx layers remain after applying activation alignment layer range.")
+
+    def _is_active_layer_position(self, layer_position: int) -> bool:
+        return self._layer_start_position <= layer_position < self._layer_end_position
 
     def _build_token_masks(self, seq_len: int, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
         visual_mask, question_mask, answer_mask = self._build_modality_masks(seq_len, device)
@@ -218,6 +226,112 @@ class ActivationAligner:
 
         return 1.0 - soft_iou, soft_iou
 
+    def _rank_margin_loss(self, pooled_text: torch.Tensor, visual_topk_mask: torch.Tensor) -> torch.Tensor:
+        if visual_topk_mask.all():
+            return pooled_text.sum() * 0.0
+
+        normalized_text = pooled_text.float() / pooled_text.detach().float().mean().clamp_min(1e-8)
+        top_score = normalized_text[visual_topk_mask].mean()
+        other_score = normalized_text[~visual_topk_mask].mean()
+        return torch.relu(top_score.new_tensor(self.margin) - top_score + other_score)
+
+    def _compute_rank_margin_alignment_loss(
+        self, seq_len: int, device: torch.device
+    ) -> tuple[torch.Tensor, dict[str, float]]:
+        visual_mask, question_mask, answer_mask = self._build_modality_masks(seq_len, device)
+        visual_tokens = int(visual_mask.sum().item())
+        question_tokens = int(question_mask.sum().item())
+        answer_tokens = int(answer_mask.sum().item())
+        if visual_tokens == 0 or (
+            (self.question_weight == 0 or question_tokens == 0) and (self.answer_weight == 0 or answer_tokens == 0)
+        ):
+            return torch.zeros((), device=device, dtype=torch.float32), {
+                "align_visual_tokens": float(visual_tokens),
+                "align_question_tokens": float(question_tokens),
+                "align_answer_tokens": float(answer_tokens),
+                "align_rank_layers": 0.0,
+            }
+
+        layer_losses = []
+        question_losses = []
+        answer_losses = []
+        soft_ious = []
+        hard_ious = []
+        soft_v_means = []
+        soft_text_means = []
+        active_layers = 0
+        combined_text_mask = torch.zeros_like(visual_mask)
+        if self.question_weight > 0:
+            combined_text_mask = combined_text_mask | question_mask
+        if self.answer_weight > 0:
+            combined_text_mask = combined_text_mask | answer_mask
+
+        for layer_position, layer_ref in enumerate(self.mlp_layers):
+            if not self._is_active_layer_position(layer_position) or layer_ref.index not in self._act_store:
+                continue
+
+            act = self._act_store[layer_ref.index][:, :seq_len, :]
+            pooled_v = self._pool_activation(act, visual_mask)
+            visual_topk_mask = self._hard_topk_mask(pooled_v)
+            weighted_losses = []
+            active_layers += 1
+
+            if self.question_weight > 0 and question_tokens > 0:
+                pooled_question = self._pool_activation(act, question_mask)
+                question_loss = self._rank_margin_loss(pooled_question, visual_topk_mask)
+                weighted_losses.append(self.question_weight * question_loss)
+                question_losses.append(question_loss.detach().float())
+
+            if self.answer_weight > 0 and answer_tokens > 0:
+                pooled_answer = self._pool_activation(act, answer_mask)
+                answer_loss = self._rank_margin_loss(pooled_answer, visual_topk_mask)
+                weighted_losses.append(self.answer_weight * answer_loss)
+                answer_losses.append(answer_loss.detach().float())
+
+            if weighted_losses:
+                layer_losses.append(torch.stack(weighted_losses).sum())
+
+            if combined_text_mask.any():
+                pooled_text = self._pool_activation(act, combined_text_mask)
+                soft_v = self._soft_topk_mask(pooled_v)
+                soft_text = self._soft_topk_mask(pooled_text)
+                _, soft_iou = self._compute_layer_loss(soft_v, soft_text)
+                soft_ious.append(soft_iou.detach().float())
+                hard_ious.append(self._compute_hard_iou(visual_topk_mask, self._hard_topk_mask(pooled_text)))
+                soft_v_means.append(soft_v.detach().float().mean())
+                soft_text_means.append(soft_text.detach().float().mean())
+
+        if not layer_losses:
+            return torch.zeros((), device=device, dtype=torch.float32), {
+                "align_visual_tokens": float(visual_tokens),
+                "align_question_tokens": float(question_tokens),
+                "align_answer_tokens": float(answer_tokens),
+                "align_rank_layers": 0.0,
+            }
+
+        raw_loss = torch.stack(layer_losses).mean()
+        log_values = {
+            "align_visual_tokens": float(visual_tokens),
+            "align_text_tokens": float(question_tokens + answer_tokens),
+            "align_question_tokens": float(question_tokens),
+            "align_answer_tokens": float(answer_tokens),
+            "align_rank_layers": float(active_layers),
+            "align_question_weight": float(self.question_weight),
+            "align_answer_weight": float(self.answer_weight),
+            "align_margin": float(self.margin),
+        }
+        if question_losses:
+            log_values["align_rank_question_loss"] = torch.stack(question_losses).mean().item()
+        if answer_losses:
+            log_values["align_rank_answer_loss"] = torch.stack(answer_losses).mean().item()
+        if soft_ious:
+            log_values["align_soft_iou"] = torch.stack(soft_ious).mean().item()
+            log_values["align_hard_topk_iou"] = torch.stack(hard_ious).mean().item()
+            log_values["align_mask_v_mean"] = torch.stack(soft_v_means).mean().item()
+            log_values["align_mask_t_mean"] = torch.stack(soft_text_means).mean().item()
+
+        return raw_loss, log_values
+
     def _pool_absolute_activation_by_sample(
         self, absolute_act: torch.Tensor, token_mask: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -286,7 +400,7 @@ class ActivationAligner:
         cluster_counts = []
 
         for layer_position, layer_ref in enumerate(self.mlp_layers):
-            if layer_position < self._layer_start_position or self.cluster_idx[layer_position] is None:
+            if not self._is_active_layer_position(layer_position) or self.cluster_idx[layer_position] is None:
                 continue
 
             act = self._act_store[layer_ref.index][:, :seq_len, :]
@@ -373,6 +487,21 @@ class ActivationAligner:
 
             return final_loss
 
+        if self.loss_type == "rank_margin":
+            raw_loss, log_values = self._compute_rank_margin_alignment_loss(seq_len, device)
+            final_loss = self.lambda_ * raw_loss
+            self._check_loss_gradient(final_loss)
+            self._last_log = {
+                "align_loss": final_loss.detach().float().item(),
+                "align_raw_loss": raw_loss.detach().float().item(),
+                **log_values,
+            }
+            self._clear_batch_state()
+            if return_raw_loss:
+                return final_loss, raw_loss
+
+            return final_loss
+
         visual_mask, text_mask = self._build_token_masks(seq_len, device)
         visual_tokens = int(visual_mask.sum().item())
         text_tokens = int(text_mask.sum().item())
@@ -389,8 +518,13 @@ class ActivationAligner:
         hard_ious = []
         soft_v_means = []
         soft_t_means = []
-        for layer_idx in sorted(self._act_store.keys()):
-            act = self._act_store[layer_idx][:, :seq_len, :]
+        active_layers = 0
+        for layer_position, layer_ref in enumerate(self.mlp_layers):
+            if not self._is_active_layer_position(layer_position) or layer_ref.index not in self._act_store:
+                continue
+
+            active_layers += 1
+            act = self._act_store[layer_ref.index][:, :seq_len, :]
             pooled_v = self._pool_activation(act, visual_mask)
             pooled_t = self._pool_activation(act, text_mask)
             soft_v = self._soft_topk_mask(pooled_v)
@@ -404,6 +538,15 @@ class ActivationAligner:
             soft_v_means.append(soft_v.detach().float().mean())
             soft_t_means.append(soft_t.detach().float().mean())
 
+        if not losses:
+            self._last_log = {
+                "align_visual_tokens": float(visual_tokens),
+                "align_text_tokens": float(text_tokens),
+                "align_active_layers": 0.0,
+            }
+            self._clear_batch_state()
+            return torch.zeros((), device=device, dtype=torch.float32)
+
         raw_loss = torch.stack(losses).mean()
         final_loss = self.lambda_ * raw_loss
         self._check_loss_gradient(final_loss)
@@ -412,6 +555,7 @@ class ActivationAligner:
             "align_raw_loss": raw_loss.detach().float().item(),
             "align_soft_iou": torch.stack(ious).mean().item(),
             "align_hard_topk_iou": torch.stack(hard_ious).mean().item(),
+            "align_active_layers": float(active_layers),
             "align_visual_tokens": float(visual_tokens),
             "align_text_tokens": float(text_tokens),
             "align_mask_v_mean": torch.stack(soft_v_means).mean().item(),
@@ -424,7 +568,12 @@ class ActivationAligner:
         return final_loss
 
     def _check_loss_gradient(self, final_loss: torch.Tensor) -> None:
-        if self.model.training and torch.is_grad_enabled() and not final_loss.requires_grad:
+        if (
+            self.model.training
+            and torch.is_grad_enabled()
+            and not final_loss.requires_grad
+            and final_loss.detach().float().item() != 0.0
+        ):
             raise RuntimeError(
                 "Activation alignment loss has requires_grad=False. "
                 "This is likely caused by reentrant gradient checkpointing running the first "

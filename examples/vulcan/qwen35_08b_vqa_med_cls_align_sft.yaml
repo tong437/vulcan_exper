@@ -44,17 +44,20 @@ image_max_pixels: 262144
 image_min_pixels: 1024
 
 ### vulcan activation alignment
-# VQA-Med answers are short labels, so pool question and answer tokens together.
+# Visual-anchored rank-margin alignment focuses on semantic layers and weights question tokens above answer labels.
 use_activation_align: true
 align_lambda: 0.05
-align_temperature: 0.05
 align_quantile: 0.8
 align_pool_type: mean
-align_loss_type: soft_iou
-align_text_mode: qa
+align_loss_type: rank_margin
+align_margin: 0.0
+align_question_weight: 1.0
+align_answer_weight: 0.2
+align_layer_start_ratio: 0.5
+align_layer_end_ratio: 0.95
 
 ### output
-output_dir: saves/qwen35-0_8b-vqa-med-cls/full/align-only-from-ckpt1200-qa-lam005-lr3e6
+output_dir: saves/qwen35-0_8b-vqa-med-cls/full/align-rank-margin-lam005-lr3e6
 logging_steps: 10
 save_steps: 50
 save_total_limit: 5
