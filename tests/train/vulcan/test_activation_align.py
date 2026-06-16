@@ -133,6 +133,29 @@ def test_activation_aligner_soft_iou_loss():
 
 
 @pytest.mark.runs_on(["cpu", "mps"])
+def test_activation_aligner_logs_hard_topk_iou():
+    model = TinyModel(num_layers=1)
+    aligner = ActivationAligner(
+        model,
+        _make_finetuning_args(align_quantile=0.5, align_loss_type="soft_iou"),
+        image_token_id=99,
+    )
+
+    input_ids = torch.tensor([[99, 1]])
+    labels = torch.tensor([[-100, 1]])
+    activations = torch.tensor([[[8.0, 7.0, 1.0, 0.0], [8.0, 1.0, 7.0, 0.0]]], requires_grad=True)
+
+    aligner.set_batch(input_ids=input_ids, labels=labels, attention_mask=torch.ones_like(input_ids))
+    aligner._act_store[0] = activations
+    loss = aligner.compute_alignment_loss()
+    logs = aligner.get_log()
+
+    assert loss.shape == ()
+    assert logs["align_hard_topk_iou"] == pytest.approx(1.0 / 3.0)
+    aligner.remove_hooks()
+
+
+@pytest.mark.runs_on(["cpu", "mps"])
 def test_activation_aligner_neg_iou_loss():
     model = TinyModel(num_layers=2)
     aligner = ActivationAligner(model, _make_finetuning_args(align_loss_type="neg_iou"), image_token_id=99)

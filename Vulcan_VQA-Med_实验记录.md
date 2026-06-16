@@ -345,13 +345,17 @@ Yes/no 混淆矩阵：
 3. `keep_ratio=0.5` 的 Vulcan 实验一在训练后保留 74.62% 准确率，相对 baseline 下降 4.00 pp。
 4. 实验一物理剪枝前后 exact match 完全一致，说明训练得到的冗余结构可以被实际删除，这是当前最有价值的结果。
 5. `lr=1e-4 + rho=1` 使约束从早期就压倒任务损失，引发标签塌缩，性能显著恶化。
-6. 当前不能只用最终准确率评价 Vulcan。至少要同时报告：baseline、Vulcan 剪枝前、Vulcan 剪枝后，以及参数量或模型大小变化。
+6. 多模态 cluster 实验在 checkpoint 1800 达到 75.68% exact match，物理剪枝后为 75.55%，仅下降 0.13 pp。
+7. 多模态剪枝模型相较旧 Vulcan 剪枝模型提升 0.93 pp exact match、1.11 pp token F1 和 9.57 pp yes/no accuracy。
+8. 当前不能只用最终准确率评价 Vulcan。至少要同时报告：baseline、Vulcan 剪枝前、Vulcan 剪枝后，以及参数量或模型大小变化。
 
 ## 9. 尚未完成的关键对照
 
 ### 9.1 Baseline 直接剪枝
 
-需要用同一个 50% cluster index 直接剪枝 baseline checkpoint 1200，不做 Vulcan collapse 训练，然后评估：
+此前使用旧 cluster 对 baseline checkpoint 1200 直接执行 50% FFN 剪枝时，exact accuracy 约为 0.03%，模型基本失效。这说明不经过 collapse 训练直接移除一半 FFN 神经元不可行。
+
+为了与第 11 节形成严格受控对照，仍需使用同一个 `cluster_idx_multimodal.json` 直接剪枝 baseline checkpoint 1200 并重新评估：
 
 ```text
 Baseline ckpt 1200
@@ -359,7 +363,7 @@ Baseline ckpt 1200
   -> vqa_val_cls
 ```
 
-这是证明 Vulcan 有效性的核心对照。如果 baseline 直接剪枝远低于 74.62%，而 Vulcan 剪枝后仍为 74.62%，才能明确量化 collapse 训练挽回了多少剪枝损失。
+该结果可以区分性能收益来自多模态 cluster 本身，还是来自后续 collapse 训练。旧 cluster 的直接剪枝结果已经证明 collapse 是必要步骤，但不能替代同 cluster 对照。
 
 ### 9.2 分类别剪枝结果
 
@@ -371,7 +375,7 @@ Vulcan 剪枝模型还应分别评估：
 
 重点判断 baseline 到 Vulcan 的 4 pp 损失主要来自哪一类，并检查 yes/no 退化是否只集中在 modality。
 
-### 9.3 更稳健的后续配置
+### 9.3 历史候选配置
 
 当前配置文件中准备的后续候选为：
 
@@ -386,7 +390,7 @@ Vulcan 剪枝模型还应分别评估：
 | seed | 42 |
 | 保存与评估间隔 | 200 |
 
-该配置尚未验证，不能作为已完成结果。由于实验一已经证明“训练后可无损物理剪枝”，下一步优先级应是补齐 baseline 直接剪枝和分类型评估，而不是立刻扩大超参数搜索。
+该配置是多模态实验之前记录的候选方案，其中梯度累积 16 未用于第 11 节正式实验。第 11 节最终使用梯度累积 4，并恢复旧 Vulcan 实验一的完整训练动力学，以确保主要变量仅为 cluster 构造方式。
 
 ## 10. 评估命令模板
 
@@ -415,8 +419,119 @@ python scripts/vulcan/eval_vqa_predictions.py \
 | 模型 | 是否经过 Vulcan 训练 | 是否物理剪枝 | Exact Match | Token F1 | Yes/No Acc. |
 | --- | --- | --- | ---: | ---: | ---: |
 | Baseline ckpt 1200 | 否 | 否 | 78.61% | 80.59% | 88.83% |
-| Baseline direct-pruned | 否 | 是 | 待测 | 待测 | 待测 |
+| Baseline direct-pruned（旧 cluster） | 否 | 是 | 约 0.03% | 待补 | 待补 |
+| Baseline direct-pruned（multimodal cluster） | 否 | 是 | 待测 | 待测 | 待测 |
 | Vulcan run 1 | 是 | 否 | 74.62% | 76.85% | 71.28% |
 | Vulcan run 1 pruned | 是 | 是 | 74.62% | 77.10% | 75.00% |
 | Vulcan run 2 | 是 | 否 | 66.29% | 68.31% | 65.43% |
+| Multimodal Vulcan checkpoint 1800 | 是 | 否 | **75.68%** | **78.09%** | **82.98%** |
+| Multimodal Vulcan checkpoint 1800 pruned | 是 | 是 | **75.55%** | **78.21%** | **84.57%** |
 
+## 11. 多模态 Cluster Vulcan 实验
+
+### 11.1 实验动机与 Cluster 适配
+
+旧版聚类在混合训练集上对所有有效 token 的 MLP 激活统一平均，难以区分图像理解、问题理解和答案生成阶段的神经元功能。本轮保持 Vulcan collapse 训练公式不变，只调整 cluster 构造方法，以便进行受控比较。
+
+多模态 cluster 使用三个独立训练子集：
+
+- `vqa_train_modality`
+- `vqa_train_plane`
+- `vqa_train_organ`
+
+主要适配包括：
+
+1. 分别统计 image、question 和 causal prediction position 的 FFN 激活。
+2. 先在样本内部平均 token，再在任务内部平均样本，最后对三个任务做等权宏平均。
+3. anchor 分数使用 `0.4 image + 0.4 question + 0.2 prediction`。
+4. 激活签名乘以对应 `down_proj` 列范数，以考虑神经元对 FFN 输出的实际贡献。
+5. 聚类距离联合使用归一化后的 `up_proj/gate_proj` 权重方向和多模态激活签名，激活距离权重为 0.25。
+
+本轮每个任务采集 200 batches，共 600 batches。生成的索引为：
+
+```text
+saves/cluster_idx_multimodal.json
+```
+
+当前仍使用统一 `keep_ratio=0.5`，即每层均保留 50% FFN 中间神经元；本轮尚未启用逐层自适应预算。
+
+### 11.2 Collapse 训练设置
+
+为了把结果变化归因于 cluster，本轮恢复旧 Vulcan 实验一的训练动力学：
+
+| 参数 | 设置 |
+| --- | --- |
+| 起始模型 | baseline checkpoint 1200 |
+| collapse reduction | `legacy` |
+| 主任务学习率 | `1e-5` |
+| lambda 学习率（rho） | `-0.1` |
+| lambda 初值 | 0 |
+| weight proxy | 关闭 |
+| gradient accumulation | 4 |
+| max steps | 2188 |
+| collapse warmup/ramp | 0 / 0 |
+| 保存与验证间隔 | 200 steps |
+
+曾尝试 `normalized` collapse reduction，但该形式同时对权重维度和有效层数取平均，相比论文及旧 Vulcan 的“层内按 cluster 数平均、层间求和”显著缩小约束尺度，因此未作为本轮正式设置。
+
+### 11.3 Checkpoint 选择
+
+checkpoint 1800 与 final 的验证结果如下：
+
+| 模型点 | Exact Match | Token F1 | Yes/No Acc. |
+| --- | ---: | ---: | ---: |
+| checkpoint 1800 | **75.68%** | **78.09%** | **82.98%** |
+| final | 74.82% | 76.99% | 73.94% |
+
+训练后段继续 collapse 导致 final 的 yes/no 能力明显回落，因此选择 checkpoint 1800 作为物理剪枝输入，而不是最终模型。
+
+checkpoint 1800 的 yes/no 混淆矩阵：
+
+| Gold -> Pred | 数量 |
+| --- | ---: |
+| no -> no | 103 |
+| no -> yes | 10 |
+| yes -> no | 22 |
+| yes -> yes | 53 |
+
+### 11.4 物理剪枝结果
+
+使用同一个 `cluster_idx_multimodal.json` 对 checkpoint 1800 执行 50% FFN 物理剪枝：
+
+| 指标 | 剪枝前 | 剪枝后 | 变化 |
+| --- | ---: | ---: | ---: |
+| Exact Match | 75.68% | 75.55% | -0.13 pp |
+| Normalized Exact Match | 75.68% | 75.62% | -0.07 pp |
+| Token F1 | 78.09% | 78.21% | +0.11 pp |
+| Yes/No Acc. | 82.98% | 84.57% | +1.60 pp |
+
+剪枝后 exact match 仅减少 2/1501 条，normalized exact match 仅减少 1/1501 条，可以视为近零损失剪枝。
+
+剪枝后的 yes/no 混淆矩阵：
+
+| Gold -> Pred | 数量 |
+| --- | ---: |
+| no -> no | 113 |
+| no -> yes | 0 |
+| yes -> no | 29 |
+| yes -> yes | 46 |
+
+剪枝后所有 `no` 样本均预测正确，但模型对 `no` 有一定偏置，`yes` recall 为 46/75（61.33%）。因此 yes/no 总准确率提升不能替代分类型和类别召回分析。
+
+### 11.5 与旧 Vulcan 对比
+
+| 剪枝模型 | Exact Match | Token F1 | Yes/No Acc. |
+| --- | ---: | ---: | ---: |
+| 旧 Vulcan run 1 pruned | 74.62% | 77.10% | 75.00% |
+| Multimodal Vulcan checkpoint 1800 pruned | **75.55%** | **78.21%** | **84.57%** |
+| 提升 | **+0.93 pp** | **+1.11 pp** | **+9.57 pp** |
+
+两轮实验使用相同 baseline checkpoint、统一 50% 层内预算以及相同的主要 collapse 设置。主要差异位于 cluster 构造阶段，因此结果支持以下判断：多模态 token 分区、任务宏平均和输出贡献加权能够选择更适合 VQA-Med 的 FFN 合并关系，在保持近零损失物理剪枝的同时，降低 collapse 训练造成的任务能力损失。
+
+### 11.6 当前结论与待补实验
+
+1. 多模态 cluster 保持了 Vulcan 的核心性质：collapse 后执行 50% FFN 物理剪枝几乎不产生额外性能损失。
+2. 相比旧 Vulcan，多模态 cluster 明显改善了总体 exact match 和 yes/no 稳定性。
+3. 相比未剪枝 baseline 78.61%，当前剪枝模型仍低 3.06 pp，主要代价仍发生在 collapse SFT 阶段。
+4. checkpoint 1800 优于 final，说明应按任务指标提前停止，而不能默认使用最后一个 checkpoint。
+5. 后续需要补充 `vqa_val_modality`、`vqa_val_plane`、`vqa_val_organ` 分类型结果，以及 baseline/训练后模型的簇内 redundancy 对照。

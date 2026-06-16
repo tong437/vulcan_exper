@@ -192,6 +192,21 @@ class ActivationAligner:
         tau = torch.quantile(pooled_f32.detach(), self.quantile)
         return torch.sigmoid((pooled_f32 - tau) / self.temperature)
 
+    def _hard_topk_mask(self, pooled_activation: torch.Tensor) -> torch.Tensor:
+        pooled_f32 = pooled_activation.float()
+        topk = max(1, math.ceil((1.0 - self.quantile) * pooled_f32.numel()))
+        topk = min(topk, pooled_f32.numel())
+        topk_indices = torch.topk(pooled_f32.detach(), k=topk, sorted=False).indices
+        hard_mask = torch.zeros_like(pooled_f32, dtype=torch.bool)
+        hard_mask.scatter_(dim=0, index=topk_indices, value=True)
+        return hard_mask
+
+    @staticmethod
+    def _compute_hard_iou(hard_v: torch.Tensor, hard_t: torch.Tensor) -> torch.Tensor:
+        intersection = (hard_v & hard_t).sum(dtype=torch.float32)
+        union = (hard_v | hard_t).sum(dtype=torch.float32)
+        return intersection / union.clamp_min(1.0)
+
     def _compute_layer_loss(self, soft_v: torch.Tensor, soft_t: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         intersection = (soft_v * soft_t).sum()
         union = soft_v.sum() + soft_t.sum() - intersection
@@ -371,6 +386,7 @@ class ActivationAligner:
 
         losses = []
         ious = []
+        hard_ious = []
         soft_v_means = []
         soft_t_means = []
         for layer_idx in sorted(self._act_store.keys()):
@@ -379,9 +395,12 @@ class ActivationAligner:
             pooled_t = self._pool_activation(act, text_mask)
             soft_v = self._soft_topk_mask(pooled_v)
             soft_t = self._soft_topk_mask(pooled_t)
+            hard_v = self._hard_topk_mask(pooled_v)
+            hard_t = self._hard_topk_mask(pooled_t)
             layer_loss, soft_iou = self._compute_layer_loss(soft_v, soft_t)
             losses.append(layer_loss)
             ious.append(soft_iou.detach().float())
+            hard_ious.append(self._compute_hard_iou(hard_v, hard_t))
             soft_v_means.append(soft_v.detach().float().mean())
             soft_t_means.append(soft_t.detach().float().mean())
 
@@ -392,6 +411,7 @@ class ActivationAligner:
             "align_loss": final_loss.detach().float().item(),
             "align_raw_loss": raw_loss.detach().float().item(),
             "align_soft_iou": torch.stack(ious).mean().item(),
+            "align_hard_topk_iou": torch.stack(hard_ious).mean().item(),
             "align_visual_tokens": float(visual_tokens),
             "align_text_tokens": float(text_tokens),
             "align_mask_v_mean": torch.stack(soft_v_means).mean().item(),

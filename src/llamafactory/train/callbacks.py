@@ -286,6 +286,7 @@ class LogCallback(TrainerCallback):
             align_loss=state.log_history[-1].get("align_loss"),
             align_raw_loss=state.log_history[-1].get("align_raw_loss"),
             align_soft_iou=state.log_history[-1].get("align_soft_iou"),
+            align_hard_topk_iou=state.log_history[-1].get("align_hard_topk_iou"),
             align_visual_tokens=state.log_history[-1].get("align_visual_tokens"),
             align_text_tokens=state.log_history[-1].get("align_text_tokens"),
             align_mask_v_mean=state.log_history[-1].get("align_mask_v_mean"),
