@@ -535,3 +535,199 @@ checkpoint 1800 的 yes/no 混淆矩阵：
 3. 相比未剪枝 baseline 78.61%，当前剪枝模型仍低 3.06 pp，主要代价仍发生在 collapse SFT 阶段。
 4. checkpoint 1800 优于 final，说明应按任务指标提前停止，而不能默认使用最后一个 checkpoint。
 5. 后续需要补充 `vqa_val_modality`、`vqa_val_plane`、`vqa_val_organ` 分类型结果，以及 baseline/训练后模型的簇内 redundancy 对照。
+
+## 12. Activation Alignment 探索
+
+### 12.1 实验动机
+
+Vulcan collapse 与物理剪枝主要依赖 FFN 中间神经元的冗余关系。多模态 VQA 中，视觉 token 与文本 token 可能依赖不同的 FFN neuron 子集；如果两者的 top-k activation 分布差异过大，后续 cluster/collapse/剪枝可能优先保留某一侧的表征而削弱跨模态推理。
+
+本轮 activation alignment 的目标不是直接提升 yes/no 子集，而是验证能否在较小内部扰动下提高：
+
+```text
+IoU(visual top20 neurons, text top20 neurons)
+```
+
+并观察这种内部对齐是否能改善总体 exact match 和 token F1。VQA-Med 验证集共 1501 条，其中 yes/no 样本为 188 条，占比约 12.5%，因此主指标仍应是 overall EM/F1，yes/no 只作为副指标。
+
+### 12.2 旧 soft-IoU 方案的问题
+
+第一版 neuron-level alignment 使用 soft top-k mask 的 IoU loss：
+
+```text
+loss = 1 - soft_iou(visual_soft_mask, text_soft_mask)
+```
+
+其中 `align_quantile=0.8` 名义上关注 top 20% neuron，但训练日志显示 `align_mask_v_mean` 和 `align_mask_t_mean` 常在 0.44 左右，说明 soft mask 实际较稠密，不是严格 top20。后续加入 hard top-k 诊断后发现：
+
+```text
+align_soft_iou      ~= 0.30
+align_hard_topk_iou ~= 0.30
+```
+
+这说明 soft-IoU 不是完全虚高，但该目标仍存在结构性问题：它是对称 loss，没有 anchor，visual 和 text 可以一起漂移，未必能真正提高两者 top20 集合的重叠。
+
+代表性结果如下：
+
+| 配置 | Exact Match | Token F1 | Yes/No Acc. | 主要现象 |
+| --- | ---: | ---: | ---: | --- |
+| no-align continuation, 200 steps | 76.48% | 78.59% | 82.98% | 同步训练步数对照 |
+| soft-IoU, `lambda=0.05`, `temp=0.02` | 76.22% | 78.40% | 84.04% | 整体未优于 no-align |
+| soft-IoU, `lambda=0.2`, `temp=0.02` | 75.75% | 78.20% | 88.83% | yes/no 提升，但 overall 下降 |
+
+内部对照进一步说明，`lambda=0.2` 虽然能显著改变决策边界，但不是理想的温和对齐：
+
+| 指标（后半层平均） | soft-IoU `lambda=0.05` | soft-IoU `lambda=0.2` |
+| --- | ---: | ---: |
+| visual top20 set change | 11.0% | 40.9% |
+| text top20 set change | 24.6% | 64.4% |
+| visual cosine | 0.996 | 0.920 |
+| text cosine | 0.989 | 0.788 |
+| visual L2 drift | 0.81 | 3.60 |
+| text L2 drift | 1.15 | 7.02 |
+| param delta rel | 0.11% | 0.23% |
+| within-model IoU | 0.251 | 0.245 |
+
+`lambda=0.2` 造成 text 和 visual 激活都大幅漂移，但 within-model visual/text top20 IoU 没有提升。这说明它更像后层表征重排，而不是把 text 稳定地拉向 visual anchor。
+
+### 12.3 Rank-hardneg 方案
+
+为避免 soft-IoU 的共同漂移问题，改为 visual-anchored rank-margin loss。核心目标是：在 text 侧，visual top20 neuron 的平均 salience 应超过 text 自己最强的一批非 visual-anchor neuron。
+
+定义：
+
+```text
+V_top       = top20(visual pooled activation).detach()
+top_score   = mean(text salience on V_top)
+other_score = mean(text salience on strongest non-anchor top20)
+gap         = top_score - other_score
+loss        = relu(margin - gap)
+```
+
+其中 hard negative 使用 text 侧非 anchor neurons 中最强的 top20，而不是全部 non-anchor 的平均值。最初使用 `mean(all non-anchor)` 时，question 侧几乎天然满足 `margin=0.2`，导致 `align_loss=0`；改成 hard negative 后，训练日志出现有效信号：
+
+```text
+align_rank_question_loss = 0.03332
+align_rank_question_gap  = 0.3078
+align_rank_answer_loss   = 0.5189
+align_rank_answer_gap    = -0.3189
+```
+
+该日志说明 question 侧通常已经较接近 visual anchors，而 answer 侧与 visual anchors 差异更大。因此后续探索重点从 answer 加权转向 question-only 与轻量 answer 加权。
+
+当前 rank-hardneg 的关键设置：
+
+```yaml
+align_loss_type: rank_margin
+align_quantile: 0.8
+align_margin: 0.2
+align_lambda: 0.05
+align_question_weight: 1.0
+align_answer_weight: 0.0 或 0.2
+align_layer_start_ratio: 0.5
+align_layer_end_ratio: 0.95
+```
+
+`align_layer_start_ratio=0.5`、`align_layer_end_ratio=0.95` 约等价于只对齐 L12-L22，避开浅层视觉/格式层和最后 logits-adjacent 层。
+
+### 12.4 Rank-hardneg 外部指标
+
+| 配置 | Checkpoint | Exact Match | Token F1 | Yes/No Acc. |
+| --- | --- | ---: | ---: | ---: |
+| no-align continuation | final / 200 steps | 76.48% | 78.59% | 82.98% |
+| rank-hardneg, `answer_weight=0.2` | final / 200 steps | 76.95% | 79.04% | 87.23% |
+| rank-hardneg, question-only | checkpoint 100 | 77.08% | 79.21% | 86.17% |
+| rank-hardneg, question-only | final / 200 steps | **77.48%** | **79.57%** | **89.36%** |
+
+本轮 question-only 训练产物：
+
+```text
+checkpoint 100:
+outputs/qwen35-0_8b-vqa-med-cls/full/
+  align-rank-hardneg-m02-lam005-qonly-lr3e6-checkpoint100/
+
+final / 200 steps:
+outputs/qwen35-0_8b-vqa-med-cls/full/
+  align-rank-hardneg-m02-lam005-qonly-lr3e6-200steps/
+```
+
+两次评估均使用完整的 1501 条验证集。原始评估结果如下：
+
+| Checkpoint | Num. Examples | Exact Match | Normalized EM | Token F1 | Yes/No Examples | Yes/No Acc. |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| checkpoint 100 | 1501 | 0.7708194537 | 0.7708194537 | 0.7920708945 | 188 | 0.8617021277 |
+| final / 200 steps | 1501 | **0.7748167888** | **0.7748167888** | **0.7956875311** | 188 | **0.8936170213** |
+
+从 checkpoint 100 继续训练到 200 steps 后，EM 提升 0.40 pp，F1 提升 0.36 pp，yes/no accuracy 提升 3.19 pp。因此本轮没有出现 checkpoint 100 优于 final 的提前过拟合信号，最终结果应采用 200-step checkpoint。
+
+question-only final 是当前 activation alignment 探索中的最佳 overall 结果。相对 no-align 200 steps：
+
+| 指标 | no-align | question-only final | 提升 |
+| --- | ---: | ---: | ---: |
+| Exact Match | 76.48% | 77.48% | +1.00 pp |
+| Token F1 | 78.59% | 79.57% | +0.98 pp |
+| Yes/No Acc. | 82.98% | 89.36% | +6.38 pp |
+
+question-only final 的 yes/no 混淆矩阵：
+
+| Gold -> Pred | 数量 |
+| --- | ---: |
+| no -> no | 98 |
+| no -> yes | 15 |
+| yes -> no | 5 |
+| yes -> yes | 70 |
+
+该结果说明 answer 侧 alignment 并非必要；去掉 answer alignment 后，overall EM/F1 和 yes/no accuracy 均优于 `answer_weight=0.2`。当前更合理的解释是：question-side grounding 到 visual anchors 能改善多类标签预测，而 answer-side rank loss 容易直接扰动标签决策边界。
+
+### 12.5 Rank-hardneg 内部对照
+
+对同一个 100 条 val 子集，对比 no-align、soft-IoU 和 rank-hardneg 的后半层内部变化，得到：
+
+| 指标（后半层平均） | soft-IoU `lambda=0.05` | soft-IoU `lambda=0.2` | rank-hardneg `lambda=0.05` |
+| --- | ---: | ---: | ---: |
+| visual top20 set change | 11.0% | 40.9% | 10.4% |
+| text top20 set change | 24.6% | 64.4% | 29.3% |
+| visual cosine | 0.996 | 0.920 | 0.996 |
+| text cosine | 0.989 | 0.788 | 0.985 |
+| visual L2 drift | 0.81 | 3.60 | 0.70 |
+| text L2 drift | 1.15 | 7.02 | 0.85 |
+| param delta rel | 0.11% | 0.23% | 0.15% |
+| within-model IoU | 0.251 | 0.245 | **0.268** |
+| no-align within-model IoU | 0.245 | 0.245 | 0.245 |
+
+rank-hardneg 是唯一明显提升 within-model visual/text top20 IoU 的配置：
+
+```text
+0.245 -> 0.268 (+0.023)
+```
+
+同时它保持了结构稳定性：visual cosine 0.996、text cosine 0.985，参数相对变化仅 0.15%。这表明 rank-hardneg 不是通过暴力重排后层激活获得收益，而是在较小扰动下让 text top20 更接近 visual top20。
+
+逐层看，rank-hardneg 在 L12-L21 几乎都提升 visual/text top20 IoU：
+
+| 层 | no-align IoU | rank-hardneg IoU | 差值 |
+| --- | ---: | ---: | ---: |
+| L12 | 0.207 | 0.231 | +0.024 |
+| L13 | 0.198 | 0.230 | +0.032 |
+| L14 | 0.300 | 0.320 | +0.020 |
+| L15 | 0.228 | 0.245 | +0.017 |
+| L16 | 0.175 | 0.200 | +0.025 |
+| L17 | 0.183 | 0.215 | +0.032 |
+| L18 | 0.231 | 0.262 | +0.031 |
+| L19 | 0.230 | 0.261 | +0.031 |
+| L20 | 0.234 | 0.255 | +0.021 |
+| L21 | 0.242 | 0.268 | +0.026 |
+| L22 | 0.298 | 0.297 | -0.001 |
+| L23 | 0.418 | 0.430 | +0.012 |
+
+由于当前实际训练范围为 L12-L22，L23 主要作为相邻层观测点。主要提升集中在 L12-L21，符合“对齐语义层、避开最后 logits-adjacent 层”的设计动机。
+
+### 12.6 当前阶段结论
+
+1. soft-IoU alignment 能提供正则信号，但对称目标容易造成 visual/text 共同漂移。强 lambda 可以改变 yes/no 决策边界，但不稳定提升 visual/text top-k overlap。
+2. rank-hardneg 通过 visual anchor 和 hard negative ranking，直接推动 text 侧 top neuron 使用 visual top20，更符合 activation alignment 的目标。
+3. 在 VQA-Med cls 上，question-only rank-hardneg 是当前最佳配置：`EM=77.48%`、`F1=79.57%`、`Yes/No=89.36%`。
+4. 相比 no-align continuation，rank-hardneg question-only 提升 1.00 pp EM、0.98 pp F1 和 6.38 pp yes/no accuracy。
+5. 内部分析显示 rank-hardneg 将 within-model visual/text top20 IoU 从 0.245 提高到 0.268，同时保持 visual/text activation cosine 分别为 0.996/0.985，说明它是温和而方向正确的对齐。
+6. 当前仍低于原始 baseline checkpoint 1200 的 78.61% EM 和 80.59% F1，说明 alignment continuation 尚不能替代最佳 baseline 选点；但它相对同训练步数 no-align continuation 有稳定收益。
+7. 后续应优先补充：不同 seed 验证、分类型结果、question mask 去除固定 prompt 的实验，以及基于 rank-hardneg 模型重新生成 cluster_idx 后再进行 Vulcan collapse/剪枝。
