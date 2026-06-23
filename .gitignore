@@ -187,5 +187,8 @@ predictions_score.json
 # datasets
 datasets/
 
+# profiling results
+results/
+
 # node binary
 node-v20.12.2-linux-x64.tar.xz
