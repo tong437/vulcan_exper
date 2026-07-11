@@ -625,7 +625,9 @@ def main() -> None:
     train_config["do_train"] = False
     train_config["do_eval"] = False
     train_config["do_predict"] = False
+    train_config["max_samples"] = args.max_samples
     train_config.setdefault("output_dir", "saves/neuron_typing/tmp")
+    train_config.setdefault("preprocessing_num_workers", 8)
 
     model_args, data_args, training_args, finetuning_args, _ = get_train_args(train_config)
     tokenizer_module = load_tokenizer(model_args)
@@ -646,6 +648,9 @@ def main() -> None:
         image_token_id = tokenizer.convert_tokens_to_ids("<|vision_start|>")
     print(f"Image token ID: {image_token_id}")
 
+    print(f"\n{'='*60}")
+    print("Building dataset (one-time)")
+    print(f"{'='*60}")
     dataloader = build_dataloader(
         train_config,
         model,
@@ -697,9 +702,6 @@ def main() -> None:
     print(f"\n{'='*60}")
     print(f"Pass 2: Neuron Classification (mode={args.threshold_mode})")
     print(f"{'='*60}")
-    dataloader = build_dataloader(
-        train_config, model, tokenizer_module, template, args.batch_size, args.num_workers, args.seed
-    )
     neuron_scores = pass2_classify_neurons(
         model,
         dataloader,

@@ -11,8 +11,9 @@ dataset: coco_captions_train,coco_captions_val
 template: qwen3_5_nothink
 cutoff_len: 1024
 max_samples: 5000
-overwrite_cache: true
-preprocessing_num_workers: 16
+overwrite_cache: false
+preprocessing_num_workers: 8
+tokenized_path: saves/neuron_typing/cache/coco_5k
 
 ### output
 output_dir: saves/neuron_typing/formal_tmp

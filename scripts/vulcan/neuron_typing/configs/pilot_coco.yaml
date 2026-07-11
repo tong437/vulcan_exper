@@ -13,6 +13,7 @@ cutoff_len: 1024
 max_samples: 500
 overwrite_cache: false
 preprocessing_num_workers: 8
+tokenized_path: saves/neuron_typing/cache/coco_val_500
 
 ### output
 output_dir: saves/neuron_typing/pilot_tmp
