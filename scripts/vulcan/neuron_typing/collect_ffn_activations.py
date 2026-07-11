@@ -340,7 +340,8 @@ def pass2_classify_neurons(
 ) -> dict[str, Any]:
     """Pass 2: Classify neurons per sample and compute type scores.
 
-    Uses vectorized top-K tracking instead of per-neuron Python loops.
+    Batch-level vectorized: processes all samples in a batch at once,
+    eliminating the per-sample Python loop.
 
     Returns:
         results: dict with neuron type scores and top-K samples
@@ -385,71 +386,100 @@ def pass2_classify_neurons(
             _ = model(**forward_inputs)
 
             visual_mask, caption_mask, ignore_mask = build_token_masks(input_ids, image_token_id, labels)
+            combined_mask = visual_mask | caption_mask  # [B, S]
+
+            # Per-sample token counts for ratio-based thresholds: [B]
+            num_visual_per_sample = visual_mask.sum(dim=1)  # [B]
+            num_text_per_sample = caption_mask.sum(dim=1)  # [B]
+            vis_req = torch.clamp(
+                torch.maximum(
+                    torch.full((batch_size,), visual_min_count, dtype=torch.long),
+                    torch.ceil(num_visual_per_sample.float() * visual_ratio).long(),
+                ),
+                min=1,
+            )  # [B]
+            txt_req = torch.clamp(
+                torch.maximum(
+                    torch.full((batch_size,), text_min_count, dtype=torch.long),
+                    torch.ceil(num_text_per_sample.float() * text_ratio).long(),
+                ),
+                min=1,
+            )  # [B]
 
             captured = collector.get_captured()
             for layer_idx, act in captured.items():
-                act_seq = act[:, :seq_len, :].float()
-                gmax = global_max[layer_idx].to(act_seq.device).float().clamp(min=1e-4)
+                act_seq = act[:, :seq_len, :].float()  # [B, S, D]
+                gmax = global_max[layer_idx].to(act_seq.device).float().clamp(min=1e-4)  # [D]
+                size = intermediate_sizes[layer_idx]
 
+                # Thresholds
                 if threshold_mode == "quantile" and quantile_thresholds is not None:
-                    t_v = quantile_thresholds[layer_idx]["visual"].to(act_seq.device)
-                    t_t = quantile_thresholds[layer_idx]["text"].to(act_seq.device)
+                    t_v = quantile_thresholds[layer_idx]["visual"].to(act_seq.device)  # [D]
+                    t_t = quantile_thresholds[layer_idx]["text"].to(act_seq.device)    # [D]
                 else:
                     t_v = t_visual
                     t_t = t_text
 
+                # Normalize: [B, S, D]
+                a_norm = torch.clamp(act_seq, min=0) / gmax * 10.0
+
+                # Per-sample per-neuron counts: [B, D]
+                # For visual: count visual tokens exceeding threshold per neuron
+                if threshold_mode == "quantile":
+                    # a_norm[:, :, j] > t_v[j] for visual tokens
+                    # Expand masks: [B, S, 1] to broadcast with [B, S, D]
+                    vm_expanded = visual_mask.unsqueeze(-1)  # [B, S, 1]
+                    cm_expanded = caption_mask.unsqueeze(-1)  # [B, S, 1]
+
+                    v_exceed = (a_norm > t_v) & vm_expanded  # [B, S, D]
+                    t_exceed = (a_norm > t_t) & cm_expanded  # [B, S, D]
+
+                    v_count = v_exceed.sum(dim=1)  # [B, D]
+                    t_count = t_exceed.sum(dim=1)  # [B, D]
+                else:
+                    vm_expanded = visual_mask.unsqueeze(-1)
+                    cm_expanded = caption_mask.unsqueeze(-1)
+
+                    v_exceed = (a_norm > t_v) & vm_expanded
+                    t_exceed = (a_norm > t_t) & cm_expanded
+
+                    v_count = v_exceed.sum(dim=1)  # [B, D]
+                    t_count = t_exceed.sum(dim=1)  # [B, D]
+
+                # Per-sample classification: [B, D]
+                vis_req_expanded = vis_req.unsqueeze(1)  # [B, 1]
+                txt_req_expanded = txt_req.unsqueeze(1)  # [B, 1]
+
+                is_visual = (v_count > vis_req_expanded) & (t_count <= txt_req_expanded)
+                is_text = (v_count <= vis_req_expanded) & (t_count > txt_req_expanded)
+                is_multimodal = (v_count > vis_req_expanded) & (t_count > txt_req_expanded)
+                is_unknown = (v_count <= vis_req_expanded) & (t_count <= txt_req_expanded)
+
+                # Accumulate counts: sum over batch dimension
+                scores = neuron_scores[layer_idx]
+                scores["visual_count"] += is_visual.sum(dim=0).cpu().long()
+                scores["text_count"] += is_text.sum(dim=0).cpu().long()
+                scores["multimodal_count"] += is_multimodal.sum(dim=0).cpu().long()
+                scores["unknown_count"] += is_unknown.sum(dim=0).cpu().long()
+                scores["total_samples"] += batch_size
+
+                # Per-sample scores and top-K update
+                # sample_score: [B, D] - top-m mean over relevant tokens per sample per neuron
                 for b in range(batch_size):
-                    a = act_seq[b]
-                    a_norm = torch.clamp(a, min=0) / gmax * 10.0
-
-                    vm = visual_mask[b]
-                    cm = caption_mask[b]
-                    num_visual = vm.sum().item()
-                    num_text = cm.sum().item()
-
-                    visual_required, text_required = compute_required_counts(
-                        num_visual, num_text,
-                        visual_ratio, visual_min_count,
-                        text_ratio, text_min_count,
-                    )
-
-                    if vm.any():
-                        v_acts = a_norm[vm]
-                        if threshold_mode == "quantile":
-                            v_count = (v_acts > t_v.unsqueeze(0)).sum(dim=0)
+                    cm_b = combined_mask[b]  # [S]
+                    if cm_b.any():
+                        selected = a_norm[b, cm_b]  # [n_tokens, D]
+                        if selected.shape[0] <= sample_score_top_m:
+                            sample_score = selected.mean(dim=0)
                         else:
-                            v_count = (v_acts > t_v).sum(dim=0)
+                            sample_score = torch.topk(selected, k=sample_score_top_m, dim=0).values.mean(dim=0)
                     else:
-                        v_count = torch.zeros(intermediate_sizes[layer_idx], device=a_norm.device)
+                        sample_score = torch.zeros(size, device=a_norm.device)
 
-                    if cm.any():
-                        t_acts = a_norm[cm]
-                        if threshold_mode == "quantile":
-                            t_count = (t_acts > t_t.unsqueeze(0)).sum(dim=0)
-                        else:
-                            t_count = (t_acts > t_t).sum(dim=0)
-                    else:
-                        t_count = torch.zeros(intermediate_sizes[layer_idx], device=a_norm.device)
-
-                    is_visual = (v_count > visual_required) & (t_count <= text_required)
-                    is_text = (v_count <= visual_required) & (t_count > text_required)
-                    is_multimodal = (v_count > visual_required) & (t_count > text_required)
-                    is_unknown = (v_count <= visual_required) & (t_count <= text_required)
-
-                    scores = neuron_scores[layer_idx]
-                    scores["visual_count"] += is_visual.cpu().long()
-                    scores["text_count"] += is_text.cpu().long()
-                    scores["multimodal_count"] += is_multimodal.cpu().long()
-                    scores["unknown_count"] += is_unknown.cpu().long()
-                    scores["total_samples"] += 1
-
-                    combined_mask = vm | cm
-                    sample_score = compute_sample_score_top_m(a_norm, combined_mask, sample_score_top_m).cpu()
-                    sample_idx = sample_count + b
-
-                    _vectorized_topk_update(
-                        scores, sample_score, sample_idx,
-                        is_visual.cpu(), is_text.cpu(), is_multimodal.cpu(),
+                    _batched_topk_update(
+                        scores, sample_score.cpu(),
+                        sample_count + b,
+                        is_visual[b].cpu(), is_text[b].cpu(), is_multimodal[b].cpu(),
                         top_k,
                     )
 
@@ -485,7 +515,7 @@ def pass2_classify_neurons(
     return results
 
 
-def _vectorized_topk_update(
+def _batched_topk_update(
     scores: dict,
     sample_score: torch.Tensor,
     sample_idx: int,

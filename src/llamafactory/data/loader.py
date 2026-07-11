@@ -75,7 +75,8 @@ def _load_single_dataset(
         local_path = os.path.join(data_args.dataset_dir, dataset_attr.dataset_name)
         if os.path.isdir(local_path):  # is directory
             for file_name in os.listdir(local_path):
-                data_files.append(os.path.join(local_path, file_name))
+                if os.path.splitext(file_name)[-1][1:] in FILEEXT2TYPE:
+                    data_files.append(os.path.join(local_path, file_name))
         elif os.path.isfile(local_path):  # is file
             data_files.append(local_path)
         else:
