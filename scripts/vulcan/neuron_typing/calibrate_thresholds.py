@@ -27,7 +27,7 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 
-ROOT_DIR = Path(__file__).resolve().parents[2]
+ROOT_DIR = Path(__file__).resolve().parents[3]
 SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -282,7 +282,7 @@ def calibrate(
             captured = collector.get_captured()
             for layer_idx, act in captured.items():
                 act_seq = act[:, :seq_len, :].float()
-                gmax = global_max[layer_idx].to(act_seq.device).clamp(min=1e-8)
+                gmax = global_max[layer_idx].to(act_seq.device).float().clamp(min=1e-4)
 
                 for b in range(batch_size):
                     a = act_seq[b]
@@ -381,9 +381,6 @@ def print_summary(calibration: dict[int, dict[str, torch.Tensor]], quantiles: li
 def main() -> None:
     args = parse_args()
     train_config = load_config(args.config)
-    for override in args.overrides:
-        key, value = parse_config_override(override)
-        train_config[key] = value
 
     train_config["do_train"] = False
     train_config["do_eval"] = False

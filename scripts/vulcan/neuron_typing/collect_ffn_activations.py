@@ -340,6 +340,8 @@ def pass2_classify_neurons(
 ) -> dict[str, Any]:
     """Pass 2: Classify neurons per sample and compute type scores.
 
+    Uses vectorized top-K tracking instead of per-neuron Python loops.
+
     Returns:
         results: dict with neuron type scores and top-K samples
     """
@@ -353,9 +355,12 @@ def pass2_classify_neurons(
             "multimodal_count": torch.zeros(size, dtype=torch.long),
             "unknown_count": torch.zeros(size, dtype=torch.long),
             "total_samples": 0,
-            "top_k_visual": [[] for _ in range(size)],
-            "top_k_text": [[] for _ in range(size)],
-            "top_k_multimodal": [[] for _ in range(size)],
+            "top_k_visual_scores": torch.full((top_k, size), -1.0),
+            "top_k_visual_samples": torch.full((top_k, size), -1, dtype=torch.long),
+            "top_k_text_scores": torch.full((top_k, size), -1.0),
+            "top_k_text_samples": torch.full((top_k, size), -1, dtype=torch.long),
+            "top_k_multimodal_scores": torch.full((top_k, size), -1.0),
+            "top_k_multimodal_samples": torch.full((top_k, size), -1, dtype=torch.long),
         }
         for layer_idx, size in intermediate_sizes.items()
     }
@@ -384,7 +389,14 @@ def pass2_classify_neurons(
             captured = collector.get_captured()
             for layer_idx, act in captured.items():
                 act_seq = act[:, :seq_len, :].float()
-                gmax = global_max[layer_idx].to(act_seq.device).clamp(min=1e-8)
+                gmax = global_max[layer_idx].to(act_seq.device).float().clamp(min=1e-4)
+
+                if threshold_mode == "quantile" and quantile_thresholds is not None:
+                    t_v = quantile_thresholds[layer_idx]["visual"].to(act_seq.device)
+                    t_t = quantile_thresholds[layer_idx]["text"].to(act_seq.device)
+                else:
+                    t_v = t_visual
+                    t_t = t_text
 
                 for b in range(batch_size):
                     a = act_seq[b]
@@ -401,13 +413,6 @@ def pass2_classify_neurons(
                         text_ratio, text_min_count,
                     )
 
-                    if threshold_mode == "quantile" and quantile_thresholds is not None:
-                        t_v = quantile_thresholds[layer_idx]["visual"].to(a_norm.device)
-                        t_t = quantile_thresholds[layer_idx]["text"].to(a_norm.device)
-                    else:
-                        t_v = t_visual
-                        t_t = t_text
-
                     if vm.any():
                         v_acts = a_norm[vm]
                         if threshold_mode == "quantile":
@@ -415,7 +420,7 @@ def pass2_classify_neurons(
                         else:
                             v_count = (v_acts > t_v).sum(dim=0)
                     else:
-                        v_count = torch.zeros(intermediate_sizes[layer_idx], device="cpu")
+                        v_count = torch.zeros(intermediate_sizes[layer_idx], device=a_norm.device)
 
                     if cm.any():
                         t_acts = a_norm[cm]
@@ -424,7 +429,7 @@ def pass2_classify_neurons(
                         else:
                             t_count = (t_acts > t_t).sum(dim=0)
                     else:
-                        t_count = torch.zeros(intermediate_sizes[layer_idx], device="cpu")
+                        t_count = torch.zeros(intermediate_sizes[layer_idx], device=a_norm.device)
 
                     is_visual = (v_count > visual_required) & (t_count <= text_required)
                     is_text = (v_count <= visual_required) & (t_count > text_required)
@@ -440,15 +445,13 @@ def pass2_classify_neurons(
 
                     combined_mask = vm | cm
                     sample_score = compute_sample_score_top_m(a_norm, combined_mask, sample_score_top_m).cpu()
+                    sample_idx = sample_count + b
 
-                    for j in range(intermediate_sizes[layer_idx]):
-                        entry = (sample_score[j].item(), sample_count + b)
-                        if is_visual[j]:
-                            _update_top_k(scores["top_k_visual"][j], entry, top_k)
-                        elif is_text[j]:
-                            _update_top_k(scores["top_k_text"][j], entry, top_k)
-                        elif is_multimodal[j]:
-                            _update_top_k(scores["top_k_multimodal"][j], entry, top_k)
+                    _vectorized_topk_update(
+                        scores, sample_score, sample_idx,
+                        is_visual.cpu(), is_text.cpu(), is_multimodal.cpu(),
+                        top_k,
+                    )
 
             collector.clear()
             sample_count += batch_size
@@ -464,26 +467,87 @@ def pass2_classify_neurons(
         if total == 0:
             continue
 
+        gmax = global_max[layer_idx].float()
+        dead_mask = (gmax <= 1e-6).tolist()
+
         results[layer_idx] = {
             "p_visual": (scores["visual_count"] / total).tolist(),
             "p_text": (scores["text_count"] / total).tolist(),
             "p_multimodal": (scores["multimodal_count"] / total).tolist(),
             "p_unknown": (scores["unknown_count"] / total).tolist(),
             "total_samples": total,
+            "dead_mask": dead_mask,
+            "top_k_visual": _tensor_to_topk_list(scores["top_k_visual_scores"], scores["top_k_visual_samples"]),
+            "top_k_text": _tensor_to_topk_list(scores["top_k_text_scores"], scores["top_k_text_samples"]),
+            "top_k_multimodal": _tensor_to_topk_list(scores["top_k_multimodal_scores"], scores["top_k_multimodal_samples"]),
         }
 
     return results
 
 
-def _update_top_k(heap: list, entry: tuple, k: int):
-    """Maintain a min-heap of top-K entries by score."""
-    if len(heap) < k:
-        heap.append(entry)
-        if len(heap) == k:
-            heap.sort(reverse=True)
-    elif entry[0] > heap[-1][0]:
-        heap[-1] = entry
-        heap.sort(reverse=True)
+def _vectorized_topk_update(
+    scores: dict,
+    sample_score: torch.Tensor,
+    sample_idx: int,
+    is_visual: torch.Tensor,
+    is_text: torch.Tensor,
+    is_multimodal: torch.Tensor,
+    top_k: int,
+):
+    """Vectorized top-K update for all neurons at once.
+
+    For each neuron type, concatenates new scores with existing top-K,
+    then takes topk to keep only the best entries.
+    """
+    for mask, score_key, sample_key in [
+        (is_visual, "top_k_visual_scores", "top_k_visual_samples"),
+        (is_text, "top_k_text_scores", "top_k_text_samples"),
+        (is_multimodal, "top_k_multimodal_scores", "top_k_multimodal_samples"),
+    ]:
+        if not mask.any():
+            continue
+
+        neuron_indices = mask.nonzero(as_tuple=True)[0]
+        new_scores = sample_score[neuron_indices]
+        new_samples = torch.full_like(neuron_indices, sample_idx)
+
+        old_scores = scores[score_key][:, neuron_indices]
+        old_samples = scores[sample_key][:, neuron_indices]
+
+        combined_scores = torch.cat([old_scores, new_scores.unsqueeze(0)], dim=0)
+        combined_samples = torch.cat([old_samples, new_samples.unsqueeze(0)], dim=0)
+
+        topk_scores, topk_indices = torch.topk(combined_scores, k=top_k, dim=0, sorted=True)
+        topk_samples = combined_samples.gather(0, topk_indices)
+
+        scores[score_key][:, neuron_indices] = topk_scores
+        scores[sample_key][:, neuron_indices] = topk_samples
+
+
+def _tensor_to_topk_list(
+    scores_tensor: torch.Tensor,
+    samples_tensor: torch.Tensor,
+) -> list[list[tuple[float, int]]]:
+    """Convert top-K tensors to list-of-lists-of-tuples format.
+
+    Args:
+        scores_tensor: [top_k, num_neurons]
+        samples_tensor: [top_k, num_neurons]
+
+    Returns:
+        list of num_neurons entries, each is list of (score, sample_idx) tuples
+    """
+    num_neurons = scores_tensor.shape[1]
+    result = []
+    for j in range(num_neurons):
+        entries = []
+        for k in range(scores_tensor.shape[0]):
+            s = scores_tensor[k, j].item()
+            if s < 0:
+                break
+            entries.append((s, samples_tensor[k, j].item()))
+        result.append(entries)
+    return result
 
 
 def save_results(

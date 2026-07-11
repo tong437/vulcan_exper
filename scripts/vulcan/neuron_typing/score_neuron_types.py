@@ -58,15 +58,20 @@ def compute_type_scores(scores: dict) -> pd.DataFrame:
         p_text = np.array(layer_data["p_text"])
         p_multimodal = np.array(layer_data["p_multimodal"])
         p_unknown = np.array(layer_data["p_unknown"])
+        dead_mask = layer_data.get("dead_mask", [False] * len(p_visual))
 
         for neuron_idx in range(len(p_visual)):
-            dominant_type = max(
-                [("visual", p_visual[neuron_idx]),
-                 ("text", p_text[neuron_idx]),
-                 ("multimodal", p_multimodal[neuron_idx]),
-                 ("unknown", p_unknown[neuron_idx])],
-                key=lambda x: x[1]
-            )[0]
+            is_dead = dead_mask[neuron_idx] if neuron_idx < len(dead_mask) else False
+            if is_dead:
+                dominant_type = "dead"
+            else:
+                dominant_type = max(
+                    [("visual", p_visual[neuron_idx]),
+                     ("text", p_text[neuron_idx]),
+                     ("multimodal", p_multimodal[neuron_idx]),
+                     ("unknown", p_unknown[neuron_idx])],
+                    key=lambda x: x[1]
+                )[0]
 
             rows.append({
                 "layer": layer_idx,
@@ -76,6 +81,7 @@ def compute_type_scores(scores: dict) -> pd.DataFrame:
                 "p_multimodal": p_multimodal[neuron_idx],
                 "p_unknown": p_unknown[neuron_idx],
                 "dominant_type": dominant_type,
+                "is_dead": is_dead,
                 "attention_type": "FA" if layer_idx in FA_LAYERS else "GDN",
             })
 
@@ -94,14 +100,19 @@ def compute_layer_statistics(df: pd.DataFrame, threshold: float) -> dict:
             (layer_df["p_unknown"] >= threshold)
         ]
 
+        dead_df = layer_df[layer_df["is_dead"]]
+        alive_df = layer_df[~layer_df["is_dead"]]
+
         stats[int(layer)] = {
             "total_neurons": len(layer_df),
+            "dead_neurons": int(layer_df["is_dead"].sum()),
             "attention_type": layer_df["attention_type"].iloc[0],
             "type_counts": {
-                "visual": int((layer_df["dominant_type"] == "visual").sum()),
-                "text": int((layer_df["dominant_type"] == "text").sum()),
-                "multimodal": int((layer_df["dominant_type"] == "multimodal").sum()),
-                "unknown": int((layer_df["dominant_type"] == "unknown").sum()),
+                "visual": int((alive_df["dominant_type"] == "visual").sum()),
+                "text": int((alive_df["dominant_type"] == "text").sum()),
+                "multimodal": int((alive_df["dominant_type"] == "multimodal").sum()),
+                "unknown": int((alive_df["dominant_type"] == "unknown").sum()),
+                "dead": int(layer_df["is_dead"].sum()),
             },
             "high_conf_counts": {
                 "visual": int((high_conf["p_visual"] >= threshold).sum()),
@@ -180,10 +191,13 @@ def print_summary(df: pd.DataFrame, layer_stats: dict, fa_gdn_stats: dict):
     print(f"{'='*60}")
 
     total = len(df)
+    n_dead = df["is_dead"].sum()
     print(f"\nTotal neurons: {total}")
-    print(f"Type distribution (dominant):")
+    print(f"Dead neurons (global_max <= 1e-6): {n_dead} ({100*n_dead/total:.1f}%)")
+    print(f"Type distribution (dominant, alive neurons only):")
+    alive_df = df[~df["is_dead"]]
     for ntype in ["visual", "text", "multimodal", "unknown"]:
-        count = (df["dominant_type"] == ntype).sum()
+        count = (alive_df["dominant_type"] == ntype).sum()
         print(f"  {ntype:12s}: {count:6d} ({100*count/total:.1f}%)")
 
     print(f"\nFA vs GDN comparison:")
