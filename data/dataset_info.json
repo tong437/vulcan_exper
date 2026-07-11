@@ -747,8 +747,7 @@
     "folder": "python"
   },
   "coco_captions_val": {
-    "hf_hub_url": "lmms-lab/COCO-Caption",
-    "split": "val",
+    "file_name": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/val.json",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
@@ -762,8 +761,7 @@
     }
   },
   "coco_captions_train": {
-    "hf_hub_url": "lmms-lab/COCO-Caption",
-    "split": "train",
+    "file_name": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/test.json",
     "formatting": "sharegpt",
     "columns": {
       "messages": "messages",
