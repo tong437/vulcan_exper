@@ -14,12 +14,17 @@
 
 """Two-pass FFN activation collection for neuron typing.
 
+Supports two threshold modes:
+- fixed: Use fixed thresholds (T_visual, T_text) - for comparison with paper
+- quantile: Use per-neuron, per-modality quantile thresholds (recommended)
+
 Pass 1: Global max activation per neuron across all samples.
 Pass 2: Per-sample visual/text activation count for neuron classification.
 """
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -52,11 +57,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size.")
     parser.add_argument("--num_workers", type=int, default=4, help="Dataloader workers.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
-    parser.add_argument("--t_visual", type=float, default=2.0, help="Visual activation threshold.")
-    parser.add_argument("--t_text", type=float, default=3.0, help="Text activation threshold.")
-    parser.add_argument("--n_visual", type=int, default=4, help="Min visual token count for classification.")
-    parser.add_argument("--n_text", type=int, default=2, help="Min text token count for classification.")
-    parser.add_argument("--top_k", type=int, default=30, help="Top-K samples per neuron.")
+    parser.add_argument("--threshold_mode", choices=["fixed", "quantile"], default="quantile",
+                        help="Threshold mode: fixed (paper) or quantile (recommended)")
+    parser.add_argument("--t_visual", type=float, default=2.0,
+                        help="Fixed visual activation threshold (only for fixed mode).")
+    parser.add_argument("--t_text", type=float, default=3.0,
+                        help="Fixed text activation threshold (only for fixed mode).")
+    parser.add_argument("--quantile_path", type=str, default=None,
+                        help="Path to neuron_quantiles.pt from calibration (for quantile mode).")
+    parser.add_argument("--quantile_idx", type=int, default=1,
+                        help="Index into quantile tensor (0=q95, 1=q97, 2=q99).")
+    parser.add_argument("--visual_ratio", type=float, default=0.005,
+                        help="Min ratio of visual tokens that must exceed threshold.")
+    parser.add_argument("--visual_min_count", type=int, default=4,
+                        help="Min absolute visual token count.")
+    parser.add_argument("--text_ratio", type=float, default=0.10,
+                        help="Min ratio of text tokens that must exceed threshold.")
+    parser.add_argument("--text_min_count", type=int, default=2,
+                        help="Min absolute text token count.")
+    parser.add_argument("--top_k", type=int, default=50, help="Top-K samples per neuron.")
+    parser.add_argument("--sample_score_top_m", type=int, default=5,
+                        help="Top-m tokens for sample score (more stable than single max).")
     parser.add_argument("--pilot", action="store_true", help="Pilot mode: only Pass 1 for threshold calibration.")
     args, overrides = parser.parse_known_args()
     args.overrides = overrides
@@ -169,6 +190,60 @@ def build_token_masks(
     return visual_mask, caption_mask, ignore_mask
 
 
+def compute_required_counts(
+    num_visual_tokens: int,
+    num_text_tokens: int,
+    visual_ratio: float,
+    visual_min_count: int,
+    text_ratio: float,
+    text_min_count: int,
+) -> tuple[int, int]:
+    """Compute ratio-based required counts.
+
+    Args:
+        num_visual_tokens: Number of visual tokens in this sample
+        num_text_tokens: Number of text tokens in this sample
+        visual_ratio: Min ratio of visual tokens
+        visual_min_count: Min absolute visual count
+        text_ratio: Min ratio of text tokens
+        text_min_count: Min absolute text count
+
+    Returns:
+        (visual_required, text_required)
+    """
+    visual_required = max(visual_min_count, math.ceil(visual_ratio * num_visual_tokens))
+    text_required = max(text_min_count, math.ceil(text_ratio * num_text_tokens))
+    return visual_required, text_required
+
+
+def compute_sample_score_top_m(
+    activations: torch.Tensor,
+    token_mask: torch.Tensor,
+    top_m: int,
+) -> torch.Tensor:
+    """Compute sample score using top-m mean activation.
+
+    More stable than single max which is sensitive to outliers.
+
+    Args:
+        activations: [seq_len, num_neurons] normalized activations
+        token_mask: [seq_len] bool mask for relevant tokens
+        top_m: Number of top tokens to average
+
+    Returns:
+        [num_neurons] tensor of sample scores
+    """
+    if not token_mask.any():
+        return torch.zeros(activations.shape[1])
+
+    selected = activations[token_mask]
+    if selected.shape[0] <= top_m:
+        return selected.mean(dim=0)
+
+    topk_values = torch.topk(selected, k=top_m, dim=0).values
+    return topk_values.mean(dim=0)
+
+
 def pass1_global_max(
     model,
     dataloader: DataLoader,
@@ -222,6 +297,28 @@ def pass1_global_max(
     return global_max, sample_count
 
 
+def load_quantile_thresholds(
+    quantile_path: str,
+    quantile_idx: int,
+) -> dict[int, dict[str, torch.Tensor]]:
+    """Load per-neuron quantile thresholds from calibration.
+
+    Returns:
+        dict mapping layer_idx to dict with 'visual' and 'text' tensors [num_neurons]
+    """
+    data = torch.load(quantile_path, map_location="cpu")
+
+    thresholds = {}
+    for layer_key, layer_data in data.items():
+        layer_idx = int(layer_key) if isinstance(layer_key, (int, str)) else layer_key
+        thresholds[layer_idx] = {
+            "visual": layer_data["visual"][:, quantile_idx],
+            "text": layer_data["text"][:, quantile_idx],
+        }
+
+    return thresholds
+
+
 def pass2_classify_neurons(
     model,
     dataloader: DataLoader,
@@ -230,11 +327,16 @@ def pass2_classify_neurons(
     global_max: dict[int, torch.Tensor],
     max_samples: int,
     device: torch.device,
+    threshold_mode: str,
     t_visual: float,
     t_text: float,
-    n_visual: int,
-    n_text: int,
+    quantile_thresholds: dict[int, dict[str, torch.Tensor]] | None,
+    visual_ratio: float,
+    visual_min_count: int,
+    text_ratio: float,
+    text_min_count: int,
     top_k: int,
+    sample_score_top_m: int,
 ) -> dict[str, Any]:
     """Pass 2: Classify neurons per sample and compute type scores.
 
@@ -290,23 +392,44 @@ def pass2_classify_neurons(
 
                     vm = visual_mask[b]
                     cm = caption_mask[b]
+                    num_visual = vm.sum().item()
+                    num_text = cm.sum().item()
+
+                    visual_required, text_required = compute_required_counts(
+                        num_visual, num_text,
+                        visual_ratio, visual_min_count,
+                        text_ratio, text_min_count,
+                    )
+
+                    if threshold_mode == "quantile" and quantile_thresholds is not None:
+                        t_v = quantile_thresholds[layer_idx]["visual"].to(a_norm.device)
+                        t_t = quantile_thresholds[layer_idx]["text"].to(a_norm.device)
+                    else:
+                        t_v = t_visual
+                        t_t = t_text
 
                     if vm.any():
                         v_acts = a_norm[vm]
-                        v_count = (v_acts > t_visual).sum(dim=0)
+                        if threshold_mode == "quantile":
+                            v_count = (v_acts > t_v.unsqueeze(0)).sum(dim=0)
+                        else:
+                            v_count = (v_acts > t_v).sum(dim=0)
                     else:
                         v_count = torch.zeros(intermediate_sizes[layer_idx], device="cpu")
 
                     if cm.any():
                         t_acts = a_norm[cm]
-                        t_count = (t_acts > t_text).sum(dim=0)
+                        if threshold_mode == "quantile":
+                            t_count = (t_acts > t_t.unsqueeze(0)).sum(dim=0)
+                        else:
+                            t_count = (t_acts > t_t).sum(dim=0)
                     else:
                         t_count = torch.zeros(intermediate_sizes[layer_idx], device="cpu")
 
-                    is_visual = (v_count > n_visual) & (t_count <= n_text)
-                    is_text = (v_count <= n_visual) & (t_count > n_text)
-                    is_multimodal = (v_count > n_visual) & (t_count > n_text)
-                    is_unknown = (v_count <= n_visual) & (t_count <= n_text)
+                    is_visual = (v_count > visual_required) & (t_count <= text_required)
+                    is_text = (v_count <= visual_required) & (t_count > text_required)
+                    is_multimodal = (v_count > visual_required) & (t_count > text_required)
+                    is_unknown = (v_count <= visual_required) & (t_count <= text_required)
 
                     scores = neuron_scores[layer_idx]
                     scores["visual_count"] += is_visual.cpu().long()
@@ -315,7 +438,9 @@ def pass2_classify_neurons(
                     scores["unknown_count"] += is_unknown.cpu().long()
                     scores["total_samples"] += 1
 
-                    sample_score = a_norm.max(dim=0).values.cpu()
+                    combined_mask = vm | cm
+                    sample_score = compute_sample_score_top_m(a_norm, combined_mask, sample_score_top_m).cpu()
+
                     for j in range(intermediate_sizes[layer_idx]):
                         entry = (sample_score[j].item(), sample_count + b)
                         if is_visual[j]:
@@ -464,8 +589,19 @@ def main() -> None:
         print(f"Pilot results saved to {pilot_output}")
         return
 
+    quantile_thresholds = None
+    if args.threshold_mode == "quantile":
+        if args.quantile_path is None:
+            args.quantile_path = str(Path(args.output_dir).parent / "calibration" / "neuron_quantiles.pt")
+        if not Path(args.quantile_path).exists():
+            print(f"ERROR: neuron_quantiles.pt not found at {args.quantile_path}")
+            print("Run calibrate_thresholds.py first.")
+            sys.exit(1)
+        quantile_thresholds = load_quantile_thresholds(args.quantile_path, args.quantile_idx)
+        print(f"Loaded quantile thresholds from {args.quantile_path} (idx={args.quantile_idx})")
+
     print(f"\n{'='*60}")
-    print("Pass 2: Neuron Classification")
+    print(f"Pass 2: Neuron Classification (mode={args.threshold_mode})")
     print(f"{'='*60}")
     dataloader = build_dataloader(
         train_config, model, tokenizer_module, template, args.batch_size, args.num_workers, args.seed
@@ -478,22 +614,33 @@ def main() -> None:
         global_max,
         args.max_samples,
         device,
+        args.threshold_mode,
         args.t_visual,
         args.t_text,
-        args.n_visual,
-        args.n_text,
+        quantile_thresholds,
+        args.visual_ratio,
+        args.visual_min_count,
+        args.text_ratio,
+        args.text_min_count,
         args.top_k,
+        args.sample_score_top_m,
     )
     print(f"Pass 2 complete: classified neurons for {len(neuron_scores)} layers")
 
     config = {
         "model_name": model_args.model_name_or_path,
         "max_samples": args.max_samples,
+        "threshold_mode": args.threshold_mode,
         "t_visual": args.t_visual,
         "t_text": args.t_text,
-        "n_visual": args.n_visual,
-        "n_text": args.n_text,
+        "quantile_path": args.quantile_path,
+        "quantile_idx": args.quantile_idx,
+        "visual_ratio": args.visual_ratio,
+        "visual_min_count": args.visual_min_count,
+        "text_ratio": args.text_ratio,
+        "text_min_count": args.text_min_count,
         "top_k": args.top_k,
+        "sample_score_top_m": args.sample_score_top_m,
         "image_token_id": image_token_id,
         "num_mlp_layers": len(mlp_layers),
         "intermediate_size": int(mlp_layers[0].mlp.up_proj.weight.shape[0]) if mlp_layers else 0,

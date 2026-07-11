@@ -12,7 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""End-to-end Phase 1 pipeline: activation collection → scoring → statistics → visualization."""
+"""End-to-end Phase 1 pipeline with calibration + typing.
+
+Pipeline:
+1. Pilot: Collect global_max (Pass 1 only)
+2. Calibration: Estimate per-neuron quantile thresholds
+3. Typing: Classify neurons using calibrated thresholds
+4. Scoring: Compute type scores and statistics
+5. Visualization: Generate diagnostic plots
+"""
 
 import argparse
 import json
@@ -29,14 +37,31 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Phase 1 neuron typing pipeline.")
     parser.add_argument("--config", required=True, help="LlamaFactory SFT YAML config.")
     parser.add_argument("--output_dir", required=True, help="Output directory for all results.")
-    parser.add_argument("--max_samples", type=int, default=5000, help="Max samples.")
+    parser.add_argument("--calibration_samples", type=int, default=500,
+                        help="Samples for calibration (threshold estimation).")
+    parser.add_argument("--typing_samples", type=int, default=5000,
+                        help="Samples for typing (neuron classification).")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size.")
-    parser.add_argument("--t_visual", type=float, default=2.0, help="Visual threshold.")
-    parser.add_argument("--t_text", type=float, default=3.0, help="Text threshold.")
-    parser.add_argument("--n_visual", type=int, default=4, help="Visual token count threshold.")
-    parser.add_argument("--n_text", type=int, default=2, help="Text token count threshold.")
-    parser.add_argument("--high_conf_threshold", type=float, default=0.7, help="High-confidence threshold.")
-    parser.add_argument("--skip_collection", action="store_true", help="Skip activation collection.")
+    parser.add_argument("--threshold_mode", choices=["fixed", "quantile"], default="quantile",
+                        help="Threshold mode.")
+    parser.add_argument("--quantiles", default="0.95,0.97,0.99",
+                        help="Quantiles to compute for calibration.")
+    parser.add_argument("--quantile_idx", type=int, default=1,
+                        help="Which quantile to use for typing (0=q95, 1=q97, 2=q99).")
+    parser.add_argument("--visual_ratio", type=float, default=0.005,
+                        help="Min ratio of visual tokens that must exceed threshold.")
+    parser.add_argument("--visual_min_count", type=int, default=4,
+                        help="Min absolute visual token count.")
+    parser.add_argument("--text_ratio", type=float, default=0.10,
+                        help="Min ratio of text tokens that must exceed threshold.")
+    parser.add_argument("--text_min_count", type=int, default=2,
+                        help="Min absolute text token count.")
+    parser.add_argument("--high_conf_threshold", type=float, default=0.7,
+                        help="High-confidence threshold for type assignment.")
+    parser.add_argument("--skip_calibration", action="store_true",
+                        help="Skip calibration (use existing neuron_quantiles.pt).")
+    parser.add_argument("--skip_typing", action="store_true",
+                        help="Skip typing (use existing neuron_scores.json).")
     parser.add_argument("--skip_stats", action="store_true", help="Skip statistical tests.")
     parser.add_argument("--skip_plots", action="store_true", help="Skip plot generation.")
     return parser.parse_args()
@@ -246,6 +271,68 @@ def plot_threshold_sensitivity(input_dir: Path, output_path: Path):
     print(f"Saved {output_path.name}")
 
 
+def plot_quantile_sensitivity(scores_dir: Path, output_path: Path):
+    """Plot type distribution across different quantile thresholds.
+
+    Expects multiple neuron_scores files from different quantile runs.
+    """
+    quantile_files = sorted(scores_dir.glob("neuron_scores_q*.json"))
+    if not quantile_files:
+        print("No quantile-specific scores found, skipping quantile sensitivity plot")
+        return
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    quantile_labels = []
+    type_counts = {"visual": [], "text": [], "multimodal": [], "unknown": []}
+
+    for qf in quantile_files:
+        with open(qf) as f:
+            scores = json.load(f)
+
+        q_label = qf.stem.split("_")[-1]
+        quantile_labels.append(q_label)
+
+        total_v, total_t, total_m, total_u = 0, 0, 0, 0
+        total_neurons = 0
+        for layer_key, layer_data in scores.items():
+            p_visual = np.array(layer_data["p_visual"])
+            p_text = np.array(layer_data["p_text"])
+            p_multimodal = np.array(layer_data["p_multimodal"])
+            p_unknown = np.array(layer_data["p_unknown"])
+
+            total_neurons += len(p_visual)
+            total_v += (p_visual >= 0.7).sum()
+            total_t += (p_text >= 0.7).sum()
+            total_m += (p_multimodal >= 0.7).sum()
+            total_u += (p_unknown >= 0.7).sum()
+
+        type_counts["visual"].append(total_v)
+        type_counts["text"].append(total_t)
+        type_counts["multimodal"].append(total_m)
+        type_counts["unknown"].append(total_u)
+
+    x = np.arange(len(quantile_labels))
+    width = 0.2
+    colors = {"visual": "#2196F3", "text": "#4CAF50", "multimodal": "#FF9800", "unknown": "#9E9E9E"}
+
+    for i, (ntype, color) in enumerate(colors.items()):
+        offset = (i - 1.5) * width
+        ax.bar(x + offset, type_counts[ntype], width, label=ntype, color=color, alpha=0.8)
+
+    ax.set_xlabel("Quantile")
+    ax.set_ylabel("Neuron Count")
+    ax.set_title("Quantile Sensitivity: High-Confidence Neuron Counts (p>=0.7)")
+    ax.set_xticks(x)
+    ax.set_xticklabels(quantile_labels)
+    ax.legend()
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"Saved {output_path.name}")
+
+
 def main():
     args = parse_args()
     output_dir = Path(args.output_dir)
@@ -253,32 +340,85 @@ def main():
 
     script_dir = Path(__file__).parent
 
-    if not args.skip_collection:
+    print(f"\n{'='*60}")
+    print("Phase 1 Pipeline: Neuron Typing")
+    print(f"{'='*60}")
+    print(f"Mode: {args.threshold_mode}")
+    print(f"Calibration samples: {args.calibration_samples}")
+    print(f"Typing samples: {args.typing_samples}")
+
+    calibration_dir = output_dir / "calibration"
+    activations_dir = output_dir / "activations"
+
+    if not args.skip_calibration:
+        print(f"\n{'='*60}")
+        print("Step 1: Pilot (Global Max Collection)")
+        print(f"{'='*60}")
         cmd = [
             sys.executable,
             str(script_dir / "collect_ffn_activations.py"),
             "--config", args.config,
-            "--output_dir", str(output_dir / "activations"),
-            "--max_samples", str(args.max_samples),
+            "--output_dir", str(activations_dir),
+            "--max_samples", str(args.calibration_samples),
             "--batch_size", str(args.batch_size),
-            "--t_visual", str(args.t_visual),
-            "--t_text", str(args.t_text),
-            "--n_visual", str(args.n_visual),
-            "--n_text", str(args.n_text),
+            "--pilot",
         ]
-        run_command(cmd, "Activation Collection")
+        run_command(cmd, "Pilot - Global Max Collection")
 
-    if not args.skip_collection:
+        print(f"\n{'='*60}")
+        print("Step 2: Calibration (Quantile Thresholds)")
+        print(f"{'='*60}")
         cmd = [
             sys.executable,
-            str(script_dir / "score_neuron_types.py"),
-            "--input_dir", str(output_dir / "activations"),
-            "--output_dir", str(output_dir / "scores"),
-            "--high_conf_threshold", str(args.high_conf_threshold),
+            str(script_dir / "calibrate_thresholds.py"),
+            "--config", args.config,
+            "--output_dir", str(calibration_dir),
+            "--max_samples", str(args.calibration_samples),
+            "--batch_size", str(args.batch_size),
+            "--quantiles", args.quantiles,
         ]
-        run_command(cmd, "Neuron Type Scoring")
+        run_command(cmd, "Calibration - Quantile Thresholds")
+
+    if not args.skip_typing:
+        print(f"\n{'='*60}")
+        print("Step 3: Typing (Neuron Classification)")
+        print(f"{'='*60}")
+
+        quantile_path = str(calibration_dir / "neuron_quantiles.pt")
+
+        cmd = [
+            sys.executable,
+            str(script_dir / "collect_ffn_activations.py"),
+            "--config", args.config,
+            "--output_dir", str(activations_dir),
+            "--max_samples", str(args.typing_samples),
+            "--batch_size", str(args.batch_size),
+            "--threshold_mode", args.threshold_mode,
+            "--quantile_path", quantile_path,
+            "--quantile_idx", str(args.quantile_idx),
+            "--visual_ratio", str(args.visual_ratio),
+            "--visual_min_count", str(args.visual_min_count),
+            "--text_ratio", str(args.text_ratio),
+            "--text_min_count", str(args.text_min_count),
+        ]
+        run_command(cmd, "Typing - Neuron Classification")
+
+    print(f"\n{'='*60}")
+    print("Step 4: Scoring")
+    print(f"{'='*60}")
+    cmd = [
+        sys.executable,
+        str(script_dir / "score_neuron_types.py"),
+        "--input_dir", str(activations_dir),
+        "--output_dir", str(output_dir / "scores"),
+        "--high_conf_threshold", str(args.high_conf_threshold),
+    ]
+    run_command(cmd, "Neuron Type Scoring")
 
     if not args.skip_stats:
+        print(f"\n{'='*60}")
+        print("Step 5: Statistical Tests")
+        print(f"{'='*60}")
         cmd = [
             sys.executable,
             str(script_dir / "statistical_tests.py"),
@@ -289,7 +429,7 @@ def main():
 
     if not args.skip_plots:
         print(f"\n{'='*60}")
-        print("Generating Plots")
+        print("Step 6: Visualization")
         print(f"{'='*60}")
 
         plots_dir = output_dir / "plots"
@@ -303,13 +443,16 @@ def main():
             plot_layer_ratio(df, plots_dir / "fig_layer_ratio.png", args.high_conf_threshold)
             plot_scatter(df, plots_dir / "fig_scatter.png")
             plot_fa_vs_gdn(df, plots_dir / "fig_fa_vs_gdn.png", args.high_conf_threshold)
-            plot_threshold_sensitivity(output_dir / "activations", plots_dir / "fig_threshold_sensitivity.png")
+            plot_threshold_sensitivity(activations_dir, plots_dir / "fig_threshold_sensitivity.png")
+            plot_quantile_sensitivity(activations_dir, plots_dir / "fig_quantile_sensitivity.png")
 
     print(f"\n{'='*60}")
     print("Phase 1 Complete!")
     print(f"{'='*60}")
     print(f"\nOutput directory: {output_dir}")
     print(f"\nOutputs:")
+    print(f"  - calibration/global_max.pt")
+    print(f"  - calibration/neuron_quantiles.pt")
     print(f"  - activations/global_max.pt")
     print(f"  - activations/neuron_scores.json")
     print(f"  - scores/neuron_type_scores.parquet")
