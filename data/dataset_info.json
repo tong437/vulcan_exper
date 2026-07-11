@@ -745,5 +745,35 @@
       "prompt": "content"
     },
     "folder": "python"
+  },
+  "coco_captions_val": {
+    "hf_hub_url": "lmms-lab/COCO-Caption",
+    "split": "val",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant"
+    }
+  },
+  "coco_captions_train": {
+    "hf_hub_url": "lmms-lab/COCO-Caption",
+    "split": "train",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "messages",
+      "images": "images"
+    },
+    "tags": {
+      "role_tag": "role",
+      "content_tag": "content",
+      "user_tag": "user",
+      "assistant_tag": "assistant"
+    }
   }
 }

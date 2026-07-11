@@ -1,0 +1,18 @@
+### model
+model_name_or_path: /root/autodl-pub-RTX4090-hdd-1/models/qwen3.5-0.8b
+
+### method
+stage: sft
+do_train: false
+finetuning_type: full
+
+### dataset
+dataset: coco_captions_train,coco_captions_val
+template: qwen3_5_nothink
+cutoff_len: 1024
+max_samples: 5000
+overwrite_cache: true
+preprocessing_num_workers: 16
+
+### output
+output_dir: saves/neuron_typing/formal_tmp
