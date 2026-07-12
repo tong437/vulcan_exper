@@ -65,15 +65,17 @@ def parse_args() -> argparse.Namespace:
                         help="Fixed text activation threshold (only for fixed mode).")
     parser.add_argument("--quantile_path", type=str, default=None,
                         help="Path to neuron_quantiles.pt from calibration (for quantile mode).")
-    parser.add_argument("--quantile_idx", type=int, default=1,
-                        help="Index into quantile tensor (0=q95, 1=q97, 2=q99).")
+    parser.add_argument("--quantile_idx_visual", type=int, default=1,
+                        help="Quantile index for visual threshold (0=q95, 1=q97, 2=q99).")
+    parser.add_argument("--quantile_idx_text", type=int, default=0,
+                        help="Quantile index for text threshold (0=q95, 1=q97, 2=q99).")
     parser.add_argument("--visual_ratio", type=float, default=0.005,
                         help="Min ratio of visual tokens that must exceed threshold.")
     parser.add_argument("--visual_min_count", type=int, default=4,
                         help="Min absolute visual token count.")
-    parser.add_argument("--text_ratio", type=float, default=0.10,
+    parser.add_argument("--text_ratio", type=float, default=0.05,
                         help="Min ratio of text tokens that must exceed threshold.")
-    parser.add_argument("--text_min_count", type=int, default=2,
+    parser.add_argument("--text_min_count", type=int, default=1,
                         help="Min absolute text token count.")
     parser.add_argument("--top_k", type=int, default=50, help="Top-K samples per neuron.")
     parser.add_argument("--sample_score_top_m", type=int, default=5,
@@ -299,9 +301,13 @@ def pass1_global_max(
 
 def load_quantile_thresholds(
     quantile_path: str,
-    quantile_idx: int,
+    quantile_idx_visual: int,
+    quantile_idx_text: int,
 ) -> dict[int, dict[str, torch.Tensor]]:
     """Load per-neuron quantile thresholds from calibration.
+
+    Supports asymmetric quantile indices (e.g., q97 for visual, q95 for text)
+    to calibrate for the visual/text token count disparity.
 
     Returns:
         dict mapping layer_idx to dict with 'visual' and 'text' tensors [num_neurons]
@@ -312,8 +318,8 @@ def load_quantile_thresholds(
     for layer_key, layer_data in data.items():
         layer_idx = int(layer_key) if isinstance(layer_key, (int, str)) else layer_key
         thresholds[layer_idx] = {
-            "visual": layer_data["visual"][:, quantile_idx],
-            "text": layer_data["text"][:, quantile_idx],
+            "visual": layer_data["visual"][:, quantile_idx_visual],
+            "text": layer_data["text"][:, quantile_idx_text],
         }
 
     return thresholds
@@ -351,17 +357,17 @@ def pass2_classify_neurons(
 
     neuron_scores = {
         layer_idx: {
-            "visual_count": torch.zeros(size, dtype=torch.long),
-            "text_count": torch.zeros(size, dtype=torch.long),
-            "multimodal_count": torch.zeros(size, dtype=torch.long),
             "unknown_count": torch.zeros(size, dtype=torch.long),
             "total_samples": 0,
+            # Separate top-K for visual and text modalities
             "top_k_visual_scores": torch.full((top_k, size), -1.0),
             "top_k_visual_samples": torch.full((top_k, size), -1, dtype=torch.long),
             "top_k_text_scores": torch.full((top_k, size), -1.0),
             "top_k_text_samples": torch.full((top_k, size), -1, dtype=torch.long),
-            "top_k_multimodal_scores": torch.full((top_k, size), -1.0),
-            "top_k_multimodal_samples": torch.full((top_k, size), -1, dtype=torch.long),
+            # Per-modality-topK classification counts
+            "visual_count_from_vis_topk": torch.zeros(size, dtype=torch.long),
+            "text_count_from_txt_topk": torch.zeros(size, dtype=torch.long),
+            "multimodal_count_from_joint": torch.zeros(size, dtype=torch.long),
         }
         for layer_idx, size in intermediate_sizes.items()
     }
@@ -393,14 +399,14 @@ def pass2_classify_neurons(
             num_text_per_sample = caption_mask.sum(dim=1)  # [B]
             vis_req = torch.clamp(
                 torch.maximum(
-                    torch.full((batch_size,), visual_min_count, dtype=torch.long),
+                    torch.full((batch_size,), visual_min_count, dtype=torch.long, device=device),
                     torch.ceil(num_visual_per_sample.float() * visual_ratio).long(),
                 ),
                 min=1,
             )  # [B]
             txt_req = torch.clamp(
                 torch.maximum(
-                    torch.full((batch_size,), text_min_count, dtype=torch.long),
+                    torch.full((batch_size,), text_min_count, dtype=torch.long, device=device),
                     torch.ceil(num_text_per_sample.float() * text_ratio).long(),
                 ),
                 min=1,
@@ -455,30 +461,39 @@ def pass2_classify_neurons(
                 is_multimodal = (v_count > vis_req_expanded) & (t_count > txt_req_expanded)
                 is_unknown = (v_count <= vis_req_expanded) & (t_count <= txt_req_expanded)
 
-                # Accumulate counts: sum over batch dimension
+                # Accumulate counts
                 scores = neuron_scores[layer_idx]
-                scores["visual_count"] += is_visual.sum(dim=0).cpu().long()
-                scores["text_count"] += is_text.sum(dim=0).cpu().long()
-                scores["multimodal_count"] += is_multimodal.sum(dim=0).cpu().long()
                 scores["unknown_count"] += is_unknown.sum(dim=0).cpu().long()
                 scores["total_samples"] += batch_size
 
-                # Per-sample scores and top-K update
-                # sample_score: [B, D] - top-m mean over relevant tokens per sample per neuron
+                # Per-sample modality-specific scores and top-K update
                 for b in range(batch_size):
-                    cm_b = combined_mask[b]  # [S]
-                    if cm_b.any():
-                        selected = a_norm[b, cm_b]  # [n_tokens, D]
-                        if selected.shape[0] <= sample_score_top_m:
-                            sample_score = selected.mean(dim=0)
-                        else:
-                            sample_score = torch.topk(selected, k=sample_score_top_m, dim=0).values.mean(dim=0)
-                    else:
-                        sample_score = torch.zeros(size, device=a_norm.device)
+                    vm_b = visual_mask[b]   # [S]
+                    cm_b = caption_mask[b]  # [S]
 
-                    _batched_topk_update(
-                        scores, sample_score.cpu(),
-                        sample_count + b,
+                    # Visual score: top-m mean over visual tokens
+                    if vm_b.any():
+                        v_selected = a_norm[b, vm_b]  # [n_vis, D]
+                        if v_selected.shape[0] <= sample_score_top_m:
+                            visual_score = v_selected.mean(dim=0)
+                        else:
+                            visual_score = torch.topk(v_selected, k=sample_score_top_m, dim=0).values.mean(dim=0)
+                    else:
+                        visual_score = torch.zeros(size, device=a_norm.device)
+
+                    # Text score: top-m mean over text tokens
+                    if cm_b.any():
+                        t_selected = a_norm[b, cm_b]  # [n_txt, D]
+                        if t_selected.shape[0] <= sample_score_top_m:
+                            text_score = t_selected.mean(dim=0)
+                        else:
+                            text_score = torch.topk(t_selected, k=sample_score_top_m, dim=0).values.mean(dim=0)
+                    else:
+                        text_score = torch.zeros(size, device=a_norm.device)
+
+                    sample_idx = sample_count + b
+                    _separate_topk_update(
+                        scores, visual_score.cpu(), text_score.cpu(), sample_idx,
                         is_visual[b].cpu(), is_text[b].cpu(), is_multimodal[b].cpu(),
                         top_k,
                     )
@@ -500,58 +515,120 @@ def pass2_classify_neurons(
         gmax = global_max[layer_idx].float()
         dead_mask = (gmax <= 1e-6).tolist()
 
+        # Compute p_type from separate modality-specific top-K lists
+        # p_visual: from visual_topK, fraction where visual_on AND NOT text_on
+        # p_text: from text_topK, fraction where text_on AND NOT visual_on
+        # p_multimodal: from union of visual_topK and text_topK, fraction where both_on
+        vis_topk_valid = (scores["top_k_visual_scores"] >= 0).sum(dim=0).float().clamp(min=1)  # [D]
+        txt_topk_valid = (scores["top_k_text_scores"] >= 0).sum(dim=0).float().clamp(min=1)    # [D]
+
+        p_visual = (scores["visual_count_from_vis_topk"] / vis_topk_valid).tolist()
+        p_text = (scores["text_count_from_txt_topk"] / txt_topk_valid).tolist()
+        # multimodal: use the union of both top-K lists
+        joint_valid = (vis_topk_valid + txt_topk_valid).clamp(min=1)
+        p_multimodal = (scores["multimodal_count_from_joint"] / joint_valid).tolist()
+        p_unknown = (scores["unknown_count"] / total).tolist()
+
         results[layer_idx] = {
-            "p_visual": (scores["visual_count"] / total).tolist(),
-            "p_text": (scores["text_count"] / total).tolist(),
-            "p_multimodal": (scores["multimodal_count"] / total).tolist(),
-            "p_unknown": (scores["unknown_count"] / total).tolist(),
+            "p_visual": p_visual,
+            "p_text": p_text,
+            "p_multimodal": p_multimodal,
+            "p_unknown": p_unknown,
             "total_samples": total,
             "dead_mask": dead_mask,
             "top_k_visual": _tensor_to_topk_list(scores["top_k_visual_scores"], scores["top_k_visual_samples"]),
             "top_k_text": _tensor_to_topk_list(scores["top_k_text_scores"], scores["top_k_text_samples"]),
-            "top_k_multimodal": _tensor_to_topk_list(scores["top_k_multimodal_scores"], scores["top_k_multimodal_samples"]),
         }
 
     return results
 
 
-def _batched_topk_update(
+def _separate_topk_update(
     scores: dict,
-    sample_score: torch.Tensor,
+    visual_score: torch.Tensor,
+    text_score: torch.Tensor,
     sample_idx: int,
     is_visual: torch.Tensor,
     is_text: torch.Tensor,
     is_multimodal: torch.Tensor,
     top_k: int,
 ):
-    """Vectorized top-K update for all neurons at once.
+    """Update separate visual/text top-K lists and classify samples within each.
 
-    For each neuron type, concatenates new scores with existing top-K,
-    then takes topk to keep only the best entries.
+    For visual_topK: update by visual_score, then check text_on to classify.
+    For text_topK: update by text_score, then check visual_on to classify.
     """
-    for mask, score_key, sample_key in [
-        (is_visual, "top_k_visual_scores", "top_k_visual_samples"),
-        (is_text, "top_k_text_scores", "top_k_text_samples"),
-        (is_multimodal, "top_k_multimodal_scores", "top_k_multimodal_samples"),
-    ]:
-        if not mask.any():
-            continue
+    # Update visual top-K for all neurons (not just visual_on ones)
+    _update_single_topk(scores, visual_score, sample_idx, "top_k_visual_scores", "top_k_visual_samples", top_k)
+    # Update text top-K for all neurons
+    _update_single_topk(scores, text_score, sample_idx, "top_k_text_scores", "top_k_text_samples", top_k)
 
-        neuron_indices = mask.nonzero(as_tuple=True)[0]
-        new_scores = sample_score[neuron_indices]
-        new_samples = torch.full_like(neuron_indices, sample_idx)
+    # Classify samples that entered visual_topK
+    # For each neuron, check if this sample is in its visual_topK
+    vis_in_topk = _is_in_topk(scores["top_k_visual_samples"], sample_idx)  # [D]
+    if vis_in_topk.any():
+        # In visual topK: visual_on AND NOT text_on → visual; both → multimodal
+        vis_on = is_visual | is_multimodal  # visual activation present
+        txt_on = is_text | is_multimodal    # text activation present
+        scores["visual_count_from_vis_topk"] += (vis_in_topk & vis_on & ~txt_on).long()
+        scores["multimodal_count_from_joint"] += (vis_in_topk & vis_on & txt_on).long()
 
-        old_scores = scores[score_key][:, neuron_indices]
-        old_samples = scores[sample_key][:, neuron_indices]
+    # Classify samples that entered text_topK
+    txt_in_topk = _is_in_topk(scores["top_k_text_samples"], sample_idx)  # [D]
+    if txt_in_topk.any():
+        vis_on = is_visual | is_multimodal
+        txt_on = is_text | is_multimodal
+        scores["text_count_from_txt_topk"] += (txt_in_topk & txt_on & ~vis_on).long()
+        scores["multimodal_count_from_joint"] += (txt_in_topk & vis_on & txt_on).long()
 
-        combined_scores = torch.cat([old_scores, new_scores.unsqueeze(0)], dim=0)
-        combined_samples = torch.cat([old_samples, new_samples.unsqueeze(0)], dim=0)
 
-        topk_scores, topk_indices = torch.topk(combined_scores, k=top_k, dim=0, sorted=True)
-        topk_samples = combined_samples.gather(0, topk_indices)
+def _update_single_topk(
+    scores: dict,
+    new_score: torch.Tensor,
+    sample_idx: int,
+    score_key: str,
+    sample_key: str,
+    top_k: int,
+):
+    """Update one top-K list with a new sample's scores for all neurons at once."""
+    # For each neuron, try to insert new_score into the top-K
+    old_scores = scores[score_key]  # [K, D]
+    # Find the minimum score in each neuron's top-K
+    min_scores = old_scores[-1]  # [D] (last row = smallest since sorted desc)
+    # Only update neurons where new_score > min_score (or where there's empty space)
+    can_update = (new_score > min_scores) | (old_scores[0] < 0)  # [D]
 
-        scores[score_key][:, neuron_indices] = topk_scores
-        scores[sample_key][:, neuron_indices] = topk_samples
+    if not can_update.any():
+        return
+
+    neuron_indices = can_update.nonzero(as_tuple=True)[0]
+    ns = new_score[neuron_indices]
+    si = torch.full_like(neuron_indices, sample_idx)
+
+    old_s = scores[score_key][:, neuron_indices]
+    old_si = scores[sample_key][:, neuron_indices]
+
+    combined_s = torch.cat([old_s, ns.unsqueeze(0)], dim=0)
+    combined_si = torch.cat([old_si, si.unsqueeze(0)], dim=0)
+
+    topk_s, topk_idx = torch.topk(combined_s, k=top_k, dim=0, sorted=True)
+    topk_si = combined_si.gather(0, topk_idx)
+
+    scores[score_key][:, neuron_indices] = topk_s
+    scores[sample_key][:, neuron_indices] = topk_si
+
+
+def _is_in_topk(samples_tensor: torch.Tensor, sample_idx: int) -> torch.Tensor:
+    """Check if sample_idx appears in any neuron's top-K list.
+
+    Args:
+        samples_tensor: [K, D] tensor of sample indices
+        sample_idx: the sample index to look for
+
+    Returns:
+        [D] bool tensor
+    """
+    return (samples_tensor == sample_idx).any(dim=0)
 
 
 def _tensor_to_topk_list(
@@ -696,8 +773,8 @@ def main() -> None:
             print(f"ERROR: neuron_quantiles.pt not found at {args.quantile_path}")
             print("Run calibrate_thresholds.py first.")
             sys.exit(1)
-        quantile_thresholds = load_quantile_thresholds(args.quantile_path, args.quantile_idx)
-        print(f"Loaded quantile thresholds from {args.quantile_path} (idx={args.quantile_idx})")
+        quantile_thresholds = load_quantile_thresholds(args.quantile_path, args.quantile_idx_visual, args.quantile_idx_text)
+        print(f"Loaded quantile thresholds from {args.quantile_path} (vis_idx={args.quantile_idx_visual}, txt_idx={args.quantile_idx_text})")
 
     print(f"\n{'='*60}")
     print(f"Pass 2: Neuron Classification (mode={args.threshold_mode})")
@@ -730,7 +807,8 @@ def main() -> None:
         "t_visual": args.t_visual,
         "t_text": args.t_text,
         "quantile_path": args.quantile_path,
-        "quantile_idx": args.quantile_idx,
+        "quantile_idx_visual": args.quantile_idx_visual,
+        "quantile_idx_text": args.quantile_idx_text,
         "visual_ratio": args.visual_ratio,
         "visual_min_count": args.visual_min_count,
         "text_ratio": args.text_ratio,
