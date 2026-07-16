@@ -64,7 +64,12 @@ def parse_args() -> argparse.Namespace:
                         help="Skip typing (use existing neuron_scores.json).")
     parser.add_argument("--skip_stats", action="store_true", help="Skip statistical tests.")
     parser.add_argument("--skip_plots", action="store_true", help="Skip plot generation.")
-    return parser.parse_args()
+    args = parser.parse_args()
+    # Handle --quantile_idx fallback
+    if args.quantile_idx is not None:
+        args.quantile_idx_visual = args.quantile_idx
+        args.quantile_idx_text = args.quantile_idx
+    return args
 
 
 FA_LAYERS = {3, 7, 11, 15, 19, 23}

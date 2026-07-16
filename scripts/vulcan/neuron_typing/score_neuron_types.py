@@ -54,32 +54,47 @@ def compute_type_scores(scores: dict) -> pd.DataFrame:
     rows = []
     for layer_key, layer_data in scores.items():
         layer_idx = int(layer_key.split("_")[1])
-        p_visual = np.array(layer_data["p_visual"])
-        p_text = np.array(layer_data["p_text"])
-        p_multimodal = np.array(layer_data["p_multimodal"])
-        p_unknown = np.array(layer_data["p_unknown"])
-        dead_mask = layer_data.get("dead_mask", [False] * len(p_visual))
+        q_visual = np.array(layer_data["q_visual"])
+        q_text = np.array(layer_data["q_text"])
+        q_multimodal = np.array(layer_data["q_multimodal"])
+        q_unknown = np.array(layer_data["q_unknown"])
+        r_visual = np.array(layer_data["r_visual"])
+        r_text = np.array(layer_data["r_text"])
+        r_multimodal = np.array(layer_data["r_multimodal"])
+        r_unknown = np.array(layer_data["r_unknown"])
+        dead_mask = layer_data.get("dead_mask", [False] * len(q_visual))
 
-        for neuron_idx in range(len(p_visual)):
+        for neuron_idx in range(len(q_visual)):
             is_dead = dead_mask[neuron_idx] if neuron_idx < len(dead_mask) else False
             if is_dead:
                 dominant_type = "dead"
             else:
-                dominant_type = max(
-                    [("visual", p_visual[neuron_idx]),
-                     ("text", p_text[neuron_idx]),
-                     ("multimodal", p_multimodal[neuron_idx]),
-                     ("unknown", p_unknown[neuron_idx])],
-                    key=lambda x: x[1]
-                )[0]
+                # Use q_* for dominant type (type purity in top-K)
+                # Handle NaN values (dead neurons have NaN q scores)
+                q_vals = [
+                    ("visual", q_visual[neuron_idx]),
+                    ("text", q_text[neuron_idx]),
+                    ("multimodal", q_multimodal[neuron_idx]),
+                    ("unknown", q_unknown[neuron_idx]),
+                ]
+                # Filter out NaN values
+                valid_q_vals = [(name, val) for name, val in q_vals if not np.isnan(val)]
+                if valid_q_vals:
+                    dominant_type = max(valid_q_vals, key=lambda x: x[1])[0]
+                else:
+                    dominant_type = "unknown"  # fallback
 
             rows.append({
                 "layer": layer_idx,
                 "neuron_idx": neuron_idx,
-                "p_visual": p_visual[neuron_idx],
-                "p_text": p_text[neuron_idx],
-                "p_multimodal": p_multimodal[neuron_idx],
-                "p_unknown": p_unknown[neuron_idx],
+                "q_visual": q_visual[neuron_idx],
+                "q_text": q_text[neuron_idx],
+                "q_multimodal": q_multimodal[neuron_idx],
+                "q_unknown": q_unknown[neuron_idx],
+                "r_visual": r_visual[neuron_idx],
+                "r_text": r_text[neuron_idx],
+                "r_multimodal": r_multimodal[neuron_idx],
+                "r_unknown": r_unknown[neuron_idx],
                 "dominant_type": dominant_type,
                 "is_dead": is_dead,
                 "attention_type": "FA" if layer_idx in FA_LAYERS else "GDN",
@@ -93,11 +108,12 @@ def compute_layer_statistics(df: pd.DataFrame, threshold: float) -> dict:
     stats = {}
     for layer in sorted(df["layer"].unique()):
         layer_df = df[df["layer"] == layer]
+        # Use q_* for high-confidence thresholding
         high_conf = layer_df[
-            (layer_df["p_visual"] >= threshold) |
-            (layer_df["p_text"] >= threshold) |
-            (layer_df["p_multimodal"] >= threshold) |
-            (layer_df["p_unknown"] >= threshold)
+            (layer_df["q_visual"] >= threshold) |
+            (layer_df["q_text"] >= threshold) |
+            (layer_df["q_multimodal"] >= threshold) |
+            (layer_df["q_unknown"] >= threshold)
         ]
 
         dead_df = layer_df[layer_df["is_dead"]]
@@ -115,16 +131,20 @@ def compute_layer_statistics(df: pd.DataFrame, threshold: float) -> dict:
                 "dead": int(layer_df["is_dead"].sum()),
             },
             "high_conf_counts": {
-                "visual": int((high_conf["p_visual"] >= threshold).sum()),
-                "text": int((high_conf["p_text"] >= threshold).sum()),
-                "multimodal": int((high_conf["p_multimodal"] >= threshold).sum()),
-                "unknown": int((high_conf["p_unknown"] >= threshold).sum()),
+                "visual": int((high_conf["q_visual"] >= threshold).sum()),
+                "text": int((high_conf["q_text"] >= threshold).sum()),
+                "multimodal": int((high_conf["q_multimodal"] >= threshold).sum()),
+                "unknown": int((high_conf["q_unknown"] >= threshold).sum()),
             },
             "mean_scores": {
-                "p_visual": float(layer_df["p_visual"].mean()),
-                "p_text": float(layer_df["p_text"].mean()),
-                "p_multimodal": float(layer_df["p_multimodal"].mean()),
-                "p_unknown": float(layer_df["p_unknown"].mean()),
+                "q_visual": float(layer_df["q_visual"].mean()),
+                "q_text": float(layer_df["q_text"].mean()),
+                "q_multimodal": float(layer_df["q_multimodal"].mean()),
+                "q_unknown": float(layer_df["q_unknown"].mean()),
+                "r_visual": float(layer_df["r_visual"].mean()),
+                "r_text": float(layer_df["r_text"].mean()),
+                "r_multimodal": float(layer_df["r_multimodal"].mean()),
+                "r_unknown": float(layer_df["r_unknown"].mean()),
             },
         }
 
@@ -138,17 +158,17 @@ def compute_fa_vs_gdn_statistics(df: pd.DataFrame, threshold: float) -> dict:
 
     stats = {}
     for neuron_type in ["visual", "text", "multimodal", "unknown"]:
-        p_col = f"p_{neuron_type}"
-        fa_high_conf = (fa_df[p_col] >= threshold).sum()
-        gdn_high_conf = (gdn_df[p_col] >= threshold).sum()
+        q_col = f"q_{neuron_type}"
+        fa_high_conf = (fa_df[q_col] >= threshold).sum()
+        gdn_high_conf = (gdn_df[q_col] >= threshold).sum()
 
         stats[neuron_type] = {
             "fa_count": int(fa_high_conf),
             "gdn_count": int(gdn_high_conf),
             "fa_ratio": float(fa_high_conf / len(fa_df)) if len(fa_df) > 0 else 0,
             "gdn_ratio": float(gdn_high_conf / len(gdn_df)) if len(gdn_df) > 0 else 0,
-            "fa_mean": float(fa_df[p_col].mean()),
-            "gdn_mean": float(gdn_df[p_col].mean()),
+            "fa_mean": float(fa_df[q_col].mean()),
+            "gdn_mean": float(gdn_df[q_col].mean()),
         }
 
     return stats

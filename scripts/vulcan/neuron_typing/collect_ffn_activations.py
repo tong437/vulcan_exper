@@ -357,17 +357,16 @@ def pass2_classify_neurons(
 
     neuron_scores = {
         layer_idx: {
-            "unknown_count": torch.zeros(size, dtype=torch.long),
+            # Per-sample type counts for r_* computation
+            "type_counts": torch.zeros((4, size), dtype=torch.long),  # [4, D] for visual/text/multimodal/unknown
             "total_samples": 0,
             # Separate top-K for visual and text modalities
             "top_k_visual_scores": torch.full((top_k, size), -1.0),
             "top_k_visual_samples": torch.full((top_k, size), -1, dtype=torch.long),
+            "top_k_visual_types": torch.full((top_k, size), -1, dtype=torch.long),  # type code for each entry
             "top_k_text_scores": torch.full((top_k, size), -1.0),
             "top_k_text_samples": torch.full((top_k, size), -1, dtype=torch.long),
-            # Per-modality-topK classification counts
-            "visual_count_from_vis_topk": torch.zeros(size, dtype=torch.long),
-            "text_count_from_txt_topk": torch.zeros(size, dtype=torch.long),
-            "multimodal_count_from_joint": torch.zeros(size, dtype=torch.long),
+            "top_k_text_types": torch.full((top_k, size), -1, dtype=torch.long),  # type code for each entry
         }
         for layer_idx, size in intermediate_sizes.items()
     }
@@ -456,14 +455,19 @@ def pass2_classify_neurons(
                 vis_req_expanded = vis_req.unsqueeze(1)  # [B, 1]
                 txt_req_expanded = txt_req.unsqueeze(1)  # [B, 1]
 
-                is_visual = (v_count > vis_req_expanded) & (t_count <= txt_req_expanded)
-                is_text = (v_count <= vis_req_expanded) & (t_count > txt_req_expanded)
-                is_multimodal = (v_count > vis_req_expanded) & (t_count > txt_req_expanded)
-                is_unknown = (v_count <= vis_req_expanded) & (t_count <= txt_req_expanded)
+                # Use >= for 'active' condition (count >= required means active)
+                is_visual = (v_count >= vis_req_expanded) & (t_count < txt_req_expanded)
+                is_text = (v_count < vis_req_expanded) & (t_count >= txt_req_expanded)
+                is_multimodal = (v_count >= vis_req_expanded) & (t_count >= txt_req_expanded)
+                is_unknown = (v_count < vis_req_expanded) & (t_count < txt_req_expanded)
 
-                # Accumulate counts
+                # Accumulate type counts for r_* computation
                 scores = neuron_scores[layer_idx]
-                scores["unknown_count"] += is_unknown.sum(dim=0).cpu().long()
+                # Type codes: 0=visual, 1=text, 2=multimodal, 3=unknown
+                scores["type_counts"][0] += is_visual.sum(dim=0).cpu().long()
+                scores["type_counts"][1] += is_text.sum(dim=0).cpu().long()
+                scores["type_counts"][2] += is_multimodal.sum(dim=0).cpu().long()
+                scores["type_counts"][3] += is_unknown.sum(dim=0).cpu().long()
                 scores["total_samples"] += batch_size
 
                 # Per-sample modality-specific scores and top-K update
@@ -512,30 +516,13 @@ def pass2_classify_neurons(
         if total == 0:
             continue
 
-        gmax = global_max[layer_idx].float()
-        dead_mask = (gmax <= 1e-6).tolist()
-
-        # Compute p_type from separate modality-specific top-K lists
-        # p_visual: from visual_topK, fraction where visual_on AND NOT text_on
-        # p_text: from text_topK, fraction where text_on AND NOT visual_on
-        # p_multimodal: from union of visual_topK and text_topK, fraction where both_on
-        vis_topk_valid = (scores["top_k_visual_scores"] >= 0).sum(dim=0).float().clamp(min=1)  # [D]
-        txt_topk_valid = (scores["top_k_text_scores"] >= 0).sum(dim=0).float().clamp(min=1)    # [D]
-
-        p_visual = (scores["visual_count_from_vis_topk"] / vis_topk_valid).tolist()
-        p_text = (scores["text_count_from_txt_topk"] / txt_topk_valid).tolist()
-        # multimodal: use the union of both top-K lists
-        joint_valid = (vis_topk_valid + txt_topk_valid).clamp(min=1)
-        p_multimodal = (scores["multimodal_count_from_joint"] / joint_valid).tolist()
-        p_unknown = (scores["unknown_count"] / total).tolist()
+        # Compute q_* and r_* scores
+        qr_scores = compute_qr_scores(scores, global_max[layer_idx], top_k)
+        if not qr_scores:
+            continue
 
         results[layer_idx] = {
-            "p_visual": p_visual,
-            "p_text": p_text,
-            "p_multimodal": p_multimodal,
-            "p_unknown": p_unknown,
-            "total_samples": total,
-            "dead_mask": dead_mask,
+            **qr_scores,
             "top_k_visual": _tensor_to_topk_list(scores["top_k_visual_scores"], scores["top_k_visual_samples"]),
             "top_k_text": _tensor_to_topk_list(scores["top_k_text_scores"], scores["top_k_text_samples"]),
         }
@@ -553,41 +540,33 @@ def _separate_topk_update(
     is_multimodal: torch.Tensor,
     top_k: int,
 ):
-    """Update separate visual/text top-K lists and classify samples within each.
+    """Update separate visual/text top-K lists with type codes.
 
-    For visual_topK: update by visual_score, then check text_on to classify.
-    For text_topK: update by text_score, then check visual_on to classify.
+    Type codes: 0=visual, 1=text, 2=multimodal, 3=unknown
     """
-    # Update visual top-K for all neurons (not just visual_on ones)
-    _update_single_topk(scores, visual_score, sample_idx, "top_k_visual_scores", "top_k_visual_samples", top_k)
+    # Compute type code for this sample: [D]
+    # 0=visual, 1=text, 2=multimodal, 3=unknown
+    type_code = torch.full_like(is_visual, 3, dtype=torch.long)  # default: unknown
+    type_code[is_visual] = 0
+    type_code[is_text] = 1
+    type_code[is_multimodal] = 2
+
+    # Update visual top-K for all neurons
+    _update_single_topk(scores, visual_score, sample_idx, type_code,
+                        "top_k_visual_scores", "top_k_visual_samples", "top_k_visual_types", top_k)
     # Update text top-K for all neurons
-    _update_single_topk(scores, text_score, sample_idx, "top_k_text_scores", "top_k_text_samples", top_k)
-
-    # Classify samples that entered visual_topK
-    # For each neuron, check if this sample is in its visual_topK
-    vis_in_topk = _is_in_topk(scores["top_k_visual_samples"], sample_idx)  # [D]
-    if vis_in_topk.any():
-        # In visual topK: visual_on AND NOT text_on → visual; both → multimodal
-        vis_on = is_visual | is_multimodal  # visual activation present
-        txt_on = is_text | is_multimodal    # text activation present
-        scores["visual_count_from_vis_topk"] += (vis_in_topk & vis_on & ~txt_on).long()
-        scores["multimodal_count_from_joint"] += (vis_in_topk & vis_on & txt_on).long()
-
-    # Classify samples that entered text_topK
-    txt_in_topk = _is_in_topk(scores["top_k_text_samples"], sample_idx)  # [D]
-    if txt_in_topk.any():
-        vis_on = is_visual | is_multimodal
-        txt_on = is_text | is_multimodal
-        scores["text_count_from_txt_topk"] += (txt_in_topk & txt_on & ~vis_on).long()
-        scores["multimodal_count_from_joint"] += (txt_in_topk & vis_on & txt_on).long()
+    _update_single_topk(scores, text_score, sample_idx, type_code,
+                        "top_k_text_scores", "top_k_text_samples", "top_k_text_types", top_k)
 
 
 def _update_single_topk(
     scores: dict,
     new_score: torch.Tensor,
     sample_idx: int,
+    type_code: torch.Tensor,
     score_key: str,
     sample_key: str,
+    type_key: str,
     top_k: int,
 ):
     """Update one top-K list with a new sample's scores for all neurons at once."""
@@ -604,18 +583,23 @@ def _update_single_topk(
     neuron_indices = can_update.nonzero(as_tuple=True)[0]
     ns = new_score[neuron_indices]
     si = torch.full_like(neuron_indices, sample_idx)
+    ti = type_code[neuron_indices]
 
     old_s = scores[score_key][:, neuron_indices]
     old_si = scores[sample_key][:, neuron_indices]
+    old_ti = scores[type_key][:, neuron_indices]
 
     combined_s = torch.cat([old_s, ns.unsqueeze(0)], dim=0)
     combined_si = torch.cat([old_si, si.unsqueeze(0)], dim=0)
+    combined_ti = torch.cat([old_ti, ti.unsqueeze(0)], dim=0)
 
     topk_s, topk_idx = torch.topk(combined_s, k=top_k, dim=0, sorted=True)
     topk_si = combined_si.gather(0, topk_idx)
+    topk_ti = combined_ti.gather(0, topk_idx)
 
     scores[score_key][:, neuron_indices] = topk_s
     scores[sample_key][:, neuron_indices] = topk_si
+    scores[type_key][:, neuron_indices] = topk_ti
 
 
 def _is_in_topk(samples_tensor: torch.Tensor, sample_idx: int) -> torch.Tensor:
@@ -657,6 +641,97 @@ def _tensor_to_topk_list(
     return result
 
 
+
+def compute_qr_scores(
+    scores: dict,
+    global_max: torch.Tensor,
+    top_k: int,
+) -> dict:
+    """Compute q_* (type purity in top-K) and r_* (type frequency in dataset).
+
+    q_c: fraction of type c in deduplicated union of visual/text top-K samples
+    r_c: fraction of all samples classified as type c
+
+    Type codes: 0=visual, 1=text, 2=multimodal, 3=unknown
+    """
+    total = scores["total_samples"]
+    if total == 0:
+        return {}
+
+    gmax = global_max.float().squeeze()  # Handle shape [1, D] -> [D]
+    dead_mask = (gmax <= 1e-6).tolist()
+    size = len(dead_mask)
+
+    # Compute r_*: type frequency in dataset
+    type_counts = scores["type_counts"]  # [4, D]
+    type_names = ["visual", "text", "multimodal", "unknown"]
+    r_scores = {}
+    for i, name in enumerate(type_names):
+        r_scores[f"r_{name}"] = (type_counts[i].float() / total).tolist()
+
+    # Compute q_*: type purity in deduplicated union of top-K
+    vis_samples = scores["top_k_visual_samples"]  # [K, D]
+    vis_types = scores["top_k_visual_types"]      # [K, D]
+    txt_samples = scores["top_k_text_samples"]    # [K, D]
+    txt_types = scores["top_k_text_types"]        # [K, D]
+
+    q_scores = {f"q_{name}": [] for name in type_names}
+
+    for neuron_idx in range(size):
+        if dead_mask[neuron_idx]:
+            # Dead neurons get NaN for q_*
+            for name in type_names:
+                q_scores[f"q_{name}"].append(float('nan'))
+            continue
+
+        # Collect union of sample IDs from both lists
+        vis_set = set()
+        txt_set = set()
+
+        for k in range(top_k):
+            vis_id = vis_samples[k, neuron_idx].item()
+            if vis_id >= 0:
+                vis_set.add(vis_id)
+            txt_id = txt_samples[k, neuron_idx].item()
+            if txt_id >= 0:
+                txt_set.add(txt_id)
+
+        union_samples = vis_set | txt_set
+        union_size = len(union_samples)
+
+        if union_size == 0:
+            # No valid samples, set q to 0
+            for name in type_names:
+                q_scores[f"q_{name}"].append(0.0)
+            continue
+
+        # Count types in union
+        # For each sample in union, get its type from whichever list it appears in
+        type_counts_union = [0] * 4
+        for sample_id in union_samples:
+            # Find type from visual list
+            type_code = 3  # default unknown
+            for k in range(top_k):
+                if vis_samples[k, neuron_idx].item() == sample_id:
+                    type_code = vis_types[k, neuron_idx].item()
+                    break
+                if txt_samples[k, neuron_idx].item() == sample_id:
+                    type_code = txt_types[k, neuron_idx].item()
+                    break
+            if 0 <= type_code < 4:
+                type_counts_union[type_code] += 1
+
+        # Normalize
+        for i, name in enumerate(type_names):
+            q_scores[f"q_{name}"].append(type_counts_union[i] / union_size)
+
+    return {
+        **q_scores,
+        **r_scores,
+        "dead_mask": dead_mask,
+        "total_samples": total,
+    }
+
 def save_results(
     output_dir: str,
     global_max: dict[int, torch.Tensor],
@@ -675,11 +750,17 @@ def save_results(
     serializable_scores = {}
     for layer_idx, scores in neuron_scores.items():
         layer_key = f"layer_{layer_idx}"
+        # New format: q_*/r_* scores with dead_mask
         serializable_scores[layer_key] = {
-            "p_visual": scores["p_visual"],
-            "p_text": scores["p_text"],
-            "p_multimodal": scores["p_multimodal"],
-            "p_unknown": scores["p_unknown"],
+            "q_visual": scores["q_visual"],
+            "q_text": scores["q_text"],
+            "q_multimodal": scores["q_multimodal"],
+            "q_unknown": scores["q_unknown"],
+            "r_visual": scores["r_visual"],
+            "r_text": scores["r_text"],
+            "r_multimodal": scores["r_multimodal"],
+            "r_unknown": scores["r_unknown"],
+            "dead_mask": scores["dead_mask"],
             "total_samples": scores["total_samples"],
         }
 
