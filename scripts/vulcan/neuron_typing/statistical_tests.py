@@ -53,10 +53,11 @@ def load_neuron_scores(input_dir: str) -> pd.DataFrame:
 
 
 def compute_layer_type_ratios(df: pd.DataFrame, threshold: float) -> dict[int, dict[str, float]]:
-    """Compute per-layer ratios of high-confidence neurons of each type."""
+    """Compute per-layer ratios of high-confidence neurons of each type (alive neurons only)."""
     ratios = {}
     for layer in sorted(df["layer"].unique()):
-        layer_df = df[df["layer"] == layer]
+        # Exclude dead neurons from denominator
+        layer_df = df[(df["layer"] == layer) & (~df["is_dead"])]
         total = len(layer_df)
         if total == 0:
             continue

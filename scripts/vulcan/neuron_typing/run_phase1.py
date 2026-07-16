@@ -46,8 +46,12 @@ def parse_args() -> argparse.Namespace:
                         help="Threshold mode.")
     parser.add_argument("--quantiles", default="0.95,0.97,0.99",
                         help="Quantiles to compute for calibration.")
-    parser.add_argument("--quantile_idx", type=int, default=1,
-                        help="Which quantile to use for typing (0=q95, 1=q97, 2=q99).")
+    parser.add_argument("--quantile_idx_visual", type=int, default=1,
+                        help="Quantile index for visual threshold (0=q95, 1=q97, 2=q99). Default: 1 (q97).")
+    parser.add_argument("--quantile_idx_text", type=int, default=0,
+                        help="Quantile index for text threshold (0=q95, 1=q97, 2=q99). Default: 0 (q95).")
+    parser.add_argument("--quantile_idx", type=int, default=None,
+                        help="Fallback: set both visual and text quantile index (0=q95, 1=q97, 2=q99).")
     parser.add_argument("--visual_ratio", type=float, default=0.005,
                         help="Min ratio of visual tokens that must exceed threshold.")
     parser.add_argument("--visual_min_count", type=int, default=4,
@@ -107,7 +111,7 @@ def plot_layer_distribution(df: pd.DataFrame, output_path: Path, threshold: floa
 
     for i, (ntype, color) in enumerate(colors.items()):
         offset = (i - 1.5) * width
-        bars = ax.bar(x + offset, counts[ntype], width, label=ntype, color=color, alpha=0.8)
+        ax.bar(x + offset, counts[ntype], width, label=ntype, color=color, alpha=0.8)
 
     ax.set_xlabel("Layer")
     ax.set_ylabel("Neuron Count")
@@ -164,25 +168,25 @@ def plot_layer_ratio(df: pd.DataFrame, output_path: Path, threshold: float):
 
 
 def plot_scatter(df: pd.DataFrame, output_path: Path):
-    """Scatter plot: x=p_visual, y=p_text, color=p_multimodal."""
+    """Scatter plot: x=q_visual, y=q_text, color=q_multimodal."""
     fig, ax = plt.subplots(figsize=(10, 8))
 
     scatter = ax.scatter(
-        df["p_visual"],
-        df["p_text"],
-        c=df["p_multimodal"],
+        df["q_visual"],
+        df["q_text"],
+        c=df["q_multimodal"],
         cmap="YlOrRd",
         alpha=0.3,
         s=10,
     )
 
-    ax.set_xlabel("P(visual)")
-    ax.set_ylabel("P(text)")
-    ax.set_title("Neuron Type Scores Scatter")
+    ax.set_xlabel("q(visual)")
+    ax.set_ylabel("q(text)")
+    ax.set_title("Neuron Type Purity Scores Scatter")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
 
-    plt.colorbar(scatter, label="P(multimodal)")
+    plt.colorbar(scatter, label="q(multimodal)")
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
@@ -201,11 +205,11 @@ def plot_fa_vs_gdn(df: pd.DataFrame, output_path: Path, threshold: float):
     gdn_stds = []
 
     for ntype in types:
-        p_col = f"p_{ntype}"
-        fa_means.append((fa_df[p_col] >= threshold).mean())
-        gdn_means.append((gdn_df[p_col] >= threshold).mean())
-        fa_stds.append(fa_df[p_col].std())
-        gdn_stds.append(gdn_df[p_col].std())
+        q_col = f"q_{ntype}"
+        fa_means.append((fa_df[q_col] >= threshold).mean())
+        gdn_means.append((gdn_df[q_col] >= threshold).mean())
+        fa_stds.append(fa_df[q_col].std())
+        gdn_stds.append(gdn_df[q_col].std())
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -241,16 +245,16 @@ def plot_threshold_sensitivity(input_dir: Path, output_path: Path):
         total_v, total_t, total_m, total_u = 0, 0, 0, 0
         total_neurons = 0
         for layer_key, layer_data in scores.items():
-            p_visual = np.array(layer_data["p_visual"])
-            p_text = np.array(layer_data["p_text"])
-            p_multimodal = np.array(layer_data["p_multimodal"])
-            p_unknown = np.array(layer_data["p_unknown"])
+            q_visual = np.array(layer_data["q_visual"])
+            q_text = np.array(layer_data["q_text"])
+            q_multimodal = np.array(layer_data["q_multimodal"])
+            q_unknown = np.array(layer_data["q_unknown"])
 
-            total_neurons += len(p_visual)
-            total_v += (p_visual >= t).sum()
-            total_t += (p_text >= t).sum()
-            total_m += (p_multimodal >= t).sum()
-            total_u += (p_unknown >= t).sum()
+            total_neurons += len(q_visual)
+            total_v += (q_visual >= t).sum()
+            total_t += (q_text >= t).sum()
+            total_m += (q_multimodal >= t).sum()
+            total_u += (q_unknown >= t).sum()
 
         counts["visual"].append(total_v)
         counts["text"].append(total_t)
@@ -301,16 +305,16 @@ def plot_quantile_sensitivity(scores_dir: Path, output_path: Path):
         total_v, total_t, total_m, total_u = 0, 0, 0, 0
         total_neurons = 0
         for layer_key, layer_data in scores.items():
-            p_visual = np.array(layer_data["p_visual"])
-            p_text = np.array(layer_data["p_text"])
-            p_multimodal = np.array(layer_data["p_multimodal"])
-            p_unknown = np.array(layer_data["p_unknown"])
+            q_visual = np.array(layer_data["q_visual"])
+            q_text = np.array(layer_data["q_text"])
+            q_multimodal = np.array(layer_data["q_multimodal"])
+            q_unknown = np.array(layer_data["q_unknown"])
 
-            total_neurons += len(p_visual)
-            total_v += (p_visual >= 0.7).sum()
-            total_t += (p_text >= 0.7).sum()
-            total_m += (p_multimodal >= 0.7).sum()
-            total_u += (p_unknown >= 0.7).sum()
+            total_neurons += len(q_visual)
+            total_v += (q_visual >= 0.7).sum()
+            total_t += (q_text >= 0.7).sum()
+            total_m += (q_multimodal >= 0.7).sum()
+            total_u += (q_unknown >= 0.7).sum()
 
         type_counts["visual"].append(total_v)
         type_counts["text"].append(total_t)
@@ -400,7 +404,8 @@ def main():
             "--batch_size", str(args.batch_size),
             "--threshold_mode", args.threshold_mode,
             "--quantile_path", quantile_path,
-            "--quantile_idx", str(args.quantile_idx),
+            "--quantile_idx_visual", str(args.quantile_idx_visual),
+            "--quantile_idx_text", str(args.quantile_idx_text),
             "--visual_ratio", str(args.visual_ratio),
             "--visual_min_count", str(args.visual_min_count),
             "--text_ratio", str(args.text_ratio),
