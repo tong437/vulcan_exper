@@ -252,13 +252,26 @@ def parse_ablation_spec(text: str, base_seed: int) -> AblationSpec:
 
     match_type = None
     seed = None
+    remaining = parts[2:]
     if name == "layer_random":
-        match_type = parts[2].strip() if len(parts) >= 3 and parts[2].strip() else "multimodal"
+        if remaining and remaining[0].strip() and not remaining[0].strip().startswith("seed"):
+            match_type = remaining.pop(0).strip()
+        else:
+            match_type = "multimodal"
         if match_type not in TYPE_NAMES and match_type != "unknown_safe":
             raise ValueError(f"layer_random match type must be one of {TYPE_NAMES} or unknown_safe, got {match_type}.")
 
     if name in {"random", "layer_random"}:
-        seed = base_seed
+        # layer_random uses a different default seed to avoid identical masks
+        # when per-layer counts match random's counts (same ratio selection).
+        seed = base_seed + 1000 if name == "layer_random" else base_seed
+        if remaining:
+            last = remaining[-1].strip()
+            if last.startswith("seed"):
+                try:
+                    seed = int(last[4:])
+                except ValueError:
+                    raise ValueError(f"Invalid seed suffix: {last!r}. Expected seed<int>, e.g. seed42.")
 
     return AblationSpec(name=name, ratio=ratio, match_type=match_type, seed=seed)
 
@@ -298,21 +311,35 @@ def infer_score_columns(table, score_prefix: str | None) -> tuple[str, str, dict
         columns, ["neuron", "neuron_idx", "neuron_id", "neuron_index", "index", "ffn_idx"], "neuron"
     )
 
+    # New score mapping: visual/text/multimodal use q_*, unknown uses r_*
     score_cols: dict[str, str] = {}
     for type_name in TYPE_NAMES:
         candidates = []
         if score_prefix is not None:
             candidates.append(f"{score_prefix}{type_name}")
 
-        candidates.extend(
-            [
+        # For unknown, prefer r_unknown (frequency in dataset)
+        # For others, prefer q_* (type purity in top-K)
+        if type_name == "unknown":
+            candidates.extend([
+                "r_unknown",
+                "q_unknown",
+                "p_unknown",
+                f"{type_name}_prob",
+                f"{type_name}_score",
+                f"score_{type_name}",
+                type_name,
+            ])
+        else:
+            candidates.extend([
+                f"q_{type_name}",
+                f"r_{type_name}",
                 f"p_{type_name}",
                 f"{type_name}_prob",
                 f"{type_name}_score",
                 f"score_{type_name}",
                 type_name,
-            ]
-        )
+            ])
         score_cols[type_name] = find_first_existing(columns, candidates, f"{type_name} score")
 
     activation_col = None

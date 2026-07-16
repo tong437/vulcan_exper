@@ -16,7 +16,6 @@
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -63,10 +62,10 @@ def compute_layer_type_ratios(df: pd.DataFrame, threshold: float) -> dict[int, d
             continue
 
         ratios[int(layer)] = {
-            "visual": (layer_df["p_visual"] >= threshold).sum() / total,
-            "text": (layer_df["p_text"] >= threshold).sum() / total,
-            "multimodal": (layer_df["p_multimodal"] >= threshold).sum() / total,
-            "unknown": (layer_df["p_unknown"] >= threshold).sum() / total,
+            "visual": (layer_df["q_visual"] >= threshold).sum() / total,
+            "text": (layer_df["q_text"] >= threshold).sum() / total,
+            "multimodal": (layer_df["q_multimodal"] >= threshold).sum() / total,
+            "unknown": (layer_df["q_unknown"] >= threshold).sum() / total,
         }
 
     return ratios
@@ -248,7 +247,7 @@ def save_results(output_dir: str, results: dict, config: dict):
     results_path = output_path / "perm_test_results.json"
     with open(results_path, "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\nSaved perm_test_results.json")
+    print("\nSaved perm_test_results.json")
 
     config_path = output_path / "test_config.json"
     with open(config_path, "w") as f:
@@ -281,7 +280,7 @@ def print_summary(results: dict):
 
         print(f"{neuron_type:<15} {diff:>8} {pval:>10} {ci:>20}")
 
-    print(f"\nNote: n_blocks=6, p-value resolution floor = 1/64 ≈ 0.016")
+    print("\nNote: n_blocks=6, p-value resolution floor = 1/64 ≈ 0.016")
 
 
 def main():

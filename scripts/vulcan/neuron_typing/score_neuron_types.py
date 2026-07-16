@@ -21,7 +21,6 @@ Reads neuron_scores.json and generates:
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -152,9 +151,10 @@ def compute_layer_statistics(df: pd.DataFrame, threshold: float) -> dict:
 
 
 def compute_fa_vs_gdn_statistics(df: pd.DataFrame, threshold: float) -> dict:
-    """Compare neuron type distributions between FA and GDN layers."""
-    fa_df = df[df["attention_type"] == "FA"]
-    gdn_df = df[df["attention_type"] == "GDN"]
+    """Compare neuron type distributions between FA and GDN layers (alive neurons only)."""
+    # Exclude dead neurons from FA/GDN comparison
+    fa_df = df[(df["attention_type"] == "FA") & (~df["is_dead"])]
+    gdn_df = df[(df["attention_type"] == "GDN") & (~df["is_dead"])]
 
     stats = {}
     for neuron_type in ["visual", "text", "multimodal", "unknown"]:
@@ -192,12 +192,12 @@ def save_results(
     layer_stats_path = output_path / "layer_statistics.json"
     with open(layer_stats_path, "w") as f:
         json.dump(layer_stats, f, indent=2)
-    print(f"Saved layer_statistics.json")
+    print("Saved layer_statistics.json")
 
     fa_gdn_path = output_path / "fa_vs_gdn_statistics.json"
     with open(fa_gdn_path, "w") as f:
         json.dump(fa_gdn_stats, f, indent=2)
-    print(f"Saved fa_vs_gdn_statistics.json")
+    print("Saved fa_vs_gdn_statistics.json")
 
     config_path = output_path / "scoring_config.json"
     with open(config_path, "w") as f:
@@ -214,13 +214,13 @@ def print_summary(df: pd.DataFrame, layer_stats: dict, fa_gdn_stats: dict):
     n_dead = df["is_dead"].sum()
     print(f"\nTotal neurons: {total}")
     print(f"Dead neurons (global_max <= 1e-6): {n_dead} ({100*n_dead/total:.1f}%)")
-    print(f"Type distribution (dominant, alive neurons only):")
+    print("Type distribution (dominant, alive neurons only):")
     alive_df = df[~df["is_dead"]]
     for ntype in ["visual", "text", "multimodal", "unknown"]:
         count = (alive_df["dominant_type"] == ntype).sum()
         print(f"  {ntype:12s}: {count:6d} ({100*count/total:.1f}%)")
 
-    print(f"\nFA vs GDN comparison:")
+    print("\nFA vs GDN comparison:")
     for ntype, stats in fa_gdn_stats.items():
         print(f"  {ntype:12s}:")
         print(f"    FA  ratio: {stats['fa_ratio']:.3f}  (mean p: {stats['fa_mean']:.3f})")
@@ -235,13 +235,13 @@ def main():
     print(f"Loading neuron scores from {args.input_dir}")
     scores = load_neuron_scores(args.input_dir)
 
-    print(f"Computing type scores...")
+    print("Computing type scores...")
     df = compute_type_scores(scores)
 
-    print(f"Computing layer statistics...")
+    print("Computing layer statistics...")
     layer_stats = compute_layer_statistics(df, args.high_conf_threshold)
 
-    print(f"Computing FA vs GDN statistics...")
+    print("Computing FA vs GDN statistics...")
     fa_gdn_stats = compute_fa_vs_gdn_statistics(df, args.high_conf_threshold)
 
     config = {

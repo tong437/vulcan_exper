@@ -29,9 +29,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 import yaml
 from torch.utils.data import DataLoader
+
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 SRC_DIR = ROOT_DIR / "src"
@@ -675,6 +677,64 @@ def compute_qr_scores(
     txt_samples = scores["top_k_text_samples"]    # [K, D]
     txt_types = scores["top_k_text_types"]        # [K, D]
 
+    # Initialize q_scores as lists
+    q_scores = {f"q_{name}": [] for name in type_names}
+
+    for neuron_idx in range(size):
+        if dead_mask[neuron_idx]:
+            # Dead neurons get NaN for q_*
+            for name in type_names:
+                q_scores[f"q_{name}"].append(float("nan"))
+            continue
+
+        # Build sample_to_type dictionary: O(K) instead of O(K^2)
+        sample_to_type = {}
+
+        # Process visual top-K entries
+        for k in range(top_k):
+            vis_id = vis_samples[k, neuron_idx].item()
+            if vis_id >= 0:
+                sample_to_type[vis_id] = vis_types[k, neuron_idx].item()
+
+        # Process text top-K entries (don't overwrite if already exists)
+        for k in range(top_k):
+            txt_id = txt_samples[k, neuron_idx].item()
+            if txt_id >= 0 and txt_id not in sample_to_type:
+                sample_to_type[txt_id] = txt_types[k, neuron_idx].item()
+
+        union_size = len(sample_to_type)
+
+        if union_size == 0:
+            # No valid samples, set q to 0
+            for name in type_names:
+                q_scores[f"q_{name}"].append(0.0)
+            continue
+
+        # Count types in union
+        type_counts_union = [0] * 4
+        for type_code in sample_to_type.values():
+            if 0 <= type_code < 4:
+                type_counts_union[type_code] += 1
+
+        # Normalize
+        for i, name in enumerate(type_names):
+            q_scores[f"q_{name}"].append(type_counts_union[i] / union_size)
+
+    return {
+        **q_scores,
+        **r_scores,
+        "dead_mask": dead_mask,
+        "total_samples": total,
+    }
+    for i, name in enumerate(type_names):
+        r_scores[f"r_{name}"] = (type_counts[i].float() / total).tolist()
+
+    # Compute q_*: type purity in deduplicated union of top-K
+    vis_samples = scores["top_k_visual_samples"]  # [K, D]
+    vis_types = scores["top_k_visual_types"]      # [K, D]
+    txt_samples = scores["top_k_text_samples"]    # [K, D]
+    txt_types = scores["top_k_text_types"]        # [K, D]
+
     q_scores = {f"q_{name}": [] for name in type_names}
 
     for neuron_idx in range(size):
@@ -732,6 +792,17 @@ def compute_qr_scores(
         "total_samples": total,
     }
 
+def _convert_nan_to_none(obj):
+    """Convert NaN values to None for JSON serialization."""
+    if isinstance(obj, float) and (np.isnan(obj) or np.isinf(obj)):
+        return None
+    elif isinstance(obj, dict):
+        return {k: _convert_nan_to_none(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_convert_nan_to_none(v) for v in obj]
+    return obj
+
+
 def save_results(
     output_dir: str,
     global_max: dict[int, torch.Tensor],
@@ -765,7 +836,7 @@ def save_results(
         }
 
     with open(scores_path, "w") as f:
-        json.dump(serializable_scores, f, indent=2)
+        json.dump(_convert_nan_to_none(serializable_scores), f, indent=2)
     print(f"Saved neuron_scores to {scores_path}")
 
     config_path = output_path / "config.json"

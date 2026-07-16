@@ -65,7 +65,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip_stats", action="store_true", help="Skip statistical tests.")
     parser.add_argument("--skip_plots", action="store_true", help="Skip plot generation.")
     args = parser.parse_args()
-    # Handle --quantile_idx fallback
+    # Handle --quantile_idx fallback: only override if explicitly provided
     if args.quantile_idx is not None:
         args.quantile_idx_visual = args.quantile_idx
         args.quantile_idx_text = args.quantile_idx
@@ -94,10 +94,10 @@ def plot_layer_distribution(df: pd.DataFrame, output_path: Path, threshold: floa
 
     for layer in layers:
         layer_df = df[df["layer"] == layer]
-        counts["visual"].append((layer_df["p_visual"] >= threshold).sum())
-        counts["text"].append((layer_df["p_text"] >= threshold).sum())
-        counts["multimodal"].append((layer_df["p_multimodal"] >= threshold).sum())
-        counts["unknown"].append((layer_df["p_unknown"] >= threshold).sum())
+        counts["visual"].append((layer_df["q_visual"] >= threshold).sum())
+        counts["text"].append((layer_df["q_text"] >= threshold).sum())
+        counts["multimodal"].append((layer_df["q_multimodal"] >= threshold).sum())
+        counts["unknown"].append((layer_df["q_unknown"] >= threshold).sum())
 
     fig, ax = plt.subplots(figsize=(14, 6))
     width = 0.2
@@ -135,10 +135,10 @@ def plot_layer_ratio(df: pd.DataFrame, output_path: Path, threshold: float):
     for layer in layers:
         layer_df = df[df["layer"] == layer]
         total = len(layer_df)
-        ratios["visual"].append((layer_df["p_visual"] >= threshold).sum() / total)
-        ratios["text"].append((layer_df["p_text"] >= threshold).sum() / total)
-        ratios["multimodal"].append((layer_df["p_multimodal"] >= threshold).sum() / total)
-        ratios["unknown"].append((layer_df["p_unknown"] >= threshold).sum() / total)
+        ratios["visual"].append((layer_df["q_visual"] >= threshold).sum() / total)
+        ratios["text"].append((layer_df["q_text"] >= threshold).sum() / total)
+        ratios["multimodal"].append((layer_df["q_multimodal"] >= threshold).sum() / total)
+        ratios["unknown"].append((layer_df["q_unknown"] >= threshold).sum() / total)
 
     fig, ax = plt.subplots(figsize=(14, 6))
 
@@ -455,16 +455,16 @@ def main():
     print("Phase 1 Complete!")
     print(f"{'='*60}")
     print(f"\nOutput directory: {output_dir}")
-    print(f"\nOutputs:")
-    print(f"  - calibration/global_max.pt")
-    print(f"  - calibration/neuron_quantiles.pt")
-    print(f"  - activations/global_max.pt")
-    print(f"  - activations/neuron_scores.json")
-    print(f"  - scores/neuron_type_scores.parquet")
-    print(f"  - scores/layer_statistics.json")
-    print(f"  - scores/fa_vs_gdn_statistics.json")
-    print(f"  - stats/perm_test_results.json")
-    print(f"  - plots/fig_*.png")
+    print("\nOutputs:")
+    print("  - calibration/global_max.pt")
+    print("  - calibration/neuron_quantiles.pt")
+    print("  - activations/global_max.pt")
+    print("  - activations/neuron_scores.json")
+    print("  - scores/neuron_type_scores.parquet")
+    print("  - scores/layer_statistics.json")
+    print("  - scores/fa_vs_gdn_statistics.json")
+    print("  - stats/perm_test_results.json")
+    print("  - plots/fig_*.png")
 
 
 if __name__ == "__main__":
