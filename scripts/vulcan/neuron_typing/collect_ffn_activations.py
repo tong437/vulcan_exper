@@ -288,7 +288,7 @@ def pass1_global_max(
             for layer_idx, act in captured.items():
                 act_seq = act[:, :input_ids.shape[1], :].float()
                 act_pos = torch.clamp(act_seq, min=0)
-                batch_max = act_pos.amax(dim=1)
+                batch_max = act_pos.amax(dim=(0, 1))  # [D]
                 global_max[layer_idx] = torch.maximum(global_max[layer_idx], batch_max.cpu())
 
             collector.clear()
@@ -416,7 +416,7 @@ def pass2_classify_neurons(
             captured = collector.get_captured()
             for layer_idx, act in captured.items():
                 act_seq = act[:, :seq_len, :].float()  # [B, S, D]
-                gmax = global_max[layer_idx].to(act_seq.device).float().clamp(min=1e-4)  # [D]
+                gmax = global_max[layer_idx].to(act_seq.device).float().squeeze().clamp(min=1e-4)  # [D]
                 size = intermediate_sizes[layer_idx]
 
                 # Thresholds
