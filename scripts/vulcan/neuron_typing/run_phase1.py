@@ -137,8 +137,15 @@ def plot_layer_ratio(df: pd.DataFrame, output_path: Path, threshold: float):
     ratios = {"visual": [], "text": [], "multimodal": [], "unknown": []}
 
     for layer in layers:
-        layer_df = df[df["layer"] == layer]
+        # Exclude dead neurons from denominator
+        layer_df = df[(df["layer"] == layer) & (~df["is_dead"])]
         total = len(layer_df)
+        if total == 0:
+            ratios["visual"].append(0.0)
+            ratios["text"].append(0.0)
+            ratios["multimodal"].append(0.0)
+            ratios["unknown"].append(0.0)
+            continue
         ratios["visual"].append((layer_df["q_visual"] >= threshold).sum() / total)
         ratios["text"].append((layer_df["q_text"] >= threshold).sum() / total)
         ratios["multimodal"].append((layer_df["q_multimodal"] >= threshold).sum() / total)
@@ -194,9 +201,10 @@ def plot_scatter(df: pd.DataFrame, output_path: Path):
 
 
 def plot_fa_vs_gdn(df: pd.DataFrame, output_path: Path, threshold: float):
-    """Bar chart: mean type ratios in FA vs GDN layers with CI error bars."""
-    fa_df = df[df["attention_type"] == "FA"]
-    gdn_df = df[df["attention_type"] == "GDN"]
+    """Bar chart: mean type ratios in FA vs GDN layers with CI error bars (alive neurons only)."""
+    # Exclude dead neurons from FA/GDN comparison
+    fa_df = df[(df["attention_type"] == "FA") & (~df["is_dead"])]
+    gdn_df = df[(df["attention_type"] == "GDN") & (~df["is_dead"])]
 
     types = ["visual", "text", "multimodal", "unknown"]
     fa_means = []
@@ -245,10 +253,11 @@ def plot_threshold_sensitivity(input_dir: Path, output_path: Path):
         total_v, total_t, total_m, total_u = 0, 0, 0, 0
         total_neurons = 0
         for layer_key, layer_data in scores.items():
-            q_visual = np.array(layer_data["q_visual"])
-            q_text = np.array(layer_data["q_text"])
-            q_multimodal = np.array(layer_data["q_multimodal"])
-            q_unknown = np.array(layer_data["q_unknown"])
+            # Use dtype=float to handle null values (converted from NaN)
+            q_visual = np.asarray(layer_data["q_visual"], dtype=float)
+            q_text = np.asarray(layer_data["q_text"], dtype=float)
+            q_multimodal = np.asarray(layer_data["q_multimodal"], dtype=float)
+            q_unknown = np.asarray(layer_data["q_unknown"], dtype=float)
 
             total_neurons += len(q_visual)
             total_v += (q_visual >= t).sum()
@@ -305,10 +314,11 @@ def plot_quantile_sensitivity(scores_dir: Path, output_path: Path):
         total_v, total_t, total_m, total_u = 0, 0, 0, 0
         total_neurons = 0
         for layer_key, layer_data in scores.items():
-            q_visual = np.array(layer_data["q_visual"])
-            q_text = np.array(layer_data["q_text"])
-            q_multimodal = np.array(layer_data["q_multimodal"])
-            q_unknown = np.array(layer_data["q_unknown"])
+            # Use dtype=float to handle null values (converted from NaN)
+            q_visual = np.asarray(layer_data["q_visual"], dtype=float)
+            q_text = np.asarray(layer_data["q_text"], dtype=float)
+            q_multimodal = np.asarray(layer_data["q_multimodal"], dtype=float)
+            q_unknown = np.asarray(layer_data["q_unknown"], dtype=float)
 
             total_neurons += len(q_visual)
             total_v += (q_visual >= 0.7).sum()
