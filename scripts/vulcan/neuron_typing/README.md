@@ -1,5 +1,7 @@
 # Neuron Typing Experiment - Phase 1
 
+For the corrected q/r scoring definition, current 2k Phase 1 results, corrected Phase 2 ablations, and the prioritized research roadmap, see [EXPERIMENT_STATUS.md](EXPERIMENT_STATUS.md).
+
 ## Quick Start
 
 ### Full Pipeline (Recommended)
@@ -13,7 +15,8 @@ python scripts/vulcan/neuron_typing/run_phase1.py \
     --calibration_samples 500 \
     --typing_samples 5000 \
     --threshold_mode quantile \
-    --quantile_idx 1
+    --quantile_idx_visual 1 \
+    --quantile_idx_text 0
 ```
 
 ### Step-by-Step
@@ -44,7 +47,8 @@ python scripts/vulcan/neuron_typing/collect_ffn_activations.py \
     --max_samples 5000 \
     --threshold_mode quantile \
     --quantile_path saves/neuron_typing/phase1/calibration/neuron_quantiles.pt \
-    --quantile_idx 1 \
+    --quantile_idx_visual 1 \
+    --quantile_idx_text 0 \
     --visual_ratio 0.005 \
     --visual_min_count 4 \
     --text_ratio 0.10 \
@@ -76,7 +80,7 @@ saves/neuron_typing/phase1/
 │   └── config.json
 ├── activations/
 │   ├── global_max.pt               # Per-neuron global max
-│   ├── neuron_scores.json          # Per-neuron type probabilities
+│   ├── neuron_scores.json          # Per-neuron q/r scores and dead mask
 │   └── config.json
 ├── scores/
 │   ├── neuron_type_scores.parquet  # Full neuron type scores DataFrame
@@ -99,7 +103,7 @@ saves/neuron_typing/phase1/
 
 Per-neuron, per-modality quantile thresholds:
 - T_visual[j] = q97 of neuron j's activations on visual tokens
-- T_text[j] = q97 of neuron j's activations on text tokens
+- T_text[j] = q95 of neuron j's activations on text tokens
 
 Count thresholds are ratio-based:
 - visual_required = max(4, ceil(0.005 * num_visual_tokens))
@@ -118,7 +122,9 @@ Fixed thresholds across all neurons:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `--threshold_mode` | quantile | Threshold mode (fixed/quantile) |
-| `--quantile_idx` | 1 | Which quantile (0=q95, 1=q97, 2=q99) |
+| `--quantile_idx_visual` | 1 | Visual quantile index (0=q95, 1=q97, 2=q99) |
+| `--quantile_idx_text` | 0 | Text quantile index (0=q95, 1=q97, 2=q99) |
+| `--quantile_idx` | None | Optional legacy fallback that sets both indices |
 | `--visual_ratio` | 0.005 | Min ratio of visual tokens above threshold |
 | `--visual_min_count` | 4 | Min absolute visual token count |
 | `--text_ratio` | 0.10 | Min ratio of text tokens above threshold |
@@ -134,7 +140,7 @@ Fixed thresholds across all neurons:
 
 ## Sensitivity Analysis
 
-To verify stability across quantiles, run typing with different `--quantile_idx` values and compare:
+To verify stability across quantiles, run typing with different modality-specific quantile indices and compare:
 
 ```bash
 for qi in 0 1 2; do
@@ -144,7 +150,8 @@ for qi in 0 1 2; do
         --max_samples 5000 \
         --threshold_mode quantile \
         --quantile_path saves/neuron_typing/phase1/calibration/neuron_quantiles.pt \
-        --quantile_idx ${qi}
+        --quantile_idx_visual ${qi} \
+        --quantile_idx_text ${qi}
 done
 ```
 
