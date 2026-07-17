@@ -83,6 +83,43 @@ def compute_type_scores(scores: dict) -> pd.DataFrame:
                 else:
                     dominant_type = "unknown"  # fallback
 
+            # Compute top-two q margin
+            q_values = [q_visual[neuron_idx], q_text[neuron_idx], q_multimodal[neuron_idx], q_unknown[neuron_idx]]
+            # Handle None values (from JSON null) and NaN
+            valid_q_values = []
+            for v in q_values:
+                if v is None:
+                    continue
+                try:
+                    if not np.isnan(v):
+                        valid_q_values.append(v)
+                except (TypeError, ValueError):
+                    continue
+            if len(valid_q_values) >= 2:
+                sorted_q = sorted(valid_q_values, reverse=True)
+                q_1 = sorted_q[0]
+                q_2 = sorted_q[1]
+                q_margin = q_1 - q_2
+                exact_tie = (q_margin == 0)
+                low_margin_05 = (q_margin < 0.05)
+                low_margin_10 = (q_margin < 0.10)
+            else:
+                q_1 = valid_q_values[0] if valid_q_values else np.nan
+                q_2 = np.nan
+                q_margin = np.nan
+                exact_tie = False
+                low_margin_05 = False
+                low_margin_10 = False
+
+            # Confidence category
+            max_q = max(valid_q_values) if valid_q_values else np.nan
+            if is_dead:
+                confidence_category = "dead"
+            elif max_q >= 0.7:
+                confidence_category = "high_confidence"
+            else:
+                confidence_category = "mixed_low_confidence"
+
             rows.append({
                 "layer": layer_idx,
                 "neuron_idx": neuron_idx,
@@ -97,6 +134,14 @@ def compute_type_scores(scores: dict) -> pd.DataFrame:
                 "dominant_type": dominant_type,
                 "is_dead": is_dead,
                 "attention_type": "FA" if layer_idx in FA_LAYERS else "GDN",
+                "q_1": q_1,
+                "q_2": q_2,
+                "q_margin": q_margin,
+                "exact_tie": exact_tie,
+                "low_margin_05": low_margin_05,
+                "low_margin_10": low_margin_10,
+                "max_q": max_q,
+                "confidence_category": confidence_category,
             })
 
     return pd.DataFrame(rows)
