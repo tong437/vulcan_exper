@@ -54,6 +54,34 @@ def main() -> None:
             f"{delta_ppl:+10.4f}"
         )
 
+    paired_rows = [(name, row) for name, row in metrics.items() if "paired_delta_nll" in row]
+    if paired_rows:
+        print("\nPaired per-example analysis")
+        paired_header = (
+            f"{'ablation':36s} {'paired Δnll':>12s} {'95% CI':>25s} "
+            f"{'improved':>10s} {'damaged':>10s}"
+        )
+        print(paired_header)
+        print("-" * len(paired_header))
+        for name, row in paired_rows:
+            ci = (
+                f"[{row['paired_ci_lo']:+.6f}, {row['paired_ci_hi']:+.6f}]"
+                if "paired_ci_lo" in row else "n/a"
+            )
+            print(
+                f"{name:36s} {row['paired_delta_nll']:+12.6f} {ci:>25s} "
+                f"{row['improved_frac']:10.2%} {row['damaged_frac']:10.2%}"
+            )
+
+    relative_damage = payload.get("relative_damage", {})
+    if relative_damage:
+        print("\nRelative damage versus matched-ratio random seeds")
+        for name, row in relative_damage.items():
+            print(
+                f"{name:36s} relative_damage={row['relative_damage']:+.6f} "
+                f"random_mean={row['mean_random_delta']:+.6f} z={row['z_score']:+.3f}"
+            )
+
 
 if __name__ == "__main__":
     main()

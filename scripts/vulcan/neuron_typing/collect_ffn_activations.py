@@ -48,6 +48,8 @@ from llamafactory.data import (
 from llamafactory.extras.constants import IGNORE_INDEX
 from llamafactory.hparams import get_train_args
 from llamafactory.model import load_model, load_tokenizer
+
+from dataset_guard import build_dataset_manifest, save_manifest, slice_dataset
 from llamafactory.train.vulcan import find_mlp_layers
 
 
@@ -56,6 +58,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True, help="LlamaFactory SFT YAML config.")
     parser.add_argument("--output_dir", required=True, help="Directory to save activation stats.")
     parser.add_argument("--max_samples", type=int, default=1000, help="Max samples to process.")
+    parser.add_argument("--sample_offset", type=int, default=0, help="Start index in the tokenized dataset.")
+    parser.add_argument("--allow_short_dataset", action="store_true",
+                        help="Allow fewer rows than sample_offset + max_samples (diagnostics only).")
+    parser.add_argument("--max_image_repeat", type=int, default=5,
+                        help="Maximum rows allowed to reference one image before failing.")
+    parser.add_argument("--allow_excessive_image_repeats", action="store_true",
+                        help="Allow a likely-corrupted repeated-image dataset (diagnostics only).")
+    parser.add_argument("--global_max_path", default=None,
+                        help="Reuse a calibration global_max.pt instead of recomputing normalization maxima.")
+    parser.add_argument("--dataset_role", choices=["calibration", "typing"], default="typing")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size.")
     parser.add_argument("--num_workers", type=int, default=4, help="Dataloader workers.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
@@ -111,7 +123,13 @@ def build_dataloader(
     batch_size: int,
     num_workers: int,
     seed: int,
-) -> DataLoader:
+    sample_offset: int,
+    max_samples: int,
+    allow_short_dataset: bool,
+    max_image_repeat: int,
+    allow_excessive_image_repeats: bool,
+    dataset_role: str,
+) -> tuple[DataLoader, dict[str, Any]]:
     model_args, data_args, training_args, _, _ = get_train_args(train_config)
     dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
     data_collator = SFTDataCollatorWith4DAttentionMask(
@@ -127,16 +145,30 @@ def build_dataloader(
         compute_dtype=model_args.compute_dtype,
         **tokenizer_module,
     )
+    dataset, source_indices = slice_dataset(
+        dataset_module["train_dataset"], sample_offset, max_samples, allow_short=allow_short_dataset
+    )
+    manifest = build_dataset_manifest(
+        dataset,
+        source_indices,
+        role=dataset_role,
+        dataset_name=str(data_args.dataset),
+        tokenized_path=str(data_args.tokenized_path) if data_args.tokenized_path else None,
+        max_image_repeat=max_image_repeat,
+        allow_excessive_image_repeats=allow_excessive_image_repeats,
+    )
+
     generator = torch.Generator()
     generator.manual_seed(seed)
-    return DataLoader(
-        dataset_module["train_dataset"],
+    dataloader = DataLoader(
+        dataset,
         batch_size=batch_size,
         collate_fn=data_collator,
         num_workers=num_workers,
         shuffle=True,
         generator=generator,
     )
+    return dataloader, manifest
 
 
 class ActivationCollector:
@@ -790,7 +822,6 @@ def main() -> None:
     train_config["do_train"] = False
     train_config["do_eval"] = False
     train_config["do_predict"] = False
-    train_config["max_samples"] = args.max_samples
     train_config.setdefault("output_dir", "saves/neuron_typing/tmp")
     train_config.setdefault("preprocessing_num_workers", 8)
 
@@ -816,7 +847,7 @@ def main() -> None:
     print(f"\n{'='*60}")
     print("Building dataset (one-time)")
     print(f"{'='*60}")
-    dataloader = build_dataloader(
+    dataloader, dataset_manifest = build_dataloader(
         train_config,
         model,
         tokenizer_module,
@@ -824,20 +855,43 @@ def main() -> None:
         args.batch_size,
         args.num_workers,
         args.seed,
+        args.sample_offset,
+        args.max_samples,
+        args.allow_short_dataset,
+        args.max_image_repeat,
+        args.allow_excessive_image_repeats,
+        args.dataset_role,
+    )
+    save_manifest(dataset_manifest, Path(args.output_dir) / "sample_manifest.json")
+    print(
+        f"Typing dataset: rows={dataset_manifest['num_rows']} "
+        f"unique_images={dataset_manifest['num_unique_images']} "
+        f"offset={args.sample_offset}",
+        flush=True,
     )
 
-    print(f"\n{'='*60}")
-    print("Pass 1: Global Max Collection")
-    print(f"{'='*60}")
-    global_max, sample_count = pass1_global_max(
-        model, dataloader, mlp_layers, image_token_id, args.max_samples, device
-    )
-    print(f"Pass 1 complete: {sample_count} samples processed")
+    if args.global_max_path:
+        global_max = {
+            int(layer_idx): value.float()
+            for layer_idx, value in torch.load(args.global_max_path, map_location="cpu").items()
+        }
+        sample_count = dataset_manifest["num_rows"]
+        print(f"Reusing global max from {args.global_max_path}", flush=True)
+    else:
+        print(f"\n{'='*60}")
+        print("Pass 1: Global Max Collection")
+        print(f"{'='*60}")
+        global_max, sample_count = pass1_global_max(
+            model, dataloader, mlp_layers, image_token_id, args.max_samples, device
+        )
+        print(f"Pass 1 complete: {sample_count} samples processed")
 
     if args.pilot:
         pilot_output = Path(args.output_dir) / "pilot"
         pilot_output.mkdir(parents=True, exist_ok=True)
-        torch.save({k: v.half() for k, v in global_max.items()}, pilot_output / "global_max.pt")
+        serialized_global_max = {k: v.half() for k, v in global_max.items()}
+        torch.save(serialized_global_max, pilot_output / "global_max.pt")
+        torch.save(serialized_global_max, Path(args.output_dir) / "global_max.pt")
 
         stats = {}
         for layer_idx, gmax in global_max.items():
@@ -891,6 +945,9 @@ def main() -> None:
     config = {
         "model_name": model_args.model_name_or_path,
         "max_samples": args.max_samples,
+        "sample_offset": args.sample_offset,
+        "actual_samples": sample_count,
+        "dataset_manifest": str(Path(args.output_dir) / "sample_manifest.json"),
         "threshold_mode": args.threshold_mode,
         "t_visual": args.t_visual,
         "t_text": args.t_text,
@@ -906,7 +963,6 @@ def main() -> None:
         "image_token_id": image_token_id,
         "num_mlp_layers": len(mlp_layers),
         "intermediate_size": int(mlp_layers[0].mlp.up_proj.weight.shape[0]) if mlp_layers else 0,
-        "actual_samples": sample_count,
     }
     save_results(args.output_dir, global_max, neuron_scores, config)
     print(f"\nResults saved to {args.output_dir}")

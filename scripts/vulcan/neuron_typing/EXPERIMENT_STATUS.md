@@ -1,7 +1,29 @@
 # Qwen3.5-VL Neuron Typing Research Status
 
-> Last updated: 2026-07-17
-> Status: corrected Phase 1 completed on 2k samples; corrected Phase 2 causal ablation completed for the first ratio sweep; Phase 3 not started formally.
+> Last updated: 2026-07-17 (data-audit correction)
+> Status: pipeline logic repaired; formal Phase 1 and Phase 2 results must be rerun before Phase 3.
+
+## 0. P0 data-audit correction
+
+The directory named `phase1_2k_v2` processed only 400 rows because an existing
+400-row `tokenized_path` cache caused LlamaFactory to ignore the requested
+sample count. Its score files are byte-identical to `phase1_500_test`.
+Furthermore, 200 of those 400 cached rows reference the same test image, and
+the Phase-2 evaluation reused the same cached rows as typing. Therefore the
+previously reported corrected 2k distributions and q/r ablation curves are
+engineering diagnostics, not final experimental evidence.
+
+The repaired pipeline now:
+
+- uses the verified COCO val source only;
+- builds a new `coco_val_5k_clean` cache;
+- fails when a cache is shorter than the requested offset plus sample count;
+- fails on excessive repeated-image mappings;
+- writes image manifests for calibration, typing, and evaluation;
+- verifies image-disjoint splits before formal evaluation.
+
+All numerical tables below are retained as historical diagnostics and must be
+replaced by clean, held-out reruns.
 
 ## 1. Research objective
 

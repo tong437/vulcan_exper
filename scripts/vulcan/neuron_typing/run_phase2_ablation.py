@@ -48,6 +48,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 import yaml
@@ -68,6 +69,13 @@ from llamafactory.extras.constants import IGNORE_INDEX  # noqa: E402
 from llamafactory.hparams import get_train_args  # noqa: E402
 from llamafactory.model import load_model, load_tokenizer  # noqa: E402
 
+from dataset_guard import (  # noqa: E402
+    assert_disjoint_manifests,
+    build_dataset_manifest,
+    save_manifest,
+    slice_dataset,
+)
+
 
 TYPE_NAMES = ("visual", "text", "multimodal", "unknown")
 
@@ -78,9 +86,13 @@ class AblationSpec:
     ratio: float = 0.0
     match_type: str | None = None
     seed: int | None = None
+    band_start: float | None = None
+    band_end: float | None = None
 
     @property
     def result_name(self) -> str:
+        if self.name == "rank_band":
+            return f"rank_band:{self.match_type}:{self.band_start:g}:{self.band_end:g}"
         parts = [self.name]
         if self.ratio:
             parts.append(f"{self.ratio:g}")
@@ -152,9 +164,18 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Ablation spec. Repeatable. Formats: none, visual:0.01, text:0.01, multimodal:0.05, "
             "unknown:0.05, unknown_safe:0.05, random:0.20, layer_random:0.05:multimodal."
+            " Rank band format: rank_band:multimodal:0.05:0.20."
         ),
     )
-    parser.add_argument("--max_samples", type=int, default=None, help="Override data_args.max_samples before tokenizing.")
+    parser.add_argument("--max_samples", type=int, default=None, help="Exact number of eval rows after slicing.")
+    parser.add_argument("--sample_offset", type=int, default=2500, help="Held-out eval offset in the tokenized dataset.")
+    parser.add_argument("--allow_short_dataset", action="store_true")
+    parser.add_argument("--max_image_repeat", type=int, default=5)
+    parser.add_argument("--allow_excessive_image_repeats", action="store_true")
+    parser.add_argument("--typing_manifest", default=None, help="Phase-1 typing sample_manifest.json.")
+    parser.add_argument("--calibration_manifest", default=None, help="Phase-1 calibration sample_manifest.json.")
+    parser.add_argument("--require_data_isolation", action="store_true",
+                        help="Fail unless typing/calibration manifests are provided and image-disjoint.")
     parser.add_argument("--dataset", default=None, help="Override dataset name in the YAML config.")
     parser.add_argument("--eval_dataset", default=None, help="Override eval_dataset name in the YAML config.")
     parser.add_argument("--batch_size", type=int, default=None, help="Override eval dataloader batch size.")
@@ -239,6 +260,23 @@ def parse_ablation_spec(text: str, base_seed: int) -> AblationSpec:
         if len(parts) != 1:
             raise ValueError(f"`none` ablation does not take extra fields: {text}")
         return AblationSpec(name="none")
+
+    if name == "rank_band":
+        if len(parts) != 4:
+            raise ValueError("Rank band format is rank_band:<type>:<start>:<end>.")
+        match_type = parts[1].strip()
+        if match_type not in {*TYPE_NAMES, "unknown_safe"}:
+            raise ValueError(f"Unsupported rank-band score type: {match_type!r}.")
+        band_start, band_end = float(parts[2]), float(parts[3])
+        if not 0 <= band_start < band_end <= 1:
+            raise ValueError(f"Rank band must satisfy 0 <= start < end <= 1, got {band_start}:{band_end}.")
+        return AblationSpec(
+            name="rank_band",
+            ratio=band_end - band_start,
+            match_type=match_type,
+            band_start=band_start,
+            band_end=band_end,
+        )
 
     if name not in {*TYPE_NAMES, "unknown_safe", "random", "layer_random"}:
         raise ValueError(f"Unknown ablation type {name!r}.")
@@ -493,6 +531,26 @@ def build_unknown_safe_vector(
     return score
 
 
+def build_secondary_vector(group, neuron_col: str, score_type: str, dim: int) -> torch.Tensor:
+    """Return a semantically distinct deterministic tie-break score."""
+    columns = set(group.columns)
+    if score_type == "unknown_safe":
+        if "q_multimodal" in columns:
+            return -build_score_vector(group, neuron_col, "q_multimodal", dim).nan_to_num(neginf=0.0)
+        return torch.zeros(dim)
+
+    candidates = {
+        "visual": ["r_visual"],
+        "text": ["r_text"],
+        "multimodal": ["r_multimodal"],
+        "unknown": ["q_unknown"],
+    }.get(score_type, [])
+    for column in candidates:
+        if column in columns:
+            return build_score_vector(group, neuron_col, column, dim).nan_to_num(neginf=0.0)
+    return torch.zeros(dim)
+
+
 def build_type_mask(
     table,
     spec: AblationSpec,
@@ -509,6 +567,39 @@ def build_type_mask(
     masks = {layer_idx: torch.zeros(dim, dtype=torch.bool) for layer_idx, dim in layer_dims.items()}
     if spec.name == "none":
         return masks
+
+    if spec.name == "rank_band":
+        if spec.match_type is None or spec.band_start is None or spec.band_end is None:
+            raise ValueError(f"Incomplete rank-band specification: {spec}.")
+        end_masks = build_type_mask(
+            table,
+            AblationSpec(name=spec.match_type, ratio=spec.band_end),
+            layer_col,
+            neuron_col,
+            score_cols,
+            activation_col,
+            layer_dims,
+            allowed_layers,
+            selection,
+            unknown_safe_multimodal_weight,
+            unknown_safe_activation_weight,
+        )
+        if spec.band_start == 0:
+            return end_masks
+        start_masks = build_type_mask(
+            table,
+            AblationSpec(name=spec.match_type, ratio=spec.band_start),
+            layer_col,
+            neuron_col,
+            score_cols,
+            activation_col,
+            layer_dims,
+            allowed_layers,
+            selection,
+            unknown_safe_multimodal_weight,
+            unknown_safe_activation_weight,
+        )
+        return {layer_idx: end_masks[layer_idx] & ~start_masks[layer_idx] for layer_idx in end_masks}
 
     if spec.name == "random":
         generator = torch.Generator()
@@ -567,8 +658,8 @@ def build_type_mask(
                 candidates.append((layer_idx, neuron_idx))
                 candidate_scores.append(value)
 
-        selected_count = max(1, math.ceil(len(candidates) * spec.ratio))
-        selected = torch.tensor(candidate_scores, dtype=torch.float32).topk(k=selected_count, largest=True).indices
+        candidate_tensor = torch.tensor(candidate_scores, dtype=torch.float32)
+        selected, _ = select_top_indices_deterministic(candidate_tensor, spec.ratio)
         for index in selected.tolist():
             layer_idx, neuron_idx = candidates[index]
             masks[layer_idx][neuron_idx] = True
@@ -595,15 +686,14 @@ def build_type_mask(
         else:
             scores = build_score_vector(group, neuron_col, score_cols[score_type], dim)
 
-        # Use deterministic ranking with tie-breaking
-        # Secondary key: r_multimodal (for stability)
-        r_multimodal = build_score_vector(group, neuron_col, score_cols.get('multimodal', 'r_multimodal'), dim)
+        # Use a modality-frequency secondary key and neuron index as final key.
+        secondary = build_secondary_vector(group, neuron_col, score_type, dim)
         neuron_ids = torch.arange(dim, dtype=torch.long)
         
         selected, metadata = select_top_indices_deterministic(
             scores,
             spec.ratio,
-            secondary_key=r_multimodal,
+            secondary_key=secondary,
             neuron_ids=neuron_ids,
         )
         
@@ -634,6 +724,55 @@ def summarize_masks(masks_by_layer: dict[int, torch.Tensor]) -> dict[str, Any]:
         "selected_ratio": total / total_dim if total_dim else 0.0,
         "per_layer_selected": per_layer,
     }
+
+
+def summarize_cutoffs(
+    table,
+    spec: AblationSpec,
+    masks: dict[int, torch.Tensor],
+    layer_col: str,
+    neuron_col: str,
+    score_cols: dict[str, str],
+    activation_col: str | None,
+    unknown_safe_multimodal_weight: float,
+    unknown_safe_activation_weight: float,
+) -> dict[str, Any]:
+    if spec.name in {"none", "random", "layer_random"}:
+        return {}
+    score_type = spec.match_type if spec.name == "rank_band" else spec.name
+    grouped = {int(layer_idx): group for layer_idx, group in table.groupby(layer_col)}
+    result: dict[str, Any] = {}
+    for layer_idx, mask in masks.items():
+        group = grouped[layer_idx]
+        if score_type == "unknown_safe":
+            scores = build_unknown_safe_vector(
+                group, neuron_col, score_cols, activation_col, mask.numel(),
+                unknown_safe_multimodal_weight, unknown_safe_activation_weight,
+            )
+        else:
+            scores = build_score_vector(group, neuron_col, score_cols[score_type], mask.numel())
+        selected = scores[mask]
+        if selected.numel() == 0:
+            result[str(layer_idx)] = {"selected": 0}
+            continue
+        finite_selected = selected[torch.isfinite(selected)]
+        if finite_selected.numel() == 0:
+            result[str(layer_idx)] = {"selected": int(mask.sum()), "all_non_finite": True}
+            continue
+        cutoff = float(finite_selected.min())
+        entry = {
+            "selected": int(mask.sum()),
+            "selected_score_min": cutoff,
+            "selected_score_max": float(finite_selected.max()),
+        }
+        if spec.name != "rank_band":
+            entry.update({
+                "count_strictly_above_cutoff": int((scores > cutoff).sum()),
+                "tie_group_size": int((scores == cutoff).sum()),
+                "selected_from_tie": int((mask & (scores == cutoff)).sum()),
+            })
+        result[str(layer_idx)] = entry
+    return result
 
 
 def verify_mask_nesting(masks_by_ratio: dict[float, dict[int, torch.Tensor]]) -> dict[str, bool]:
@@ -696,31 +835,24 @@ def compute_mask_overlap(
     }
 
 
-def verify_data_isolation(
-    typing_config_path: str,
-    eval_config_path: str,
-) -> dict[str, Any]:
-    """Verify that typing and evaluation data have zero overlap."""
-    import json
+def compute_relative_damage(
+    typed_delta: float,
+    random_deltas: list[float],
+) -> dict[str, float]:
+    """Compute relative damage compared to random baseline."""
+    import numpy as np
     
-    with open(typing_config_path) as f:
-        typing_config = json.load(f)
+    mean_random = np.mean(random_deltas)
+    std_random = np.std(random_deltas)
     
-    with open(eval_config_path) as f:
-        eval_config = json.load(f)
-    
-    # Extract sample IDs
-    typing_ids = set(typing_config.get('typing_sample_ids', []))
-    eval_ids = set(eval_config.get('eval_sample_ids', []))
-    
-    overlap = typing_ids & eval_ids
+    relative_damage = typed_delta - mean_random
+    z_score = relative_damage / std_random if std_random > 0 else 0.0
     
     return {
-        'typing_count': len(typing_ids),
-        'eval_count': len(eval_ids),
-        'overlap_count': len(overlap),
-        'is_isolated': len(overlap) == 0,
-        'overlap_sample_ids': list(overlap)[:10] if overlap else [],  # First 10 for debugging
+        'typed_delta': typed_delta,
+        'mean_random_delta': float(mean_random),
+        'relative_damage': float(relative_damage),
+        'z_score': float(z_score),
     }
 
 
@@ -751,9 +883,6 @@ def prepare_config(args: argparse.Namespace) -> dict[str, Any]:
     if args.eval_dataset is not None:
         config["eval_dataset"] = args.eval_dataset
 
-    if args.max_samples is not None:
-        config["max_samples"] = args.max_samples
-
     if args.preprocessing_num_workers is not None:
         config["preprocessing_num_workers"] = args.preprocessing_num_workers
 
@@ -767,10 +896,27 @@ def build_dataloader(
     template,
     batch_size: int | None,
     num_workers: int | None,
+    sample_offset: int,
+    max_samples: int | None,
+    allow_short_dataset: bool,
+    max_image_repeat: int,
+    allow_excessive_image_repeats: bool,
 ):
     model_args, data_args, training_args, _, _ = get_train_args(config)
     dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
     dataset = dataset_module.get("eval_dataset") or dataset_module["train_dataset"]
+    dataset, source_indices = slice_dataset(
+        dataset, sample_offset, max_samples, allow_short=allow_short_dataset
+    )
+    manifest = build_dataset_manifest(
+        dataset,
+        source_indices,
+        role="evaluation",
+        dataset_name=str(data_args.eval_dataset or data_args.dataset),
+        tokenized_path=str(data_args.tokenized_path) if data_args.tokenized_path else None,
+        max_image_repeat=max_image_repeat,
+        allow_excessive_image_repeats=allow_excessive_image_repeats,
+    )
     data_collator = SFTDataCollatorWith4DAttentionMask(
         template=template,
         model=model,
@@ -784,13 +930,14 @@ def build_dataloader(
     )
     effective_batch_size = batch_size or training_args.per_device_eval_batch_size or training_args.per_device_train_batch_size
     effective_num_workers = training_args.dataloader_num_workers if num_workers is None else num_workers
-    return DataLoader(
+    dataloader = DataLoader(
         dataset,
         batch_size=effective_batch_size,
         collate_fn=data_collator,
         num_workers=effective_num_workers,
         shuffle=False,
     )
+    return dataloader, manifest
 
 
 def move_batch_to_device(batch: dict[str, Any], device: torch.device) -> dict[str, Any]:
@@ -888,6 +1035,63 @@ def bootstrap_weighted_nll(
     }
 
 
+def paired_bootstrap_analysis(
+    baseline_nll_sums: list[float],
+    baseline_token_counts: list[int],
+    ablated_nll_sums: list[float],
+    ablated_token_counts: list[int],
+    num_bootstrap: int = 10000,
+    seed: int = 42,
+    ci_level: float = 0.95,
+) -> dict[str, float]:
+    """Compute a paired, token-weighted bootstrap CI for Delta NLL."""
+    if len(baseline_nll_sums) != len(ablated_nll_sums):
+        raise ValueError("Baseline and ablated must have same number of samples")
+    if baseline_token_counts != ablated_token_counts:
+        raise ValueError("Baseline and ablated token counts differ; samples are not aligned")
+
+    n = len(baseline_nll_sums)
+    if n < 2:
+        return {}
+
+    base_sums = np.asarray(baseline_nll_sums, dtype=np.float64)
+    ablated_sums = np.asarray(ablated_nll_sums, dtype=np.float64)
+    token_counts = np.asarray(baseline_token_counts, dtype=np.float64)
+    valid = token_counts > 0
+    per_example_delta = np.zeros(n, dtype=np.float64)
+    per_example_delta[valid] = (ablated_sums[valid] - base_sums[valid]) / token_counts[valid]
+    observed = float((ablated_sums.sum() - base_sums.sum()) / token_counts.sum())
+
+    rng = np.random.RandomState(seed)
+    if num_bootstrap <= 0:
+        return {
+            "paired_delta_nll": observed,
+            "improved_frac": float(np.mean(per_example_delta < 0)),
+            "damaged_frac": float(np.mean(per_example_delta > 0)),
+            "unchanged_frac": float(np.mean(per_example_delta == 0)),
+            "n_samples": n,
+        }
+
+    boot_deltas = np.empty(num_bootstrap, dtype=np.float64)
+    for position in range(num_bootstrap):
+        idx = rng.choice(n, size=n, replace=True)
+        boot_deltas[position] = (ablated_sums[idx].sum() - base_sums[idx].sum()) / token_counts[idx].sum()
+
+    alpha = 1 - ci_level
+    ci_lo = np.percentile(boot_deltas, 100 * alpha / 2)
+    ci_hi = np.percentile(boot_deltas, 100 * (1 - alpha / 2))
+
+    return {
+        "paired_delta_nll": observed,
+        "paired_ci_lo": float(ci_lo),
+        "paired_ci_hi": float(ci_hi),
+        "improved_frac": float(np.mean(per_example_delta < 0)),
+        "damaged_frac": float(np.mean(per_example_delta > 0)),
+        "unchanged_frac": float(np.mean(per_example_delta == 0)),
+        "n_samples": n,
+    }
+
+
 def main() -> None:
     args = parse_args()
     torch.manual_seed(args.seed)
@@ -901,6 +1105,10 @@ def main() -> None:
 
     layer_dims = get_layer_dims(score_table, layer_col, neuron_col)
     ablation_specs = [parse_ablation_spec(item, args.seed) for item in args.ablation]
+    if not any(spec.name == "none" for spec in ablation_specs):
+        ablation_specs.insert(0, AblationSpec(name="none"))
+    else:
+        ablation_specs.sort(key=lambda spec: spec.name != "none")
     masks_by_spec = {
         spec.result_name: build_type_mask(
             score_table,
@@ -919,21 +1127,38 @@ def main() -> None:
     }
 
     mask_summaries = {name: summarize_masks(masks) for name, masks in masks_by_spec.items()}
-    
-    # Verify mask nesting for typed ablations
-    typed_masks_by_ratio = {}
-    for spec in ablation_specs:
-        if spec.name in ('multimodal', 'unknown', 'unknown_safe') and spec.ratio > 0:
-            typed_masks_by_ratio[spec.ratio] = masks_by_spec[spec.result_name]
-    
-    nesting_results = {}
-    if len(typed_masks_by_ratio) > 1:
-        nesting_results = verify_mask_nesting(typed_masks_by_ratio)
+    cutoff_summaries = {
+        spec.result_name: summarize_cutoffs(
+            score_table,
+            spec,
+            masks_by_spec[spec.result_name],
+            layer_col,
+            neuron_col,
+            score_cols,
+            activation_col,
+            args.unknown_safe_multimodal_weight,
+            args.unknown_safe_activation_weight,
+        )
+        for spec in ablation_specs
+    }
+
+    # Verify cumulative nesting independently for every score type.
+    nesting_results: dict[str, dict[str, bool]] = {}
+    for type_name in (*TYPE_NAMES, "unknown_safe"):
+        masks_for_type = {
+            spec.ratio: masks_by_spec[spec.result_name]
+            for spec in ablation_specs
+            if spec.name == type_name and spec.ratio > 0
+        }
+        if len(masks_for_type) > 1:
+            nesting_results[type_name] = verify_mask_nesting(masks_for_type)
+    if nesting_results:
         print(f"Mask nesting verification: {nesting_results}", flush=True)
-    
+
     if args.dry_run_masks:
         print(json.dumps({
             "mask_summaries": mask_summaries,
+            "cutoff_summaries": cutoff_summaries,
             "nesting_verification": nesting_results,
         }, indent=2, ensure_ascii=False))
         return
@@ -957,12 +1182,33 @@ def main() -> None:
             flush=True,
         )
 
-    dataloader = build_dataloader(config, model, tokenizer_module, template, args.batch_size, args.num_workers)
+    dataloader, eval_manifest = build_dataloader(
+        config,
+        model,
+        tokenizer_module,
+        template,
+        args.batch_size,
+        args.num_workers,
+        args.sample_offset,
+        args.max_samples,
+        args.allow_short_dataset,
+        args.max_image_repeat,
+        args.allow_excessive_image_repeats,
+    )
+    comparison_manifests = [path for path in (args.calibration_manifest, args.typing_manifest) if path]
+    if args.require_data_isolation and len(comparison_manifests) != 2:
+        raise ValueError("--require_data_isolation requires both --calibration_manifest and --typing_manifest.")
+    isolation = assert_disjoint_manifests(eval_manifest, comparison_manifests) if comparison_manifests else None
+    output_path = Path(args.output_file)
+    manifest_path = output_path.with_name(f"{output_path.stem}.sample_manifest.json")
+    save_manifest(eval_manifest, manifest_path)
+
     results: dict[str, Any] = {
         "config": {
             "config_path": args.config,
             "score_file": args.score_file,
             "max_samples": args.max_samples,
+            "sample_offset": args.sample_offset,
             "dataset": config.get("dataset"),
             "eval_dataset": config.get("eval_dataset"),
             "selection": args.selection,
@@ -970,12 +1216,16 @@ def main() -> None:
             "layer_column": layer_col,
             "neuron_column": neuron_col,
             "activation_column": activation_col,
+            "evaluation_manifest": str(manifest_path),
         },
         "mask_summaries": mask_summaries,
+        "cutoff_summaries": cutoff_summaries,
         "nesting_verification": nesting_results,
+        "data_isolation": isolation,
         "metrics": {},
     }
 
+    raw_metrics: dict[str, dict[str, Any]] = {}
     for spec in ablation_specs:
         result_name = spec.result_name
         print(f"Running ablation: {result_name}", flush=True)
@@ -989,10 +1239,26 @@ def main() -> None:
             args.bootstrap_samples,
             args.bootstrap_seed,
         )
-        metrics.pop("sample_nll_sums")
-        metrics.pop("sample_token_counts")
+        sample_nll_sums = metrics.pop("sample_nll_sums")
+        sample_token_counts = metrics.pop("sample_token_counts")
+        raw_metrics[result_name] = {
+            "sample_nll_sums": sample_nll_sums,
+            "sample_token_counts": sample_token_counts,
+        }
         if bootstrap is not None:
             metrics.update(bootstrap)
+
+        row_image_ids = eval_manifest.get("row_image_ids", [])
+        metrics["per_example"] = [
+            {
+                "source_index": eval_manifest["source_indices"][index],
+                "image_ids": row_image_ids[index] if index < len(row_image_ids) else [],
+                "nll_sum": float(nll_sum),
+                "token_count": int(token_count),
+                "nll": float(nll_sum / token_count) if token_count else None,
+            }
+            for index, (nll_sum, token_count) in enumerate(zip(sample_nll_sums, sample_token_counts))
+        ]
 
         results["metrics"][result_name] = metrics
         print(
@@ -1001,7 +1267,42 @@ def main() -> None:
             flush=True,
         )
 
-    output_path = Path(args.output_file)
+    baseline_name = next(spec.result_name for spec in ablation_specs if spec.name == "none")
+    baseline_raw = raw_metrics[baseline_name]
+    baseline_nll = results["metrics"][baseline_name]["nll"]
+    for spec in ablation_specs:
+        name = spec.result_name
+        metrics = results["metrics"][name]
+        metrics["delta_nll"] = float(metrics["nll"] - baseline_nll)
+        if spec.name == "none":
+            continue
+        paired = paired_bootstrap_analysis(
+            baseline_raw["sample_nll_sums"],
+            baseline_raw["sample_token_counts"],
+            raw_metrics[name]["sample_nll_sums"],
+            raw_metrics[name]["sample_token_counts"],
+            num_bootstrap=args.bootstrap_samples,
+            seed=args.bootstrap_seed,
+        )
+        metrics.update(paired)
+        for base_item, item in zip(results["metrics"][baseline_name]["per_example"], metrics["per_example"]):
+            item["delta_nll"] = item["nll"] - base_item["nll"]
+
+    relative_damage_results = {}
+    for spec in ablation_specs:
+        if spec.name in {"none", "random", "layer_random"}:
+            continue
+        random_deltas = [
+            results["metrics"][candidate.result_name]["delta_nll"]
+            for candidate in ablation_specs
+            if candidate.name == "random" and math.isclose(candidate.ratio, spec.ratio)
+        ]
+        if random_deltas:
+            relative_damage_results[spec.result_name] = compute_relative_damage(
+                results["metrics"][spec.result_name]["delta_nll"], random_deltas
+            )
+    results["relative_damage"] = relative_damage_results
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)

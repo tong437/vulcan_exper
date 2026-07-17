@@ -42,12 +42,19 @@ from llamafactory.hparams import get_train_args
 from llamafactory.model import load_model, load_tokenizer
 from llamafactory.train.vulcan import find_mlp_layers
 
+from dataset_guard import build_dataset_manifest, save_manifest, slice_dataset
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Calibrate per-neuron quantile thresholds.")
     parser.add_argument("--config", required=True, help="LlamaFactory SFT YAML config.")
     parser.add_argument("--output_dir", required=True, help="Output directory.")
     parser.add_argument("--max_samples", type=int, default=500, help="Calibration samples.")
+    parser.add_argument("--sample_offset", type=int, default=0, help="Start index in the tokenized dataset.")
+    parser.add_argument("--allow_short_dataset", action="store_true",
+                        help="Allow fewer rows than requested (diagnostics only).")
+    parser.add_argument("--max_image_repeat", type=int, default=5)
+    parser.add_argument("--allow_excessive_image_repeats", action="store_true")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size.")
     parser.add_argument("--num_workers", type=int, default=4, help="Dataloader workers.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed.")
@@ -76,7 +83,12 @@ def build_dataloader(
     batch_size: int,
     num_workers: int,
     seed: int,
-) -> DataLoader:
+    sample_offset: int,
+    max_samples: int,
+    allow_short_dataset: bool,
+    max_image_repeat: int,
+    allow_excessive_image_repeats: bool,
+) -> tuple[DataLoader, dict[str, Any]]:
     model_args, data_args, training_args, _, _ = get_train_args(train_config)
     dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
     data_collator = SFTDataCollatorWith4DAttentionMask(
@@ -92,16 +104,30 @@ def build_dataloader(
         compute_dtype=model_args.compute_dtype,
         **tokenizer_module,
     )
+    dataset, source_indices = slice_dataset(
+        dataset_module["train_dataset"], sample_offset, max_samples, allow_short=allow_short_dataset
+    )
+    manifest = build_dataset_manifest(
+        dataset,
+        source_indices,
+        role="calibration",
+        dataset_name=str(data_args.dataset),
+        tokenized_path=str(data_args.tokenized_path) if data_args.tokenized_path else None,
+        max_image_repeat=max_image_repeat,
+        allow_excessive_image_repeats=allow_excessive_image_repeats,
+    )
+
     generator = torch.Generator()
     generator.manual_seed(seed)
-    return DataLoader(
-        dataset_module["train_dataset"],
+    dataloader = DataLoader(
+        dataset,
         batch_size=batch_size,
         collate_fn=data_collator,
         num_workers=num_workers,
         shuffle=True,
         generator=generator,
     )
+    return dataloader, manifest
 
 
 class StreamingQuantile:
@@ -418,10 +444,14 @@ def main() -> None:
     quantiles = [float(q) for q in args.quantiles.split(",")]
     print(f"Quantiles to compute: {quantiles}")
 
-    dataloader = build_dataloader(
+    dataloader, dataset_manifest = build_dataloader(
         train_config, model, tokenizer_module, template,
-        args.batch_size, args.num_workers, args.seed
+        args.batch_size, args.num_workers, args.seed,
+        args.sample_offset, args.max_samples, args.allow_short_dataset,
+        args.max_image_repeat, args.allow_excessive_image_repeats,
     )
+    manifest_path = Path(args.output_dir) / "sample_manifest.json"
+    save_manifest(dataset_manifest, manifest_path)
 
     print(f"\n{'='*60}")
     print(f"Running calibration on {args.max_samples} samples")
@@ -435,6 +465,9 @@ def main() -> None:
     config = {
         "model_name": model_args.model_name_or_path,
         "max_samples": args.max_samples,
+        "sample_offset": args.sample_offset,
+        "actual_samples": dataset_manifest["num_rows"],
+        "dataset_manifest": str(manifest_path),
         "image_token_id": image_token_id,
         "num_mlp_layers": len(mlp_layers),
         "intermediate_size": int(mlp_layers[0].mlp.up_proj.weight.shape[0]) if mlp_layers else 0,

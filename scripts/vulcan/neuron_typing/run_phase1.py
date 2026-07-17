@@ -32,6 +32,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from dataset_guard import assert_disjoint_manifests
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Phase 1 neuron typing pipeline.")
@@ -39,8 +41,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output_dir", required=True, help="Output directory for all results.")
     parser.add_argument("--calibration_samples", type=int, default=500,
                         help="Samples for calibration (threshold estimation).")
-    parser.add_argument("--typing_samples", type=int, default=5000,
+    parser.add_argument("--typing_samples", type=int, default=2000,
                         help="Samples for typing (neuron classification).")
+    parser.add_argument("--calibration_offset", type=int, default=0,
+                        help="Dataset offset for the calibration split.")
+    parser.add_argument("--typing_offset", type=int, default=500,
+                        help="Dataset offset for the typing split; must be image-disjoint from calibration.")
+    parser.add_argument("--max_image_repeat", type=int, default=5)
+    parser.add_argument("--allow_short_dataset", action="store_true")
+    parser.add_argument("--allow_excessive_image_repeats", action="store_true")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size.")
     parser.add_argument("--threshold_mode", choices=["fixed", "quantile"], default="quantile",
                         help="Threshold mode.")
@@ -354,6 +363,12 @@ def plot_quantile_sensitivity(scores_dir: Path, output_path: Path):
 
 def main():
     args = parse_args()
+    calibration_range = range(args.calibration_offset, args.calibration_offset + args.calibration_samples)
+    typing_range = range(args.typing_offset, args.typing_offset + args.typing_samples)
+    if max(calibration_range.start, typing_range.start) < min(calibration_range.stop, typing_range.stop):
+        raise ValueError(
+            "Calibration and typing row ranges overlap. Choose disjoint --calibration_offset/--typing_offset values."
+        )
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -365,6 +380,7 @@ def main():
     print(f"Mode: {args.threshold_mode}")
     print(f"Calibration samples: {args.calibration_samples}")
     print(f"Typing samples: {args.typing_samples}")
+    print(f"Calibration/typing offsets: {args.calibration_offset}/{args.typing_offset}")
 
     calibration_dir = output_dir / "calibration"
     activations_dir = output_dir / "activations"
@@ -379,9 +395,16 @@ def main():
             "--config", args.config,
             "--output_dir", str(activations_dir),
             "--max_samples", str(args.calibration_samples),
+            "--sample_offset", str(args.calibration_offset),
+            "--max_image_repeat", str(args.max_image_repeat),
+            "--dataset_role", "calibration",
             "--batch_size", str(args.batch_size),
             "--pilot",
         ]
+        if args.allow_short_dataset:
+            cmd.append("--allow_short_dataset")
+        if args.allow_excessive_image_repeats:
+            cmd.append("--allow_excessive_image_repeats")
         run_command(cmd, "Pilot - Global Max Collection")
 
         print(f"\n{'='*60}")
@@ -393,9 +416,15 @@ def main():
             "--config", args.config,
             "--output_dir", str(calibration_dir),
             "--max_samples", str(args.calibration_samples),
+            "--sample_offset", str(args.calibration_offset),
+            "--max_image_repeat", str(args.max_image_repeat),
             "--batch_size", str(args.batch_size),
             "--quantiles", args.quantiles,
         ]
+        if args.allow_short_dataset:
+            cmd.append("--allow_short_dataset")
+        if args.allow_excessive_image_repeats:
+            cmd.append("--allow_excessive_image_repeats")
         run_command(cmd, "Calibration - Quantile Thresholds")
 
     if not args.skip_typing:
@@ -411,7 +440,10 @@ def main():
             "--config", args.config,
             "--output_dir", str(activations_dir),
             "--max_samples", str(args.typing_samples),
+            "--sample_offset", str(args.typing_offset),
+            "--max_image_repeat", str(args.max_image_repeat),
             "--batch_size", str(args.batch_size),
+            "--global_max_path", str(activations_dir / "global_max.pt"),
             "--threshold_mode", args.threshold_mode,
             "--quantile_path", quantile_path,
             "--quantile_idx_visual", str(args.quantile_idx_visual),
@@ -421,7 +453,21 @@ def main():
             "--text_ratio", str(args.text_ratio),
             "--text_min_count", str(args.text_min_count),
         ]
+        if args.allow_short_dataset:
+            cmd.append("--allow_short_dataset")
+        if args.allow_excessive_image_repeats:
+            cmd.append("--allow_excessive_image_repeats")
         run_command(cmd, "Typing - Neuron Classification")
+
+    calibration_manifest = calibration_dir / "sample_manifest.json"
+    typing_manifest = activations_dir / "sample_manifest.json"
+    if calibration_manifest.exists() and typing_manifest.exists():
+        typing_data = json.loads(typing_manifest.read_text(encoding="utf-8"))
+        isolation = assert_disjoint_manifests(typing_data, [calibration_manifest])
+        (output_dir / "phase1_data_isolation.json").write_text(
+            json.dumps(isolation, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        print("Calibration and typing image sets are disjoint.")
 
     print(f"\n{'='*60}")
     print("Step 4: Scoring")

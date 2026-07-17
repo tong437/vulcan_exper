@@ -13,7 +13,9 @@ python scripts/vulcan/neuron_typing/run_phase1.py \
     --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
     --output_dir saves/neuron_typing/phase1 \
     --calibration_samples 500 \
-    --typing_samples 5000 \
+    --calibration_offset 0 \
+    --typing_samples 2000 \
+    --typing_offset 500 \
     --threshold_mode quantile \
     --quantile_idx_visual 1 \
     --quantile_idx_text 0
@@ -24,18 +26,21 @@ python scripts/vulcan/neuron_typing/run_phase1.py \
 #### Step 1: Pilot (Global Max)
 ```bash
 python scripts/vulcan/neuron_typing/collect_ffn_activations.py \
-    --config scripts/vulcan/neuron_typing/configs/pilot_coco.yaml \
+    --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
     --output_dir saves/neuron_typing/phase1/activations \
     --max_samples 500 \
+    --sample_offset 0 \
+    --dataset_role calibration \
     --pilot
 ```
 
 #### Step 2: Calibration (Quantile Thresholds)
 ```bash
 python scripts/vulcan/neuron_typing/calibrate_thresholds.py \
-    --config scripts/vulcan/neuron_typing/configs/pilot_coco.yaml \
+    --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
     --output_dir saves/neuron_typing/phase1/calibration \
     --max_samples 500 \
+    --sample_offset 0 \
     --quantiles 0.95,0.97,0.99
 ```
 
@@ -44,7 +49,9 @@ python scripts/vulcan/neuron_typing/calibrate_thresholds.py \
 python scripts/vulcan/neuron_typing/collect_ffn_activations.py \
     --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
     --output_dir saves/neuron_typing/phase1/activations \
-    --max_samples 5000 \
+    --max_samples 2000 \
+    --sample_offset 500 \
+    --global_max_path saves/neuron_typing/phase1/activations/global_max.pt \
     --threshold_mode quantile \
     --quantile_path saves/neuron_typing/phase1/calibration/neuron_quantiles.pt \
     --quantile_idx_visual 1 \
@@ -68,6 +75,33 @@ python scripts/vulcan/neuron_typing/statistical_tests.py \
     --input_dir saves/neuron_typing/phase1/scores \
     --output_dir saves/neuron_typing/phase1/stats
 ```
+
+### Held-out Phase 2
+
+Use rows 2500 onward, which are disjoint from calibration `[0, 500)` and
+typing `[500, 2500)` under the formal config:
+
+```bash
+python scripts/vulcan/neuron_typing/run_phase2_ablation.py \
+    --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
+    --score_file saves/neuron_typing/phase1/scores/neuron_type_scores.parquet \
+    --output_file saves/neuron_typing/phase2/heldout_ratio_sweep.json \
+    --sample_offset 2500 \
+    --max_samples 500 \
+    --calibration_manifest saves/neuron_typing/phase1/calibration/sample_manifest.json \
+    --typing_manifest saves/neuron_typing/phase1/activations/sample_manifest.json \
+    --require_data_isolation \
+    --ablation multimodal:0.05 \
+    --ablation rank_band:multimodal:0.05:0.20 \
+    --ablation random:0.15:seed1 \
+    --ablation random:0.15:seed2 \
+    --ablation random:0.15:seed3
+```
+
+The no-ablation baseline is inserted automatically. Outputs include per-example
+NLL, paired bootstrap intervals, improved/damaged fractions, cutoff tie
+metadata, per-type nesting checks, and relative damage when matched-ratio
+random seeds are present.
 
 ## Output Structure
 

@@ -48,40 +48,47 @@ def load_neuron_scores(input_dir: str) -> dict:
         return json.load(f)
 
 
-def compute_type_scores(scores: dict) -> pd.DataFrame:
+def compute_type_scores(scores: dict, high_conf_threshold: float = 0.7) -> pd.DataFrame:
     """Convert neuron scores to a DataFrame with type classifications."""
     rows = []
     for layer_key, layer_data in scores.items():
         layer_idx = int(layer_key.split("_")[1])
-        q_visual = np.array(layer_data["q_visual"])
-        q_text = np.array(layer_data["q_text"])
-        q_multimodal = np.array(layer_data["q_multimodal"])
-        q_unknown = np.array(layer_data["q_unknown"])
-        r_visual = np.array(layer_data["r_visual"])
-        r_text = np.array(layer_data["r_text"])
-        r_multimodal = np.array(layer_data["r_multimodal"])
-        r_unknown = np.array(layer_data["r_unknown"])
-        dead_mask = layer_data.get("dead_mask", [False] * len(q_visual))
+        q_visual = np.array(layer_data["q_visual"], dtype=float)
+        q_text = np.array(layer_data["q_text"], dtype=float)
+        q_multimodal = np.array(layer_data["q_multimodal"], dtype=float)
+        q_unknown = np.array(layer_data["q_unknown"], dtype=float)
+        r_visual = np.array(layer_data["r_visual"], dtype=float)
+        r_text = np.array(layer_data["r_text"], dtype=float)
+        r_multimodal = np.array(layer_data["r_multimodal"], dtype=float)
+        r_unknown = np.array(layer_data["r_unknown"], dtype=float)
+        dead_mask = np.asarray(layer_data.get("dead_mask", [False] * len(q_visual)), dtype=bool)
 
         for neuron_idx in range(len(q_visual)):
             is_dead = dead_mask[neuron_idx] if neuron_idx < len(dead_mask) else False
+            dominant_tie = False
             if is_dead:
                 dominant_type = "dead"
             else:
-                # Use q_* for dominant type (type purity in top-K)
-                # Handle NaN values (dead neurons have NaN q scores)
-                q_vals = [
-                    ("visual", q_visual[neuron_idx]),
-                    ("text", q_text[neuron_idx]),
-                    ("multimodal", q_multimodal[neuron_idx]),
-                    ("unknown", q_unknown[neuron_idx]),
-                ]
-                # Filter out NaN values
-                valid_q_vals = [(name, val) for name, val in q_vals if not np.isnan(val)]
-                if valid_q_vals:
-                    dominant_type = max(valid_q_vals, key=lambda x: x[1])[0]
+                type_names = np.array(["visual", "text", "multimodal", "unknown"])
+                q_array = np.array([
+                    q_visual[neuron_idx], q_text[neuron_idx],
+                    q_multimodal[neuron_idx], q_unknown[neuron_idx],
+                ])
+                r_array = np.array([
+                    r_visual[neuron_idx], r_text[neuron_idx],
+                    r_multimodal[neuron_idx], r_unknown[neuron_idx],
+                ])
+                finite = np.isfinite(q_array)
+                if finite.any():
+                    max_value = np.nanmax(q_array)
+                    candidates = np.flatnonzero(finite & np.isclose(q_array, max_value, rtol=0.0, atol=1e-12))
+                    dominant_tie = len(candidates) > 1
+                    # Resolve q ties by full-dataset frequency, then stable type order.
+                    candidate_r = np.nan_to_num(r_array[candidates], nan=-np.inf)
+                    winner = candidates[int(np.argmax(candidate_r))]
+                    dominant_type = str(type_names[winner])
                 else:
-                    dominant_type = "unknown"  # fallback
+                    dominant_type = "unknown"
 
             # Compute top-two q margin
             q_values = [q_visual[neuron_idx], q_text[neuron_idx], q_multimodal[neuron_idx], q_unknown[neuron_idx]]
@@ -115,7 +122,7 @@ def compute_type_scores(scores: dict) -> pd.DataFrame:
             max_q = max(valid_q_values) if valid_q_values else np.nan
             if is_dead:
                 confidence_category = "dead"
-            elif max_q >= 0.7:
+            elif max_q >= high_conf_threshold:
                 confidence_category = "high_confidence"
             else:
                 confidence_category = "mixed_low_confidence"
@@ -132,6 +139,7 @@ def compute_type_scores(scores: dict) -> pd.DataFrame:
                 "r_multimodal": r_multimodal[neuron_idx],
                 "r_unknown": r_unknown[neuron_idx],
                 "dominant_type": dominant_type,
+                "dominant_tie": dominant_tie,
                 "is_dead": is_dead,
                 "attention_type": "FA" if layer_idx in FA_LAYERS else "GDN",
                 "q_1": q_1,
@@ -281,7 +289,7 @@ def main():
     scores = load_neuron_scores(args.input_dir)
 
     print("Computing type scores...")
-    df = compute_type_scores(scores)
+    df = compute_type_scores(scores, args.high_conf_threshold)
 
     print("Computing layer statistics...")
     layer_stats = compute_layer_statistics(df, args.high_conf_threshold)
