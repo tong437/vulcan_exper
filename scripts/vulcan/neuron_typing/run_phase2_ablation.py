@@ -373,6 +373,93 @@ def select_top_indices(scores: torch.Tensor, ratio: float) -> torch.Tensor:
     return scores.topk(k=k, largest=True).indices
 
 
+def select_top_indices_deterministic(
+    scores: torch.Tensor,
+    ratio: float,
+    secondary_key: torch.Tensor | None = None,
+    neuron_ids: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, dict]:
+    """Select top indices with deterministic tie-breaking.
+    
+    Primary key: score (descending)
+    Secondary key: secondary_key (descending, e.g., r_multimodal)
+    Tertiary key: neuron_ids (ascending, for determinism)
+    
+    Returns:
+        selected_indices: tensor of selected neuron indices
+        metadata: dict with cutoff_score, tie_group_size, etc.
+    """
+    k = max(1, math.ceil(scores.numel() * ratio))
+    
+    # Create sorting keys
+    n = scores.numel()
+    if secondary_key is None:
+        secondary_key = torch.zeros(n, dtype=torch.float32)
+    if neuron_ids is None:
+        neuron_ids = torch.arange(n, dtype=torch.long)
+    
+    # Sort by (score desc, secondary_key desc, neuron_ids asc)
+    # Use stable sort for determinism
+    sorted_indices = torch.argsort(
+        scores,
+        descending=True,
+        stable=True,
+    )
+    
+    # Handle ties with secondary key
+    if secondary_key is not None and (secondary_key != 0).any():
+        # Group by score
+        sorted_scores = scores[sorted_indices]
+        sorted_secondary = secondary_key[sorted_indices]
+        sorted_neuron_ids = neuron_ids[sorted_indices]
+        
+        # Find tie groups
+        score_diffs = torch.diff(sorted_scores)
+        tie_boundaries = torch.where(score_diffs != 0)[0].tolist()
+        tie_boundaries = [-1] + tie_boundaries + [n - 1]
+        
+        # Re-sort within tie groups by secondary key
+        final_indices = []
+        for i in range(len(tie_boundaries) - 1):
+            start = tie_boundaries[i] + 1
+            end = tie_boundaries[i + 1] + 1
+            
+            if end - start > 1:
+                # Has ties - sort by secondary key desc, then neuron_ids asc
+                group_indices = sorted_indices[start:end]
+                group_secondary = sorted_secondary[start:end]
+                group_neuron_ids = sorted_neuron_ids[start:end]
+                
+                # Sort by secondary key desc, then neuron_ids asc
+                tie_sorted = torch.argsort(
+                    group_secondary,
+                    descending=True,
+                    stable=True,
+                )
+                final_indices.append(group_indices[tie_sorted])
+            else:
+                final_indices.append(sorted_indices[start:end])
+        
+        sorted_indices = torch.cat(final_indices)
+    
+    # Select top k
+    selected_indices = sorted_indices[:k]
+    
+    # Compute metadata
+    cutoff_score = scores[selected_indices[-1]].item()
+    tie_group_size = (scores == cutoff_score).sum().item()
+    selected_from_tie = (scores[selected_indices] == cutoff_score).sum().item()
+    
+    metadata = {
+        'k': k,
+        'cutoff_score': cutoff_score,
+        'tie_group_size': tie_group_size,
+        'selected_from_tie': selected_from_tie,
+    }
+    
+    return selected_indices, metadata
+
+
 def build_score_vector(group, neuron_col: str, score_col: str, dim: int) -> torch.Tensor:
     scores = torch.full((dim,), float("-inf"), dtype=torch.float32)
     neuron_ids = torch.tensor(group[neuron_col].to_numpy(), dtype=torch.long)
@@ -489,6 +576,7 @@ def build_type_mask(
         return masks
 
     target_counts: dict[int, int] = {}
+    mask_metadata: dict[int, dict] = {}
     for layer_idx, dim in layer_dims.items():
         if allowed_layers is not None and layer_idx not in allowed_layers:
             continue
@@ -507,8 +595,20 @@ def build_type_mask(
         else:
             scores = build_score_vector(group, neuron_col, score_cols[score_type], dim)
 
-        selected = select_top_indices(scores, spec.ratio)
+        # Use deterministic ranking with tie-breaking
+        # Secondary key: r_multimodal (for stability)
+        r_multimodal = build_score_vector(group, neuron_col, score_cols.get('multimodal', 'r_multimodal'), dim)
+        neuron_ids = torch.arange(dim, dtype=torch.long)
+        
+        selected, metadata = select_top_indices_deterministic(
+            scores,
+            spec.ratio,
+            secondary_key=r_multimodal,
+            neuron_ids=neuron_ids,
+        )
+        
         target_counts[layer_idx] = selected.numel()
+        mask_metadata[layer_idx] = metadata
         if spec.name != "layer_random":
             masks[layer_idx][selected] = True
 
@@ -533,6 +633,94 @@ def summarize_masks(masks_by_layer: dict[int, torch.Tensor]) -> dict[str, Any]:
         "total_neurons": total_dim,
         "selected_ratio": total / total_dim if total_dim else 0.0,
         "per_layer_selected": per_layer,
+    }
+
+
+def verify_mask_nesting(masks_by_ratio: dict[float, dict[int, torch.Tensor]]) -> dict[str, bool]:
+    """Verify strict nesting property: M_5 ⊂ M_20 ⊂ M_30 ⊂ M_50."""
+    ratios = sorted(masks_by_ratio.keys())
+    results = {}
+    
+    for i in range(len(ratios) - 1):
+        small_ratio = ratios[i]
+        large_ratio = ratios[i + 1]
+        
+        small_mask = masks_by_ratio[small_ratio]
+        large_mask = masks_by_ratio[large_ratio]
+        
+        is_subset = True
+        for layer_idx in small_mask:
+            if layer_idx not in large_mask:
+                is_subset = False
+                break
+            
+            # Check if small_mask[layer_idx] is subset of large_mask[layer_idx]
+            # small_mask should be True where large_mask is True
+            if not (small_mask[layer_idx] & ~large_mask[layer_idx]).any():
+                continue
+            else:
+                is_subset = False
+                break
+        
+        results[f'{small_ratio:.0%} ⊂ {large_ratio:.0%}'] = is_subset
+    
+    return results
+
+
+def mask_to_neuron_set(masks_by_layer: dict[int, torch.Tensor]) -> set[tuple[int, int]]:
+    """Convert mask to set of (layer_idx, neuron_idx) tuples."""
+    neuron_set = set()
+    for layer_idx, mask in masks_by_layer.items():
+        for neuron_idx in mask.nonzero(as_tuple=True)[0].tolist():
+            neuron_set.add((layer_idx, neuron_idx))
+    return neuron_set
+
+
+def compute_mask_overlap(
+    masks_a: dict[int, torch.Tensor],
+    masks_b: dict[int, torch.Tensor],
+) -> dict[str, float]:
+    """Compute overlap between two masks."""
+    set_a = mask_to_neuron_set(masks_a)
+    set_b = mask_to_neuron_set(masks_b)
+    
+    intersection = set_a & set_b
+    union = set_a | set_b
+    
+    return {
+        'intersection_size': len(intersection),
+        'union_size': len(union),
+        'jaccard': len(intersection) / len(union) if len(union) > 0 else 0.0,
+        'overlap_a': len(intersection) / len(set_a) if len(set_a) > 0 else 0.0,
+        'overlap_b': len(intersection) / len(set_b) if len(set_b) > 0 else 0.0,
+    }
+
+
+def verify_data_isolation(
+    typing_config_path: str,
+    eval_config_path: str,
+) -> dict[str, Any]:
+    """Verify that typing and evaluation data have zero overlap."""
+    import json
+    
+    with open(typing_config_path) as f:
+        typing_config = json.load(f)
+    
+    with open(eval_config_path) as f:
+        eval_config = json.load(f)
+    
+    # Extract sample IDs
+    typing_ids = set(typing_config.get('typing_sample_ids', []))
+    eval_ids = set(eval_config.get('eval_sample_ids', []))
+    
+    overlap = typing_ids & eval_ids
+    
+    return {
+        'typing_count': len(typing_ids),
+        'eval_count': len(eval_ids),
+        'overlap_count': len(overlap),
+        'is_isolated': len(overlap) == 0,
+        'overlap_sample_ids': list(overlap)[:10] if overlap else [],  # First 10 for debugging
     }
 
 
@@ -731,8 +919,23 @@ def main() -> None:
     }
 
     mask_summaries = {name: summarize_masks(masks) for name, masks in masks_by_spec.items()}
+    
+    # Verify mask nesting for typed ablations
+    typed_masks_by_ratio = {}
+    for spec in ablation_specs:
+        if spec.name in ('multimodal', 'unknown', 'unknown_safe') and spec.ratio > 0:
+            typed_masks_by_ratio[spec.ratio] = masks_by_spec[spec.result_name]
+    
+    nesting_results = {}
+    if len(typed_masks_by_ratio) > 1:
+        nesting_results = verify_mask_nesting(typed_masks_by_ratio)
+        print(f"Mask nesting verification: {nesting_results}", flush=True)
+    
     if args.dry_run_masks:
-        print(json.dumps({"mask_summaries": mask_summaries}, indent=2, ensure_ascii=False))
+        print(json.dumps({
+            "mask_summaries": mask_summaries,
+            "nesting_verification": nesting_results,
+        }, indent=2, ensure_ascii=False))
         return
 
     config = prepare_config(args)
@@ -769,6 +972,7 @@ def main() -> None:
             "activation_column": activation_col,
         },
         "mask_summaries": mask_summaries,
+        "nesting_verification": nesting_results,
         "metrics": {},
     }
 
