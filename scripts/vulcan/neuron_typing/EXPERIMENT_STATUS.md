@@ -1,7 +1,7 @@
 # Qwen3.5-VL Neuron Typing Research Status
 
-> Last updated: 2026-07-17 (data-audit correction)
-> Status: pipeline logic repaired; formal Phase 1 and Phase 2 results must be rerun before Phase 3.
+> Last updated: 2026-07-22 (500-versus-2k stability validation)
+> Status: corrected Phase 1/2 reruns and the final sample-size stability check are complete; use the 2k mask for Phase 3.
 
 ## 0. P0 data-audit correction
 
@@ -157,7 +157,46 @@ The earlier soft-score means above 1 were direct evidence of the streaming top-K
 
 The dominant counts sum to 86,013, and the rounded mean q/r values each sum to approximately 1.
 
-Before the formal 2k run, the corrected end-to-end pipeline also passed a 500-sample validation. Detailed 500-versus-2k rank correlations and mask-overlap statistics have not yet been reported and remain a required stability analysis.
+Before the formal 2k run, the corrected end-to-end pipeline also passed a
+500-sample validation. The final comparison used the same calibration file and
+the exact first 500 rows of the 2k typing run; results are reported below.
+
+#### 5.1.1 Typing-sample stability: first 500 versus full 2,000
+
+Integrity checks passed:
+
+| Check | Result |
+|---|---:|
+| Controlled activation/scoring configuration identical | yes |
+| Calibration file identical | yes |
+| Calibration SHA-256 | `90d030feab7ecfcb80cd29d99b519c1d25935d35b1d6a1d349378599ba6d8899` |
+| 500 source indices are exact 2k prefix | yes |
+| 500 row-level image IDs are exact 2k prefix | yes |
+| Dead-neuron masks identical | yes (3 dead; 86,013 matched alive) |
+
+For `q_multimodal`:
+
+| Stability statistic | Result |
+|---|---:|
+| Global Spearman rho | 0.8182 |
+| Per-layer Spearman rho, mean / median | 0.7695 / 0.7658 |
+| Per-layer Spearman rho, min / max | 0.6596 / 0.8776 |
+| 5--20% band size in each run | 12,888 (537/layer) |
+| Band intersection | 5,385 |
+| Global band Jaccard | 0.2641 |
+| Per-layer Jaccard, mean / median | 0.2654 / 0.2540 |
+| Per-layer Jaccard, min / max | 0.2081 / 0.3425 |
+
+The global ranking meets the originally proposed rho > 0.8 heuristic, but the
+exact medium-rank membership is not stable at 500 samples. This is expected to
+be a harder criterion than global rank correlation because the final mask is a
+narrow per-layer band with two moving boundaries. The result does not weaken
+the held-out causal safety evidence for the full-2k mask; it shows that 500
+typing samples are insufficient to reproduce that mask. Therefore Phase 3 must
+freeze the 5--20% band derived from the full 2,000-sample run, not the pilot.
+
+Full machine-readable results, including all q/r scores and per-layer values,
+are stored in `saves/neuron_typing/phase1_stability_500_vs_2k.json`.
 
 ### 5.2 Dominant type distribution
 
@@ -383,8 +422,8 @@ The following statements are not yet supported:
 - [ ] Run blocked permutation tests using layers/blocks as the statistical units.
 - [ ] Report layer-level confidence intervals.
 - [ ] Run leave-one-FA-layer-out analysis, especially to test sensitivity to layer 23.
-- [ ] Compare corrected 500-sample and 2k-sample scores using Spearman correlation.
-- [ ] Compare top-5%, 20%, 30%, and 50% masks using Jaccard overlap.
+- [x] Compare corrected 500-sample and 2k-sample scores using Spearman correlation.
+- [x] Compare top-5%, 20%, 30%, and 50% masks using Jaccard overlap, including the primary 5--20% band.
 - [ ] Report visual/text top-K intersection and union-size distributions.
 
 ### P1: Phase 2 causal maturity
@@ -429,7 +468,7 @@ The following statements are not yet supported:
 4. Run multimodal and high-r_unknown band ablations.
 5. Run paired per-example bootstrap analysis.
 6. Complete blocked FA/GDN permutation and leave-one-layer-out analyses.
-7. Compare 500 versus 2k score and mask stability.
+7. ~~Compare 500 versus 2k score and mask stability.~~ Completed; freeze the full-2k mask.
 8. Add held-out VQA/POPE evaluation.
 9. Compare q/r strategies with magnitude and activation baselines.
 10. Select a Phase 3 functional-pruning strategy only after these checks.
@@ -446,11 +485,27 @@ Formal Phase 3 work should begin only when:
 - the multimodal band hypothesis has been tested;
 - at least one VQA/POPE metric is available;
 - q/r pruning is compared against random, magnitude, and activation baselines;
-- corrected 500/2k rankings are sufficiently stable.
+- the final mask is derived from the full 2k run; the 500-sample pilot is not used because exact band membership is unstable.
 
-The leading Phase 3 candidate is currently:
+The frozen Phase 3 functional-mask candidate is:
 
-> Preserve the extreme top `q_multimodal` specialists and prune a medium-purity multimodal rank band, initially testing 5–20%, 5–30%, 5–40%, and 5–50% functional masks.
+> Preserve the extreme top `q_multimodal` specialists and structurally prune the 5--20% medium-purity multimodal rank band obtained from the full 2,000-sample typing run.
+
+The executable Phase 3 gate, equivalence, zero-shot evaluation, and efficiency
+benchmark plan is documented in
+`docs/my-exper/typing neuron/phase3_structured_pruning_plan.md`.
+
+Phase 3 implementation status (2026-07-22):
+
+- frozen mask/cluster/provenance builder implemented and run;
+- formal mask SHA-256: `958c27b5f3cd55035497a62a8dff99d68e27fb641b1aaf75bbac5216da5fe538`;
+- structural checkpoint width: 3,047 in every decoder FFN layer;
+- parameters: 852,985,920 -> 813,393,984 (39,591,936 removed; 4.64% of the full model);
+- all gate/up/down keep-index projection hashes match the structural checkpoint;
+- in-memory and reloaded structural outputs are bit-identical in the smoke check;
+- 4/4 POPE smoke predictions match hook ablation;
+- formal caption and three-split POPE structural reruns remain pending and are the next gate;
+- the two-repeat benchmark is engineering smoke only and must not be reported as a speed result.
 
 High `r_unknown` should not be used as the primary pruning target under the current evidence.
 

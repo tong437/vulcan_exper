@@ -2,6 +2,20 @@
 
 For the corrected q/r scoring definition, current 2k Phase 1 results, corrected Phase 2 ablations, and the prioritized research roadmap, see [EXPERIMENT_STATUS.md](EXPERIMENT_STATUS.md).
 
+Phase 4 adds an image-disjoint, correct-image versus shuffled-image activation
+mapping experiment. It predicts image-induced text-position FFN activation
+changes from the decoder-entry visual representation, compares Q-only/V-only/V+Q
+ridge and reduced-rank models, and forbids mapping-driven pruning unless the
+mapping, incremental-value, and held-out group-causality gates pass. The
+pre-registered design and formal command are in
+[`docs/my-exper/typing neuron/phase4_activation_mapping_plan.md`](../../../docs/my-exper/typing%20neuron/phase4_activation_mapping_plan.md).
+
+P4.4a follows the successful Phase-4 mapping and causal-localization gates with
+a five-point mapping-high dose curve, 20 global matched-random controls, and
+20 controls that exactly match the mapping mask's layerwise q-decile
+histogram. It never authorizes pruning. See
+[`phase44a_causal_dose_plan.md`](../../../docs/my-exper/typing%20neuron/phase44a_causal_dose_plan.md).
+
 ## Quick Start
 
 ### Full Pipeline (Recommended)
@@ -92,16 +106,103 @@ python scripts/vulcan/neuron_typing/run_phase2_ablation.py \
     --typing_manifest saves/neuron_typing/phase1/activations/sample_manifest.json \
     --require_data_isolation \
     --ablation multimodal:0.05 \
+    --ablation multimodal:0.20 \
     --ablation rank_band:multimodal:0.05:0.20 \
-    --ablation random:0.15:seed1 \
-    --ablation random:0.15:seed2 \
-    --ablation random:0.15:seed3
+    --ablation matched_random:multimodal:0.05:seed1 \
+    --ablation matched_random:multimodal:0.05:seed2 \
+    --ablation matched_random:multimodal:0.05:seed3 \
+    --ablation matched_random:multimodal:0.20:seed1 \
+    --ablation matched_random:multimodal:0.20:seed2 \
+    --ablation matched_random:multimodal:0.20:seed3 \
+    --ablation matched_random:rank_band:multimodal:0.05:0.20:seed1 \
+    --ablation matched_random:rank_band:multimodal:0.05:0.20:seed2 \
+    --ablation matched_random:rank_band:multimodal:0.05:0.20:seed3
 ```
 
 The no-ablation baseline is inserted automatically. Outputs include per-example
 NLL, paired bootstrap intervals, improved/damaged fractions, cutoff tie
-metadata, per-type nesting checks, and relative damage when matched-ratio
-random seeds are present.
+metadata, per-type nesting checks, exact per-layer count verification for
+`matched_random` controls, same-seed random partition checks (top 5% disjoint
+from 5--20%, with their union equal to top 20%), and relative damage against
+those matched controls.
+
+### Exact per-layer 15% functional-mask baselines
+
+The reference mask is the multimodal 5--20% rank band. With an FFN width of
+3584, it contains exactly `ceil(0.20 * 3584) - ceil(0.05 * 3584) = 537`
+neurons in every layer. Build the two extra baseline scores once:
+
+```bash
+PYTHONPATH=src python scripts/vulcan/neuron_typing/build_pruning_baseline_scores.py \
+    --score_file saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores.parquet \
+    --model_path /root/autodl-pub-RTX4090-hdd-1/models/qwen3.5-0.8b \
+    --output_file saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores_with_baselines.parquet
+```
+
+The four masks are: the frozen 5--20% q-band, a matched random mask, the
+lowest group-L2 weight magnitudes, and the lowest threshold-response
+frequencies. The latter is `1 - r_unknown`; it measures how often a neuron
+crossed the Phase-1 activation threshold, not its mean activation magnitude.
+Use these repeatable ablation specifications:
+
+```bash
+--ablation rank_band:multimodal:0.05:0.20 \
+--ablation matched_random:rank_band:multimodal:0.05:0.20:seed1 \
+--ablation matched_score:weight_magnitude:lowest:rank_band:multimodal:0.05:0.20 \
+--ablation matched_score:activation_frequency:lowest:rank_band:multimodal:0.05:0.20
+```
+
+Both evaluators verify that every matched mask has exactly the same number of
+selected neurons in every layer and store the result under
+`matched_score_verification` or `matched_random_verification`.
+
+### Held-out POPE evaluation
+
+`evaluate_pope.py` accepts the official POPE JSON-Lines files (including files
+with a `.json` suffix). Use `--max_images` for pilots so all six questions for
+each selected image stay together. When comparison manifests are supplied,
+`--filter_manifest_overlaps` removes complete overlapping image groups before
+selection and the saved manifest is checked again for zero overlap.
+
+The evaluator provides:
+
+- one-forward, batched forced-choice scoring for the single-token `yes` and
+  `no` candidates;
+- deterministic top-prefix, rank-band, and exact-count matched-random masks;
+- strict per-layer count and same-seed random partition verification;
+- paired Accuracy/F1 differences, exact McNemar tests, and image-cluster
+  bootstrap confidence intervals;
+- a deterministic shuffled-image baseline to verify that the task actually
+  uses its image;
+- per-condition checkpoints and `--resume` for long multi-seed runs.
+
+Example pilot:
+
+```bash
+python scripts/vulcan/neuron_typing/evaluate_pope.py \
+    --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
+    --score_file saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores.parquet \
+    --pope_file data/pope/coco_pope_random.json \
+    --image_root /path/to/coco/val2014 \
+    --output_file saves/neuron_typing/phase2_pope/random_pilot.json \
+    --max_images 50 \
+    --batch_size 4 \
+    --calibration_manifest saves/neuron_typing/phase1_clean_2k/calibration/sample_manifest.json \
+    --typing_manifest saves/neuron_typing/phase1_clean_2k/activations/sample_manifest.json \
+    --filter_manifest_overlaps \
+    --require_data_isolation \
+    --include_shuffled_image_control \
+    --ablation multimodal:0.05 \
+    --ablation rank_band:multimodal:0.05:0.20 \
+    --ablation multimodal:0.20 \
+    --ablation matched_random:multimodal:0.05:seed1 \
+    --ablation matched_random:rank_band:multimodal:0.05:0.20:seed1 \
+    --ablation matched_random:multimodal:0.20:seed1
+```
+
+If interrupted, repeat the identical command with `--resume`. Do not change
+the dataset slice, manifests, masks, seeds, batch size, or bootstrap settings
+when resuming.
 
 ## Output Structure
 
@@ -190,3 +291,105 @@ done
 ```
 
 Then compare `neuron_scores.json` across q95/q97/q99 runs.
+
+## Typing sample-size stability
+
+Compare a prefix run against the full typing run with the same calibration.
+The command validates the calibration SHA-256, controlled typing parameters,
+source-index prefix, row-level image prefix, neuron keys, and dead-neuron mask
+before reporting global/per-layer Spearman correlations and mask Jaccards:
+
+```bash
+PYTHONPATH=src python scripts/vulcan/neuron_typing/compare_phase1_stability.py \
+    --small saves/neuron_typing/phase1_clean_500_prefix/scores/neuron_type_scores.parquet \
+    --large saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores.parquet \
+    --output_file saves/neuron_typing/phase1_stability_500_vs_2k.json \
+    --bands 0.05:0.20 \
+    --require_prefix_validation
+```
+
+## Phase 3 structural q-band pruning
+
+The formal Phase-3 path is frozen to the full-2k per-layer
+`q_multimodal` 5--20% band. It validates the exact Phase-2 score artifact,
+cutoffs, manifests, calibration hash, mask counts, and singleton structural
+clusters before deleting parameters.
+
+Build the auditable mask and cluster artifacts:
+
+```bash
+PYTHONPATH=src python scripts/vulcan/neuron_typing/build_structural_pruning_artifact.py \
+    --score_file saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores_with_baselines.parquet \
+    --phase2_result saves/neuron_typing/phase2_clean_2k/heldout_functional_masks_15pct.json \
+    --output_dir saves/neuron_typing/phase3_structural_qband
+```
+
+The end-to-end controller can create the checkpoint, run hook/in-memory/reload
+equivalence, optionally repeat formal caption/POPE evaluation, and benchmark
+the original and structural models:
+
+```bash
+PYTHONPATH=src python scripts/vulcan/neuron_typing/run_phase3_structural.py \
+    --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
+    --model_name_or_path /path/to/qwen3.5-0.8b \
+    --score_file saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores_with_baselines.parquet \
+    --phase2_caption_result saves/neuron_typing/phase2_clean_2k/heldout_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/random_formal_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/popular_formal_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/adversarial_formal_functional_masks_15pct.json \
+    --smoke_pope_file saves/neuron_typing/pope_data/coco_pope_random.json \
+    --image_root /path/to/coco/images \
+    --output_dir saves/neuron_typing/phase3_structural_qband \
+    --reuse_pruned_model \
+    --run_formal_evaluation \
+    --run_benchmark
+```
+
+`pruning/run_type_aware_pruning.py` and `pruning/compute_pruning_score.py` are
+legacy `p_*`/unknown-score prototypes and are not formal Phase-3 entry points.
+
+## Phase 3.4 hardware-aligned q-band
+
+When the exact 5--20% structural width (3,047) reduces parameters but does not
+improve latency, P3.4 tests an exact 3,072 width. The aligned mask is
+`rank_window:multimodal:180:512`: protect the first 180 ranked neurons and
+remove the following 512 in every layer. Run the hook-only safety gate first:
+
+```bash
+PYTHONPATH=src python scripts/vulcan/neuron_typing/run_phase34_aligned.py \
+    --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
+    --model_name_or_path /path/to/qwen3.5-0.8b \
+    --score_file saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores_with_baselines.parquet \
+    --phase2_caption_result saves/neuron_typing/phase2_clean_2k/heldout_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/random_formal_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/popular_formal_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/adversarial_formal_functional_masks_15pct.json \
+    --image_root /path/to/coco/images \
+    --output_dir saves/neuron_typing/phase34_aligned_3072
+```
+
+The controller stops before writing a structural checkpoint unless caption and
+all three POPE hook checks pass. After they pass, reuse them and run the
+structural/equivalence/formal/benchmark stages:
+
+```bash
+PYTHONPATH=src python scripts/vulcan/neuron_typing/run_phase34_aligned.py \
+    --config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
+    --model_name_or_path /path/to/qwen3.5-0.8b \
+    --score_file saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores_with_baselines.parquet \
+    --phase2_caption_result saves/neuron_typing/phase2_clean_2k/heldout_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/random_formal_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/popular_formal_functional_masks_15pct.json \
+    --phase2_pope_result saves/neuron_typing/phase2_pope/adversarial_formal_functional_masks_15pct.json \
+    --smoke_pope_file saves/neuron_typing/pope_data/coco_pope_random.json \
+    --image_root /path/to/coco/images \
+    --output_dir saves/neuron_typing/phase34_aligned_3072 \
+    --reuse_hook_evaluation \
+    --run_structural \
+    --unaligned_model_path saves/neuron_typing/phase3_structural_qband/model \
+    --run_benchmark
+```
+
+The revised benchmark forces the requested generation length, validates the
+actual output-token count, measures multimodal and text-only prefill, and
+reports bootstrap confidence intervals directly for latency speedups/deltas.
