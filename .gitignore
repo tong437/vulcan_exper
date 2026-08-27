@@ -183,6 +183,9 @@ wandb/
 swanlog/
 generated_predictions.jsonl
 predictions_score.json
+/predictions_*.jsonl
+/Process
+/.mimocode/
 
 # datasets
 datasets/
