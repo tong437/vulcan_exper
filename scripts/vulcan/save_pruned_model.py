@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import argparse
+import hashlib
+import json
 import shutil
 import sys
 from dataclasses import fields
@@ -52,6 +54,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--infer_dtype", default="auto", choices=["auto", "float16", "bfloat16", "float32"])
     parser.add_argument("--max_shard_size", default="5GB", help="Max shard size passed to save_pretrained.")
     parser.add_argument("--config", default=None, help="Optional YAML config to reuse model/template arguments from.")
+    parser.add_argument(
+        "--provenance_path",
+        default=None,
+        help="Optional frozen-mask metadata JSON to verify and copy beside the checkpoint.",
+    )
+    parser.add_argument(
+        "--expected_mask_sha256",
+        default=None,
+        help="Fail unless provenance_path records this exact frozen mask hash.",
+    )
     return parser.parse_args()
 
 
@@ -67,6 +79,30 @@ def filter_infer_config(config: dict[str, Any]) -> dict[str, Any]:
     infer_classes = (ModelArguments, DataArguments, FinetuningArguments, GeneratingArguments)
     allowed_keys = {field.name for dataclass_type in infer_classes for field in fields(dataclass_type)}
     return {key: value for key, value in config.items() if key in allowed_keys}
+
+
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def parameter_count(model) -> int:
+    return int(sum(parameter.numel() for parameter in model.parameters()))
+
+
+def parameter_storage_bytes(model) -> int:
+    return int(sum(parameter.numel() * parameter.element_size() for parameter in model.parameters()))
+
+
+def parameter_dtype_counts(model) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for parameter in model.parameters():
+        name = str(parameter.dtype)
+        counts[name] = counts.get(name, 0) + parameter.numel()
+    return counts
 
 
 def install_layerwise_qwen35_loader(model, output_dir: Path, target_sizes: list[int]) -> None:
@@ -91,6 +127,16 @@ def install_layerwise_qwen35_loader(model, output_dir: Path, target_sizes: list[
 
 def main() -> None:
     args = parse_args()
+    provenance = None
+    provenance_path = Path(args.provenance_path).resolve() if args.provenance_path else None
+    if provenance_path is not None:
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+        if args.expected_mask_sha256 and provenance.get("mask_sha256") != args.expected_mask_sha256:
+            raise ValueError(
+                "Frozen mask hash mismatch: "
+                f"metadata={provenance.get('mask_sha256')}, expected={args.expected_mask_sha256}."
+            )
+
     infer_config = filter_infer_config(load_yaml(args.config))
     infer_config.update(
         {
@@ -108,7 +154,10 @@ def main() -> None:
     model = load_model(tokenizer, model_args, finetuning_args, is_trainable=False)
 
     cluster_idx = load_cluster_idx(args.cluster_idx_path)
+    original_parameters = parameter_count(model)
+    original_parameter_bytes = parameter_storage_bytes(model)
     summary = pruning_mlp(model, cluster_idx)
+    pruned_parameters = parameter_count(model)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -118,12 +167,13 @@ def main() -> None:
         install_layerwise_qwen35_loader(model, output_dir, layerwise_sizes)
 
     if model_args.infer_dtype == "auto":
-        output_dtype = getattr(model.config, "torch_dtype", torch.float32)
+        output_dtype = None
     else:
         output_dtype = getattr(torch, model_args.infer_dtype)
 
-    if output_dtype != torch.float32:
+    if output_dtype is not None:
         model = model.to(output_dtype)
+    pruned_parameter_bytes = parameter_storage_bytes(model)
 
     save_kwargs = {"save_directory": output_dir, "max_shard_size": args.max_shard_size}
     if not is_transformers_version_greater_than("5.0.0"):
@@ -134,10 +184,38 @@ def main() -> None:
     if processor is not None:
         processor.save_pretrained(output_dir)
 
+    if provenance_path is not None:
+        shutil.copyfile(provenance_path, output_dir / "phase3_pruning_metadata.json")
+
+    pruning_summary = {
+        "model_name_or_path": args.model_name_or_path,
+        "cluster_idx_path": str(Path(args.cluster_idx_path).resolve()),
+        "cluster_idx_sha256": sha256_file(args.cluster_idx_path),
+        "provenance_path": str(provenance_path) if provenance_path else None,
+        "provenance_sha256": sha256_file(provenance_path) if provenance_path else None,
+        "mask_sha256": provenance.get("mask_sha256") if provenance else None,
+        "original_intermediate_size": summary.original_intermediate_size,
+        "pruned_intermediate_size": summary.pruned_intermediate_size,
+        "num_layers": summary.num_layers,
+        "original_parameters": original_parameters,
+        "pruned_parameters": pruned_parameters,
+        "removed_parameters": original_parameters - pruned_parameters,
+        "removed_parameter_ratio": (original_parameters - pruned_parameters) / original_parameters,
+        "original_parameter_storage_bytes": original_parameter_bytes,
+        "pruned_parameter_storage_bytes": pruned_parameter_bytes,
+        "removed_parameter_storage_bytes": original_parameter_bytes - pruned_parameter_bytes,
+        "output_dtype": str(output_dtype) if output_dtype is not None else "preserve_loaded_dtypes",
+        "output_parameter_dtype_counts": parameter_dtype_counts(model),
+    }
+    (output_dir / "pruning_summary.json").write_text(
+        json.dumps(pruning_summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
     print(
         "Pruned "
         f"{summary.num_layers} MLP layers from intermediate_size={summary.original_intermediate_size} "
-        f"to {summary.pruned_intermediate_size}. Saved to {output_dir}."
+        f"to {summary.pruned_intermediate_size}; removed {original_parameters - pruned_parameters:,} parameters. "
+        f"Saved to {output_dir}."
     )
 
 

@@ -33,13 +33,17 @@ class PruningSummary:
 
 
 def _new_linear_like(old_linear: "nn.Linear", in_features: int, out_features: int) -> "nn.Linear":
-    return torch.nn.Linear(
+    new_linear = torch.nn.Linear(
         in_features=in_features,
         out_features=out_features,
         bias=old_linear.bias is not None,
         device=old_linear.weight.device,
         dtype=old_linear.weight.dtype,
     )
+    new_linear.weight.requires_grad_(old_linear.weight.requires_grad)
+    if new_linear.bias is not None and old_linear.bias is not None:
+        new_linear.bias.requires_grad_(old_linear.bias.requires_grad)
+    return new_linear
 
 
 def _set_config_intermediate_sizes(model: "nn.Module", intermediate_sizes: list[int]) -> None:
