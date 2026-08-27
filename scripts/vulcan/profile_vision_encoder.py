@@ -90,6 +90,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--max_new_tokens", type=int, default=1)
     parser.add_argument("--skip_generation", action="store_true", help="Only profile input preparation and prefill.")
+    parser.add_argument("--force_max_tokens", action="store_true",
+                        help="Suppress EOS during generation to force exactly max_new_tokens outputs.")
     parser.add_argument("--output_path", default=None, help="Optional JSON output path.")
     return parser.parse_args()
 
@@ -446,6 +448,39 @@ def main() -> None:
     forward_kwargs = _prepare_forward_kwargs(gen_kwargs)
     prompt_tokens = int(forward_kwargs["input_ids"].shape[-1])
 
+    # --- Extract image_grid_thw and effective pixel info ---
+    image_grid_thw = None
+    effective_pixels = None
+    if "image_grid_thw" in gen_kwargs:
+        grid = gen_kwargs["image_grid_thw"]
+        if hasattr(grid, "tolist"):
+            image_grid_thw = grid.tolist()
+        else:
+            image_grid_thw = grid
+        # effective pixels = sum of (h * w * t) for each image grid entry
+        if image_grid_thw:
+            patch_size = getattr(getattr(model, "config", None), "vision_config", None)
+            ps = getattr(patch_size, "patch_size", 16) if patch_size else 16
+            effective_pixels = sum(g[0] * g[1] * g[2] * ps * ps for g in image_grid_thw)
+
+    # --- Force max_new_tokens by suppressing EOS (before measuring) ---
+    if args.force_max_tokens and not args.skip_generation:
+        gen_config = gen_kwargs.get("generation_config")
+        if gen_config is not None:
+            gen_config = copy.deepcopy(gen_config)
+            gen_config.eos_token_id = []
+            gen_kwargs["generation_config"] = gen_config
+        elif "eos_token_id" in gen_kwargs:
+            gen_kwargs["eos_token_id"] = []
+
+    # --- Measure actual generated tokens ---
+    actual_generated_tokens = None
+    if not args.skip_generation:
+        with torch.inference_mode():
+            output_ids = model.generate(**gen_kwargs)
+        input_len = gen_kwargs["input_ids"].shape[-1] if "input_ids" in gen_kwargs else gen_kwargs["inputs"].shape[-1]
+        actual_generated_tokens = int(output_ids.shape[-1]) - input_len
+
     def run_benchmark(function) -> list[dict[str, float]]:
         runs = []
         for index in range(args.warmup + args.iterations):
@@ -491,6 +526,10 @@ def main() -> None:
             "image_max_pixels": args.image_max_pixels,
             "prompt_tokens": prompt_tokens,
             "max_new_tokens": args.max_new_tokens,
+            "actual_generated_tokens": actual_generated_tokens,
+            "force_max_tokens": args.force_max_tokens,
+            "image_grid_thw": image_grid_thw,
+            "effective_pixels": effective_pixels,
             "warmup": args.warmup,
             "iterations": args.iterations,
             "device": str(next(model.parameters()).device),
