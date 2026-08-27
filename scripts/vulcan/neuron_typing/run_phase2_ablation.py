@@ -60,6 +60,13 @@ SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from dataset_guard import (  # noqa: E402
+    assert_disjoint_manifests,
+    build_dataset_manifest,
+    save_manifest,
+    slice_dataset,
+)
+
 from llamafactory.data import (  # noqa: E402
     SFTDataCollatorWith4DAttentionMask,
     get_dataset,
@@ -68,13 +75,6 @@ from llamafactory.data import (  # noqa: E402
 from llamafactory.extras.constants import IGNORE_INDEX  # noqa: E402
 from llamafactory.hparams import get_train_args  # noqa: E402
 from llamafactory.model import load_model, load_tokenizer  # noqa: E402
-
-from dataset_guard import (  # noqa: E402
-    assert_disjoint_manifests,
-    build_dataset_manifest,
-    save_manifest,
-    slice_dataset,
-)
 
 
 TYPE_NAMES = ("visual", "text", "multimodal", "unknown")
@@ -88,11 +88,26 @@ class AblationSpec:
     seed: int | None = None
     band_start: float | None = None
     band_end: float | None = None
+    rank_start: int | None = None
+    rank_count: int | None = None
+    reference: AblationSpec | None = None
+    score_column: str | None = None
+    score_order: str | None = None
 
     @property
     def result_name(self) -> str:
         if self.name == "rank_band":
             return f"rank_band:{self.match_type}:{self.band_start:g}:{self.band_end:g}"
+        if self.name == "rank_window":
+            return f"rank_window:{self.match_type}:{self.rank_start}:{self.rank_count}"
+        if self.name == "matched_random":
+            if self.reference is None:
+                raise ValueError("matched_random requires a reference ablation.")
+            return f"matched_random:{self.reference.result_name}:seed{self.seed}"
+        if self.name == "matched_score":
+            if self.reference is None or self.score_column is None or self.score_order is None:
+                raise ValueError("matched_score requires a score column, order, and reference ablation.")
+            return f"matched_score:{self.score_column}:{self.score_order}:{self.reference.result_name}"
         parts = [self.name]
         if self.ratio:
             parts.append(f"{self.ratio:g}")
@@ -144,8 +159,10 @@ class MLPNeuronAblator:
                     f"but down_proj input has dim {hidden_states.shape[-1]}."
                 )
 
-            keep = (~mask).to(device=hidden_states.device, dtype=hidden_states.dtype).view(
-                *([1] * (hidden_states.ndim - 1)), -1
+            keep = (
+                (~mask)
+                .to(device=hidden_states.device, dtype=hidden_states.dtype)
+                .view(*([1] * (hidden_states.ndim - 1)), -1)
             )
             return (hidden_states * keep, *inputs[1:])
 
@@ -155,6 +172,11 @@ class MLPNeuronAblator:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run typed FFN neuron ablations and label-NLL evaluation.")
     parser.add_argument("--config", required=True, help="LlamaFactory YAML config for loading model and eval dataset.")
+    parser.add_argument(
+        "--model_name_or_path",
+        default=None,
+        help="Optional model-path override, used by Phase-3 structural checkpoint evaluation.",
+    )
     parser.add_argument("--score_file", required=True, help="Phase-1 neuron score parquet/csv/jsonl file.")
     parser.add_argument("--output_file", required=True, help="Path to write JSON metrics.")
     parser.add_argument(
@@ -165,17 +187,26 @@ def parse_args() -> argparse.Namespace:
             "Ablation spec. Repeatable. Formats: none, visual:0.01, text:0.01, multimodal:0.05, "
             "unknown:0.05, unknown_safe:0.05, random:0.20, layer_random:0.05:multimodal."
             " Rank band format: rank_band:multimodal:0.05:0.20."
+            " Exact rank-window format: rank_window:multimodal:180:512."
+            " Exact-count control format: matched_random:rank_band:multimodal:0.05:0.20:seed1."
+            " Exact-budget score format: matched_score:weight_magnitude:lowest:"
+            "rank_band:multimodal:0.05:0.20."
         ),
     )
     parser.add_argument("--max_samples", type=int, default=None, help="Exact number of eval rows after slicing.")
-    parser.add_argument("--sample_offset", type=int, default=2500, help="Held-out eval offset in the tokenized dataset.")
+    parser.add_argument(
+        "--sample_offset", type=int, default=2500, help="Held-out eval offset in the tokenized dataset."
+    )
     parser.add_argument("--allow_short_dataset", action="store_true")
     parser.add_argument("--max_image_repeat", type=int, default=5)
     parser.add_argument("--allow_excessive_image_repeats", action="store_true")
     parser.add_argument("--typing_manifest", default=None, help="Phase-1 typing sample_manifest.json.")
     parser.add_argument("--calibration_manifest", default=None, help="Phase-1 calibration sample_manifest.json.")
-    parser.add_argument("--require_data_isolation", action="store_true",
-                        help="Fail unless typing/calibration manifests are provided and image-disjoint.")
+    parser.add_argument(
+        "--require_data_isolation",
+        action="store_true",
+        help="Fail unless typing/calibration manifests are provided and image-disjoint.",
+    )
     parser.add_argument("--dataset", default=None, help="Override dataset name in the YAML config.")
     parser.add_argument("--eval_dataset", default=None, help="Override eval_dataset name in the YAML config.")
     parser.add_argument("--batch_size", type=int, default=None, help="Override eval dataloader batch size.")
@@ -278,6 +309,75 @@ def parse_ablation_spec(text: str, base_seed: int) -> AblationSpec:
             band_end=band_end,
         )
 
+    if name == "rank_window":
+        if len(parts) != 4:
+            raise ValueError("Rank window format is rank_window:<type>:<start-count>:<selected-count>.")
+        match_type = parts[1].strip()
+        if match_type not in {*TYPE_NAMES, "unknown_safe"}:
+            raise ValueError(f"Unsupported rank-window score type: {match_type!r}.")
+        try:
+            rank_start, rank_count = int(parts[2]), int(parts[3])
+        except ValueError:
+            raise ValueError(f"Rank-window start and count must be integers, got {parts[2]}:{parts[3]}.")
+        if rank_start < 0 or rank_count <= 0:
+            raise ValueError(f"Rank window requires start >= 0 and count > 0, got {rank_start}:{rank_count}.")
+        return AblationSpec(
+            name="rank_window",
+            match_type=match_type,
+            rank_start=rank_start,
+            rank_count=rank_count,
+        )
+
+    if name == "matched_random":
+        remaining = parts[1:]
+        seed = base_seed
+        if remaining and remaining[-1].strip().startswith("seed"):
+            seed_text = remaining.pop().strip()[4:]
+            try:
+                seed = int(seed_text)
+            except ValueError:
+                raise ValueError(f"Invalid seed suffix in {text!r}. Expected seed<int>, e.g. seed42.")
+
+        if not remaining:
+            raise ValueError(
+                "matched_random format is matched_random:<target-ablation>:seed<int>, "
+                "for example matched_random:rank_band:multimodal:0.05:0.20:seed1."
+            )
+
+        reference = parse_ablation_spec(":".join(remaining), base_seed)
+        if reference.name in {"none", "random", "layer_random", "matched_random"}:
+            raise ValueError(f"matched_random target must be a typed or rank-band ablation, got {reference.name!r}.")
+
+        return AblationSpec(
+            name="matched_random",
+            ratio=reference.ratio,
+            seed=seed,
+            reference=reference,
+        )
+
+    if name == "matched_score":
+        if len(parts) < 5:
+            raise ValueError(
+                "matched_score format is matched_score:<column>:<lowest|highest>:<target-ablation>, "
+                "for example matched_score:weight_magnitude:lowest:rank_band:multimodal:0.05:0.20."
+            )
+        score_column = parts[1].strip()
+        score_order = parts[2].strip()
+        if not score_column.isidentifier():
+            raise ValueError(f"Invalid matched-score column name: {score_column!r}.")
+        if score_order not in {"lowest", "highest"}:
+            raise ValueError(f"matched_score order must be lowest or highest, got {score_order!r}.")
+        reference = parse_ablation_spec(":".join(parts[3:]), base_seed)
+        if reference.name in {"none", "random", "layer_random", "matched_random", "matched_score"}:
+            raise ValueError(f"matched_score target must be a typed or rank-band ablation, got {reference.name!r}.")
+        return AblationSpec(
+            name="matched_score",
+            ratio=reference.ratio,
+            reference=reference,
+            score_column=score_column,
+            score_order=score_order,
+        )
+
     if name not in {*TYPE_NAMES, "unknown_safe", "random", "layer_random"}:
         raise ValueError(f"Unknown ablation type {name!r}.")
 
@@ -359,25 +459,29 @@ def infer_score_columns(table, score_prefix: str | None) -> tuple[str, str, dict
         # For unknown, prefer r_unknown (frequency in dataset)
         # For others, prefer q_* (type purity in top-K)
         if type_name == "unknown":
-            candidates.extend([
-                "r_unknown",
-                "q_unknown",
-                "p_unknown",
-                f"{type_name}_prob",
-                f"{type_name}_score",
-                f"score_{type_name}",
-                type_name,
-            ])
+            candidates.extend(
+                [
+                    "r_unknown",
+                    "q_unknown",
+                    "p_unknown",
+                    f"{type_name}_prob",
+                    f"{type_name}_score",
+                    f"score_{type_name}",
+                    type_name,
+                ]
+            )
         else:
-            candidates.extend([
-                f"q_{type_name}",
-                f"r_{type_name}",
-                f"p_{type_name}",
-                f"{type_name}_prob",
-                f"{type_name}_score",
-                f"score_{type_name}",
-                type_name,
-            ])
+            candidates.extend(
+                [
+                    f"q_{type_name}",
+                    f"r_{type_name}",
+                    f"p_{type_name}",
+                    f"{type_name}_prob",
+                    f"{type_name}_score",
+                    f"score_{type_name}",
+                    type_name,
+                ]
+            )
         score_cols[type_name] = find_first_existing(columns, candidates, f"{type_name} score")
 
     activation_col = None
@@ -418,83 +522,64 @@ def select_top_indices_deterministic(
     neuron_ids: torch.Tensor | None = None,
 ) -> tuple[torch.Tensor, dict]:
     """Select top indices with deterministic tie-breaking.
-    
+
     Primary key: score (descending)
     Secondary key: secondary_key (descending, e.g., r_multimodal)
     Tertiary key: neuron_ids (ascending, for determinism)
-    
+
     Returns:
         selected_indices: tensor of selected neuron indices
         metadata: dict with cutoff_score, tie_group_size, etc.
     """
     k = max(1, math.ceil(scores.numel() * ratio))
-    
+    return select_k_indices_deterministic(scores, k, secondary_key, neuron_ids)
+
+
+def select_k_indices_deterministic(
+    scores: torch.Tensor,
+    k: int,
+    secondary_key: torch.Tensor | None = None,
+    neuron_ids: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, dict]:
+    """Select exactly ``k`` highest scores with deterministic tie-breaking."""
+    if not 0 <= k <= scores.numel():
+        raise ValueError(f"k must be in [0, {scores.numel()}], got {k}.")
+    if k == 0:
+        return torch.empty(0, dtype=torch.long), {
+            "k": 0,
+            "cutoff_score": None,
+            "tie_group_size": 0,
+            "selected_from_tie": 0,
+        }
+
     # Create sorting keys
     n = scores.numel()
     if secondary_key is None:
         secondary_key = torch.zeros(n, dtype=torch.float32)
     if neuron_ids is None:
         neuron_ids = torch.arange(n, dtype=torch.long)
-    
-    # Sort by (score desc, secondary_key desc, neuron_ids asc)
-    # Use stable sort for determinism
-    sorted_indices = torch.argsort(
-        scores,
-        descending=True,
-        stable=True,
-    )
-    
-    # Handle ties with secondary key
-    if secondary_key is not None and (secondary_key != 0).any():
-        # Group by score
-        sorted_scores = scores[sorted_indices]
-        sorted_secondary = secondary_key[sorted_indices]
-        sorted_neuron_ids = neuron_ids[sorted_indices]
-        
-        # Find tie groups
-        score_diffs = torch.diff(sorted_scores)
-        tie_boundaries = torch.where(score_diffs != 0)[0].tolist()
-        tie_boundaries = [-1] + tie_boundaries + [n - 1]
-        
-        # Re-sort within tie groups by secondary key
-        final_indices = []
-        for i in range(len(tie_boundaries) - 1):
-            start = tie_boundaries[i] + 1
-            end = tie_boundaries[i + 1] + 1
-            
-            if end - start > 1:
-                # Has ties - sort by secondary key desc, then neuron_ids asc
-                group_indices = sorted_indices[start:end]
-                group_secondary = sorted_secondary[start:end]
-                group_neuron_ids = sorted_neuron_ids[start:end]
-                
-                # Sort by secondary key desc, then neuron_ids asc
-                tie_sorted = torch.argsort(
-                    group_secondary,
-                    descending=True,
-                    stable=True,
-                )
-                final_indices.append(group_indices[tie_sorted])
-            else:
-                final_indices.append(sorted_indices[start:end])
-        
-        sorted_indices = torch.cat(final_indices)
-    
+
+    # Stable sorts from the tertiary key to the primary key implement the
+    # lexicographic order (score desc, secondary desc, neuron id asc).
+    sorted_indices = torch.argsort(neuron_ids, descending=False, stable=True)
+    sorted_indices = sorted_indices[torch.argsort(secondary_key[sorted_indices], descending=True, stable=True)]
+    sorted_indices = sorted_indices[torch.argsort(scores[sorted_indices], descending=True, stable=True)]
+
     # Select top k
     selected_indices = sorted_indices[:k]
-    
+
     # Compute metadata
     cutoff_score = scores[selected_indices[-1]].item()
     tie_group_size = (scores == cutoff_score).sum().item()
     selected_from_tie = (scores[selected_indices] == cutoff_score).sum().item()
-    
+
     metadata = {
-        'k': k,
-        'cutoff_score': cutoff_score,
-        'tie_group_size': tie_group_size,
-        'selected_from_tie': selected_from_tie,
+        "k": k,
+        "cutoff_score": cutoff_score,
+        "tie_group_size": tie_group_size,
+        "selected_from_tie": selected_from_tie,
     }
-    
+
     return selected_indices, metadata
 
 
@@ -601,6 +686,164 @@ def build_type_mask(
         )
         return {layer_idx: end_masks[layer_idx] & ~start_masks[layer_idx] for layer_idx in end_masks}
 
+    if spec.name == "rank_window":
+        if spec.match_type is None or spec.rank_start is None or spec.rank_count is None:
+            raise ValueError(f"Incomplete rank-window specification: {spec}.")
+        if selection != "per_layer":
+            raise ValueError("Exact rank-window selection currently requires per_layer selection.")
+        grouped = {int(layer_idx): group for layer_idx, group in table.groupby(layer_col)}
+        for layer_idx, dim in layer_dims.items():
+            if allowed_layers is not None and layer_idx not in allowed_layers:
+                continue
+            rank_end = spec.rank_start + spec.rank_count
+            if rank_end > dim:
+                raise ValueError(f"Rank window [{spec.rank_start}:{rank_end}] exceeds layer {layer_idx} width {dim}.")
+            group = grouped[layer_idx]
+            if spec.match_type == "unknown_safe":
+                scores = build_unknown_safe_vector(
+                    group,
+                    neuron_col,
+                    score_cols,
+                    activation_col,
+                    dim,
+                    unknown_safe_multimodal_weight,
+                    unknown_safe_activation_weight,
+                )
+            else:
+                scores = build_score_vector(group, neuron_col, score_cols[spec.match_type], dim)
+            secondary = build_secondary_vector(group, neuron_col, spec.match_type, dim)
+            ranked, _ = select_k_indices_deterministic(
+                scores,
+                rank_end,
+                secondary_key=secondary,
+                neuron_ids=torch.arange(dim, dtype=torch.long),
+            )
+            masks[layer_idx][ranked[spec.rank_start : rank_end]] = True
+        return masks
+
+    if spec.name == "matched_random":
+        if spec.reference is None:
+            raise ValueError(f"Incomplete matched-random specification: {spec}.")
+        reference_masks = build_type_mask(
+            table,
+            spec.reference,
+            layer_col,
+            neuron_col,
+            score_cols,
+            activation_col,
+            layer_dims,
+            allowed_layers,
+            selection,
+            unknown_safe_multimodal_weight,
+            unknown_safe_activation_weight,
+        )
+        start_counts = dict.fromkeys(reference_masks, 0)
+        end_counts = {
+            layer_idx: int(reference_mask.sum().item()) for layer_idx, reference_mask in reference_masks.items()
+        }
+        if spec.reference.name == "rank_band":
+            if (
+                spec.reference.match_type is None
+                or spec.reference.band_start is None
+                or spec.reference.band_end is None
+            ):
+                raise ValueError(f"Incomplete matched rank-band reference: {spec.reference}.")
+            end_reference = AblationSpec(name=spec.reference.match_type, ratio=spec.reference.band_end)
+            end_masks = build_type_mask(
+                table,
+                end_reference,
+                layer_col,
+                neuron_col,
+                score_cols,
+                activation_col,
+                layer_dims,
+                allowed_layers,
+                selection,
+                unknown_safe_multimodal_weight,
+                unknown_safe_activation_weight,
+            )
+            if spec.reference.band_start > 0:
+                start_reference = AblationSpec(name=spec.reference.match_type, ratio=spec.reference.band_start)
+                start_masks = build_type_mask(
+                    table,
+                    start_reference,
+                    layer_col,
+                    neuron_col,
+                    score_cols,
+                    activation_col,
+                    layer_dims,
+                    allowed_layers,
+                    selection,
+                    unknown_safe_multimodal_weight,
+                    unknown_safe_activation_weight,
+                )
+                start_counts = {layer_idx: int(start_masks[layer_idx].sum().item()) for layer_idx in reference_masks}
+            end_counts = {layer_idx: int(end_masks[layer_idx].sum().item()) for layer_idx in reference_masks}
+        elif spec.reference.name == "rank_window":
+            if spec.reference.rank_start is None or spec.reference.rank_count is None:
+                raise ValueError(f"Incomplete matched rank-window reference: {spec.reference}.")
+            start_counts = dict.fromkeys(reference_masks, spec.reference.rank_start)
+            end_counts = dict.fromkeys(reference_masks, spec.reference.rank_start + spec.reference.rank_count)
+
+        generator = torch.Generator()
+        generator.manual_seed(spec.seed if spec.seed is not None else 0)
+        for layer_idx, reference_mask in reference_masks.items():
+            start_count = start_counts[layer_idx]
+            end_count = end_counts[layer_idx]
+            selected_count = end_count - start_count
+            expected_count = int(reference_mask.sum().item())
+            if selected_count != expected_count:
+                raise RuntimeError(
+                    f"Matched-random interval for layer {layer_idx} has {selected_count} neurons, "
+                    f"but reference {spec.reference.result_name} has {expected_count}."
+                )
+            if selected_count == 0:
+                continue
+            permutation = torch.randperm(reference_mask.numel(), generator=generator)
+            masks[layer_idx][permutation[start_count:end_count]] = True
+
+        return masks
+
+    if spec.name == "matched_score":
+        if spec.reference is None or spec.score_column is None or spec.score_order is None:
+            raise ValueError(f"Incomplete matched-score specification: {spec}.")
+        if spec.score_column not in table.columns:
+            raise ValueError(
+                f"Matched-score column {spec.score_column!r} is absent from the score table. "
+                f"Available columns: {list(table.columns)}"
+            )
+        reference_masks = build_type_mask(
+            table,
+            spec.reference,
+            layer_col,
+            neuron_col,
+            score_cols,
+            activation_col,
+            layer_dims,
+            allowed_layers,
+            selection,
+            unknown_safe_multimodal_weight,
+            unknown_safe_activation_weight,
+        )
+        grouped = {int(layer_idx): group for layer_idx, group in table.groupby(layer_col)}
+        for layer_idx, reference_mask in reference_masks.items():
+            selected_count = int(reference_mask.sum().item())
+            if selected_count == 0:
+                continue
+            scores = build_score_vector(grouped[layer_idx], neuron_col, spec.score_column, reference_mask.numel())
+            if not bool(torch.isfinite(scores).all()):
+                raise ValueError(
+                    f"Column {spec.score_column!r} has missing or non-finite scores in layer {layer_idx}."
+                )
+            ranking_scores = -scores if spec.score_order == "lowest" else scores
+            selected, _ = select_k_indices_deterministic(
+                ranking_scores,
+                selected_count,
+                neuron_ids=torch.arange(reference_mask.numel(), dtype=torch.long),
+            )
+            masks[layer_idx][selected] = True
+        return masks
+
     if spec.name == "random":
         generator = torch.Generator()
         generator.manual_seed(spec.seed if spec.seed is not None else 0)
@@ -689,14 +932,14 @@ def build_type_mask(
         # Use a modality-frequency secondary key and neuron index as final key.
         secondary = build_secondary_vector(group, neuron_col, score_type, dim)
         neuron_ids = torch.arange(dim, dtype=torch.long)
-        
+
         selected, metadata = select_top_indices_deterministic(
             scores,
             spec.ratio,
             secondary_key=secondary,
             neuron_ids=neuron_ids,
         )
-        
+
         target_counts[layer_idx] = selected.numel()
         mask_metadata[layer_idx] = metadata
         if spec.name != "layer_random":
@@ -737,18 +980,30 @@ def summarize_cutoffs(
     unknown_safe_multimodal_weight: float,
     unknown_safe_activation_weight: float,
 ) -> dict[str, Any]:
-    if spec.name in {"none", "random", "layer_random"}:
+    if spec.name in {"none", "random", "layer_random", "matched_random"}:
         return {}
-    score_type = spec.match_type if spec.name == "rank_band" else spec.name
+    if spec.name == "matched_score":
+        if spec.score_column is None or spec.score_order is None:
+            raise ValueError(f"Incomplete matched-score specification: {spec}.")
+        score_type = spec.score_column
+    else:
+        score_type = spec.match_type if spec.name in {"rank_band", "rank_window"} else spec.name
     grouped = {int(layer_idx): group for layer_idx, group in table.groupby(layer_col)}
     result: dict[str, Any] = {}
     for layer_idx, mask in masks.items():
         group = grouped[layer_idx]
         if score_type == "unknown_safe":
             scores = build_unknown_safe_vector(
-                group, neuron_col, score_cols, activation_col, mask.numel(),
-                unknown_safe_multimodal_weight, unknown_safe_activation_weight,
+                group,
+                neuron_col,
+                score_cols,
+                activation_col,
+                mask.numel(),
+                unknown_safe_multimodal_weight,
+                unknown_safe_activation_weight,
             )
+        elif spec.name == "matched_score":
+            scores = build_score_vector(group, neuron_col, score_type, mask.numel())
         else:
             scores = build_score_vector(group, neuron_col, score_cols[score_type], mask.numel())
         selected = scores[mask]
@@ -765,12 +1020,28 @@ def summarize_cutoffs(
             "selected_score_min": cutoff,
             "selected_score_max": float(finite_selected.max()),
         }
-        if spec.name != "rank_band":
-            entry.update({
-                "count_strictly_above_cutoff": int((scores > cutoff).sum()),
-                "tie_group_size": int((scores == cutoff).sum()),
-                "selected_from_tie": int((mask & (scores == cutoff)).sum()),
-            })
+        if spec.name == "matched_score":
+            boundary = float(finite_selected.max()) if spec.score_order == "lowest" else cutoff
+            entry.update(
+                {
+                    "score_column": spec.score_column,
+                    "score_order": spec.score_order,
+                    "boundary_score": boundary,
+                    "count_strictly_preferred": int(
+                        (scores < boundary).sum() if spec.score_order == "lowest" else (scores > boundary).sum()
+                    ),
+                    "tie_group_size": int((scores == boundary).sum()),
+                    "selected_from_tie": int((mask & (scores == boundary)).sum()),
+                }
+            )
+        elif spec.name != "rank_band":
+            entry.update(
+                {
+                    "count_strictly_above_cutoff": int((scores > cutoff).sum()),
+                    "tie_group_size": int((scores == cutoff).sum()),
+                    "selected_from_tie": int((mask & (scores == cutoff)).sum()),
+                }
+            )
         result[str(layer_idx)] = entry
     return result
 
@@ -779,20 +1050,20 @@ def verify_mask_nesting(masks_by_ratio: dict[float, dict[int, torch.Tensor]]) ->
     """Verify strict nesting property: M_5 ⊂ M_20 ⊂ M_30 ⊂ M_50."""
     ratios = sorted(masks_by_ratio.keys())
     results = {}
-    
+
     for i in range(len(ratios) - 1):
         small_ratio = ratios[i]
         large_ratio = ratios[i + 1]
-        
+
         small_mask = masks_by_ratio[small_ratio]
         large_mask = masks_by_ratio[large_ratio]
-        
+
         is_subset = True
         for layer_idx in small_mask:
             if layer_idx not in large_mask:
                 is_subset = False
                 break
-            
+
             # Check if small_mask[layer_idx] is subset of large_mask[layer_idx]
             # small_mask should be True where large_mask is True
             if not (small_mask[layer_idx] & ~large_mask[layer_idx]).any():
@@ -800,9 +1071,9 @@ def verify_mask_nesting(masks_by_ratio: dict[float, dict[int, torch.Tensor]]) ->
             else:
                 is_subset = False
                 break
-        
-        results[f'{small_ratio:.0%} ⊂ {large_ratio:.0%}'] = is_subset
-    
+
+        results[f"{small_ratio:.0%} ⊂ {large_ratio:.0%}"] = is_subset
+
     return results
 
 
@@ -822,37 +1093,166 @@ def compute_mask_overlap(
     """Compute overlap between two masks."""
     set_a = mask_to_neuron_set(masks_a)
     set_b = mask_to_neuron_set(masks_b)
-    
+
     intersection = set_a & set_b
     union = set_a | set_b
-    
+
     return {
-        'intersection_size': len(intersection),
-        'union_size': len(union),
-        'jaccard': len(intersection) / len(union) if len(union) > 0 else 0.0,
-        'overlap_a': len(intersection) / len(set_a) if len(set_a) > 0 else 0.0,
-        'overlap_b': len(intersection) / len(set_b) if len(set_b) > 0 else 0.0,
+        "intersection_size": len(intersection),
+        "union_size": len(union),
+        "jaccard": len(intersection) / len(union) if len(union) > 0 else 0.0,
+        "overlap_a": len(intersection) / len(set_a) if len(set_a) > 0 else 0.0,
+        "overlap_b": len(intersection) / len(set_b) if len(set_b) > 0 else 0.0,
     }
+
+
+def verify_matched_random_controls(
+    ablation_specs: list[AblationSpec],
+    masks_by_spec: dict[str, dict[int, torch.Tensor]],
+) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    """Verify exact counts and same-seed prefix/band/end random partitions."""
+    count_verification: dict[str, dict[str, Any]] = {}
+    for spec in ablation_specs:
+        if spec.name != "matched_random" or spec.reference is None:
+            continue
+        target_name = spec.reference.result_name
+        if target_name not in masks_by_spec:
+            raise ValueError(
+                f"{spec.result_name} references {target_name}, which must also be included as an --ablation."
+            )
+        control_masks = masks_by_spec[spec.result_name]
+        target_masks = masks_by_spec[target_name]
+        per_layer_count_match = {
+            str(layer_idx): int(control_masks[layer_idx].sum()) == int(target_masks[layer_idx].sum())
+            for layer_idx in target_masks
+        }
+        count_verification[spec.result_name] = {
+            "target": target_name,
+            "counts_match": all(per_layer_count_match.values()),
+            "per_layer_count_match": per_layer_count_match,
+            "overlap": compute_mask_overlap(control_masks, target_masks),
+        }
+
+    matched_controls = {
+        (spec.reference.result_name, spec.seed): spec
+        for spec in ablation_specs
+        if spec.name == "matched_random" and spec.reference is not None
+    }
+    partition_verification: dict[str, dict[str, Any]] = {}
+    for spec in ablation_specs:
+        reference = spec.reference
+        if spec.name != "matched_random" or reference is None or reference.name != "rank_band":
+            continue
+        if reference.match_type is None or reference.band_start is None or reference.band_end is None:
+            raise ValueError(f"Incomplete matched rank-band reference: {reference}.")
+
+        start_reference = AblationSpec(name=reference.match_type, ratio=reference.band_start)
+        end_reference = AblationSpec(name=reference.match_type, ratio=reference.band_end)
+        start_control = matched_controls.get((start_reference.result_name, spec.seed))
+        end_control = matched_controls.get((end_reference.result_name, spec.seed))
+        missing_controls = []
+        if reference.band_start > 0 and start_control is None:
+            missing_controls.append(start_reference.result_name)
+        if end_control is None:
+            missing_controls.append(end_reference.result_name)
+        if missing_controls:
+            partition_verification[spec.result_name] = {
+                "verified": False,
+                "missing_controls": missing_controls,
+            }
+            continue
+
+        band_masks = masks_by_spec[spec.result_name]
+        end_masks = masks_by_spec[end_control.result_name]
+        if start_control is None:
+            start_masks = {layer_idx: torch.zeros_like(mask) for layer_idx, mask in band_masks.items()}
+            start_name = "none"
+        else:
+            start_masks = masks_by_spec[start_control.result_name]
+            start_name = start_control.result_name
+        per_layer = {}
+        for layer_idx in band_masks:
+            start_mask = start_masks[layer_idx]
+            band_mask = band_masks[layer_idx]
+            end_mask = end_masks[layer_idx]
+            per_layer[str(layer_idx)] = {
+                "start_band_disjoint": not bool((start_mask & band_mask).any()),
+                "union_equals_end": bool(torch.equal(start_mask | band_mask, end_mask)),
+            }
+        verified = all(row["start_band_disjoint"] and row["union_equals_end"] for row in per_layer.values())
+        partition_verification[spec.result_name] = {
+            "verified": verified,
+            "start_control": start_name,
+            "band_control": spec.result_name,
+            "end_control": end_control.result_name,
+            "per_layer": per_layer,
+        }
+        if not verified:
+            raise RuntimeError(f"Matched-random partition verification failed for {spec.result_name}.")
+
+    failed_counts = [name for name, row in count_verification.items() if not row["counts_match"]]
+    if failed_counts:
+        raise RuntimeError(f"Matched-random per-layer count verification failed for: {failed_counts}.")
+    return count_verification, partition_verification
+
+
+def verify_matched_score_controls(
+    ablation_specs: list[AblationSpec],
+    masks_by_spec: dict[str, dict[int, torch.Tensor]],
+) -> dict[str, dict[str, Any]]:
+    """Verify that score baselines exactly match their reference's per-layer budget."""
+    verification: dict[str, dict[str, Any]] = {}
+    for spec in ablation_specs:
+        if spec.name != "matched_score" or spec.reference is None:
+            continue
+        target_name = spec.reference.result_name
+        if target_name not in masks_by_spec:
+            raise ValueError(
+                f"{spec.result_name} references {target_name}, which must also be included as an --ablation."
+            )
+        control_masks = masks_by_spec[spec.result_name]
+        target_masks = masks_by_spec[target_name]
+        per_layer = {
+            str(layer_idx): {
+                "control_count": int(control_masks[layer_idx].sum()),
+                "target_count": int(target_masks[layer_idx].sum()),
+                "count_match": int(control_masks[layer_idx].sum()) == int(target_masks[layer_idx].sum()),
+            }
+            for layer_idx in target_masks
+        }
+        counts_match = all(row["count_match"] for row in per_layer.values())
+        verification[spec.result_name] = {
+            "target": target_name,
+            "score_column": spec.score_column,
+            "score_order": spec.score_order,
+            "counts_match": counts_match,
+            "per_layer": per_layer,
+            "overlap": compute_mask_overlap(control_masks, target_masks),
+        }
+        if not counts_match:
+            raise RuntimeError(f"Matched-score per-layer count verification failed for {spec.result_name}.")
+    return verification
 
 
 def compute_relative_damage(
     typed_delta: float,
     random_deltas: list[float],
 ) -> dict[str, float]:
-    """Compute relative damage compared to random baseline."""
-    import numpy as np
-    
+    # Larger Delta NLL means more damage; use a +1 correction for finite random controls.
     mean_random = np.mean(random_deltas)
     std_random = np.std(random_deltas)
-    
     relative_damage = typed_delta - mean_random
     z_score = relative_damage / std_random if std_random > 0 else 0.0
-    
+    empirical_p_more_damaging = (1 + sum(value >= typed_delta for value in random_deltas)) / (len(random_deltas) + 1)
     return {
-        'typed_delta': typed_delta,
-        'mean_random_delta': float(mean_random),
-        'relative_damage': float(relative_damage),
-        'z_score': float(z_score),
+        "typed_delta": typed_delta,
+        "mean_random_delta": float(mean_random),
+        "median_random_delta": float(np.median(random_deltas)),
+        "min_random_delta": float(np.min(random_deltas)),
+        "max_random_delta": float(np.max(random_deltas)),
+        "relative_damage": float(relative_damage),
+        "z_score": float(z_score),
+        "empirical_p_more_damaging": float(empirical_p_more_damaging),
     }
 
 
@@ -877,6 +1277,8 @@ def prepare_config(args: argparse.Namespace) -> dict[str, Any]:
     config["do_eval"] = False
     config["do_predict"] = False
     config.setdefault("output_dir", "saves/vulcan/phase2_ablation_tmp")
+    if args.model_name_or_path is not None:
+        config["model_name_or_path"] = args.model_name_or_path
     if args.dataset is not None:
         config["dataset"] = args.dataset
 
@@ -905,9 +1307,7 @@ def build_dataloader(
     model_args, data_args, training_args, _, _ = get_train_args(config)
     dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
     dataset = dataset_module.get("eval_dataset") or dataset_module["train_dataset"]
-    dataset, source_indices = slice_dataset(
-        dataset, sample_offset, max_samples, allow_short=allow_short_dataset
-    )
+    dataset, source_indices = slice_dataset(dataset, sample_offset, max_samples, allow_short=allow_short_dataset)
     manifest = build_dataset_manifest(
         dataset,
         source_indices,
@@ -921,14 +1321,18 @@ def build_dataloader(
         template=template,
         model=model,
         pad_to_multiple_of=None,
-        label_pad_token_id=IGNORE_INDEX if data_args.ignore_pad_token_for_loss else tokenizer_module["tokenizer"].pad_token_id,
+        label_pad_token_id=IGNORE_INDEX
+        if data_args.ignore_pad_token_for_loss
+        else tokenizer_module["tokenizer"].pad_token_id,
         block_diag_attn=model_args.block_diag_attn,
         neat_packing=data_args.neat_packing,
         attn_implementation=getattr(model.config, "_attn_implementation", None),
         compute_dtype=model_args.compute_dtype,
         **tokenizer_module,
     )
-    effective_batch_size = batch_size or training_args.per_device_eval_batch_size or training_args.per_device_train_batch_size
+    effective_batch_size = (
+        batch_size or training_args.per_device_eval_batch_size or training_args.per_device_train_batch_size
+    )
     effective_num_workers = training_args.dataloader_num_workers if num_workers is None else num_workers
     dataloader = DataLoader(
         dataset,
@@ -1126,6 +1530,11 @@ def main() -> None:
         for spec in ablation_specs
     }
 
+    matched_random_verification, matched_partition_verification = verify_matched_random_controls(
+        ablation_specs, masks_by_spec
+    )
+    matched_score_verification = verify_matched_score_controls(ablation_specs, masks_by_spec)
+
     mask_summaries = {name: summarize_masks(masks) for name, masks in masks_by_spec.items()}
     cutoff_summaries = {
         spec.result_name: summarize_cutoffs(
@@ -1156,11 +1565,20 @@ def main() -> None:
         print(f"Mask nesting verification: {nesting_results}", flush=True)
 
     if args.dry_run_masks:
-        print(json.dumps({
-            "mask_summaries": mask_summaries,
-            "cutoff_summaries": cutoff_summaries,
-            "nesting_verification": nesting_results,
-        }, indent=2, ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    "mask_summaries": mask_summaries,
+                    "cutoff_summaries": cutoff_summaries,
+                    "nesting_verification": nesting_results,
+                    "matched_random_verification": matched_random_verification,
+                    "matched_partition_verification": matched_partition_verification,
+                    "matched_score_verification": matched_score_verification,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
         return
 
     config = prepare_config(args)
@@ -1206,6 +1624,7 @@ def main() -> None:
     results: dict[str, Any] = {
         "config": {
             "config_path": args.config,
+            "model_name_or_path": config.get("model_name_or_path"),
             "score_file": args.score_file,
             "max_samples": args.max_samples,
             "sample_offset": args.sample_offset,
@@ -1221,6 +1640,9 @@ def main() -> None:
         "mask_summaries": mask_summaries,
         "cutoff_summaries": cutoff_summaries,
         "nesting_verification": nesting_results,
+        "matched_random_verification": matched_random_verification,
+        "matched_partition_verification": matched_partition_verification,
+        "matched_score_verification": matched_score_verification,
         "data_isolation": isolation,
         "metrics": {},
     }
@@ -1290,17 +1712,26 @@ def main() -> None:
 
     relative_damage_results = {}
     for spec in ablation_specs:
-        if spec.name in {"none", "random", "layer_random"}:
+        if spec.name in {"none", "random", "layer_random", "matched_random", "matched_score"}:
             continue
-        random_deltas = [
+        matched_random_deltas = [
+            results["metrics"][candidate.result_name]["delta_nll"]
+            for candidate in ablation_specs
+            if candidate.name == "matched_random"
+            and candidate.reference is not None
+            and candidate.reference.result_name == spec.result_name
+        ]
+        ratio_random_deltas = [
             results["metrics"][candidate.result_name]["delta_nll"]
             for candidate in ablation_specs
             if candidate.name == "random" and math.isclose(candidate.ratio, spec.ratio)
         ]
+        random_deltas = matched_random_deltas or ratio_random_deltas
         if random_deltas:
-            relative_damage_results[spec.result_name] = compute_relative_damage(
-                results["metrics"][spec.result_name]["delta_nll"], random_deltas
-            )
+            comparison = compute_relative_damage(results["metrics"][spec.result_name]["delta_nll"], random_deltas)
+            comparison["control_type"] = "matched_random" if matched_random_deltas else "ratio_random"
+            comparison["num_controls"] = len(random_deltas)
+            relative_damage_results[spec.result_name] = comparison
     results["relative_damage"] = relative_damage_results
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
