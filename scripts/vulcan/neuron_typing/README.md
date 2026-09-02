@@ -1,5 +1,31 @@
 # Neuron Typing Experiment - Phase 1
 
+## NeuPAT language-preserving extension
+
+The repository now includes a separately gated NeuPAT extension:
+
+- `collect_neupat_importance.py` collects text/vision RMS importance and emits
+  exhaustive language, multimodal, shared, and reserve roles;
+- `prepare_neupat_text_probe.py` builds the paper-matched, macro-balanced
+  four-source text probe through the Hugging Face Dataset Server, and
+  `validate_neupat_text_probe.py` audits hashes, token lengths, and evaluation
+  isolation;
+- `analyze_neupat_stability.py` tests tau sensitivity, while
+  `compare_neupat_replications.py` measures role agreement between
+  sample-disjoint probing runs;
+- `analyze_neupat_overlap.py` compares those roles with q/r, the frozen q-band,
+  and Phase-4 mapping protection;
+- `run_neupat_causality.py` runs exact role masks and per-layer matched-random
+  controls on Caption, text-only, and POPE;
+- `use_neupat: true` enables language-slice gradient masking and shared-slice
+  L2/cosine preservation during full SFT;
+- `build_neupat_joint_candidate.py` produces a pre-causal-gate protected
+  q-band candidate and never authorizes structural pruning.
+
+See
+[`neupat_integration_plan.md`](../../../docs/my-exper/typing%20neuron/neupat_integration_plan.md)
+for commands, gates, and interpretation limits.
+
 For the corrected q/r scoring definition, current 2k Phase 1 results, corrected Phase 2 ablations, and the prioritized research roadmap, see [EXPERIMENT_STATUS.md](EXPERIMENT_STATUS.md).
 
 Phase 4 adds an image-disjoint, correct-image versus shuffled-image activation
@@ -155,6 +181,52 @@ Use these repeatable ablation specifications:
 Both evaluators verify that every matched mask has exactly the same number of
 selected neurons in every layer and store the result under
 `matched_score_verification` or `matched_random_verification`.
+
+### Phase 2.6 completeness sweep
+
+`run_phase26_completeness.py` tests whether the frozen 5--20% q-band is only
+the best evaluated candidate or remains preferable after a broader fixed-budget
+search. It uses the 537-neuron-per-layer formal q-band budget for every mask.
+The default candidate set contains:
+
+- the frozen `q_multimodal` 5--20% reference;
+- 14 `q_multimodal` tail windows starting at 20%, 25%, ..., 85%;
+- the exact-budget top `q_visual`, `q_text`, and `q_unknown` masks.
+
+The script explicitly selects the `q_unknown` column. It does not reuse the
+legacy `unknown` shorthand, which intentionally ranks by `r_unknown`. The
+screen evaluates every candidate on Caption NLL, text-only NLL/PPL, and POPE
+random. At most five passing candidates advance to the formal Caption,
+text-only, and three-split POPE evaluation. The formal stage also evaluates 20
+shared, exact-count, per-layer matched-random controls.
+
+The bundled text config uses the local 300-document C4 sample (about 120k
+words), packs it into 512-token blocks, and computes pretraining-style loss on
+all non-padding tokens. It is disjoint from Phase-1 image calibration and
+typing data. For a paper-scale language benchmark, register a larger held-out
+corpus and override the text dataset/config without changing the frozen gates.
+
+```bash
+python scripts/vulcan/neuron_typing/run_phase26_completeness.py \
+    --caption_config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
+    --text_config scripts/vulcan/neuron_typing/configs/phase26_text_only.example.yaml \
+    --score_file saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores.parquet \
+    --output_dir saves/neuron_typing/phase26_completeness \
+    --image_root /root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images \
+    --calibration_manifest saves/neuron_typing/phase1_clean_2k/calibration/sample_manifest.json \
+    --typing_manifest saves/neuron_typing/phase1_clean_2k/activations/sample_manifest.json \
+    --pope random=saves/neuron_typing/pope_data/coco_pope_random.json \
+    --pope popular=saves/neuron_typing/pope_data/coco_pope_popular.json \
+    --pope adversarial=saves/neuron_typing/pope_data/coco_pope_adversarial.json \
+    --batch_size 4 \
+    --stage all
+```
+
+For long runs, execute the stages separately as `build`, `screen`, `final`,
+and `summarize`. Completed output files are detected and skipped; POPE files
+also use their condition-level resume support. Thresholds are frozen in
+`phase26_plan.json`, screening decisions in `screen_summary.json`, and the
+formal gate in `phase26_completeness.json`.
 
 ### Held-out POPE evaluation
 

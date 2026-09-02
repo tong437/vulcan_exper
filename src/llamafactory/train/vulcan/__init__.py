@@ -30,13 +30,24 @@ from .collapse_loss import (
     weight_collapse_loss,
 )
 from .modeling import find_mlp_layers
+from .neupat import (
+    NEUPAT_ROLES,
+    NeuPATController,
+    allocate_neupat_roles,
+    load_neupat_artifact,
+    select_importance_mass,
+    validate_neupat_artifact,
+)
 from .pruning import pruning_mlp
 from .schema import load_cluster_idx, save_cluster_idx
 
 
 __all__ = [
+    "NEUPAT_ROLES",
     "ActivationAligner",
     "MultimodalActivationStats",
+    "NeuPATController",
+    "allocate_neupat_roles",
     "build_layerwise_cluster_idx",
     "build_multimodal_cluster_idx",
     "build_third_keep_ratios",
@@ -49,7 +60,10 @@ __all__ = [
     "get_collapse_schedule_factor",
     "init_collapse_lambdas",
     "load_cluster_idx",
+    "load_neupat_artifact",
     "pruning_mlp",
     "save_cluster_idx",
+    "select_importance_mass",
+    "validate_neupat_artifact",
     "weight_collapse_loss",
 ]

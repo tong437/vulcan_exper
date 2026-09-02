@@ -22,6 +22,7 @@ from dataset_guard import (  # noqa: E402
     slice_dataset,
 )
 from run_phase2_ablation import (  # noqa: E402
+    add_pretraining_labels,
     build_type_mask,
     compute_relative_damage,
     get_layer_dims,
@@ -39,10 +40,32 @@ class TinyDataset(list):
         return TinyDataset(self[index] for index in indices)
 
 
+class TinyMappedDataset(TinyDataset):
+    @property
+    def column_names(self):
+        return list(self[0])
+
+    def map(self, function, batched, desc):
+        assert batched
+        assert desc
+        batch = {key: [row[key] for row in self] for key in self.column_names}
+        additions = function(batch)
+        return TinyMappedDataset(
+            {**row, **{key: values[index] for key, values in additions.items()}} for index, row in enumerate(self)
+        )
+
+
 def test_dataset_slice_rejects_stale_short_cache():
     dataset = TinyDataset({"images": [f"img_{idx}.jpg"]} for idx in range(4))
     with pytest.raises(ValueError, match="stale"):
         slice_dataset(dataset, sample_offset=2, max_samples=3)
+
+
+def test_pretraining_label_mapping_copies_input_ids():
+    dataset = TinyMappedDataset([{"input_ids": [1, 2]}, {"input_ids": [3]}])
+    mapped = add_pretraining_labels(dataset)
+    assert mapped[0]["labels"] == [1, 2]
+    assert mapped[0]["labels"] is not mapped[0]["input_ids"]
 
 
 def test_manifest_rejects_corrupted_repeated_image():
@@ -167,6 +190,23 @@ def test_matched_score_uses_exact_reference_budget():
     for layer in masks[reference_spec.result_name]:
         assert masks[magnitude_spec.result_name][layer].nonzero().flatten().tolist() == [0]
         assert masks[activation_spec.result_name][layer].nonzero().flatten().tolist() == [5]
+
+
+def test_matched_score_excludes_non_finite_dead_neurons():
+    table = _score_table(neurons_per_layer=6)
+    table["is_dead"] = False
+    table["custom_score"] = table["neuron_idx"].astype(float)
+    dead_rows = table["neuron_idx"] == 5
+    table.loc[dead_rows, "is_dead"] = True
+    table.loc[dead_rows, "custom_score"] = float("nan")
+
+    mask = _mask(table, "matched_score:custom_score:highest:rank_band:multimodal:0.2:0.5")
+    for layer_mask in mask.values():
+        assert layer_mask.nonzero().flatten().tolist() == [4]
+
+    table.loc[table["neuron_idx"] == 4, "custom_score"] = float("nan")
+    with pytest.raises(ValueError, match="non-dead"):
+        _mask(table, "matched_score:custom_score:highest:rank_band:multimodal:0.2:0.5")
 
 
 def test_pruning_baseline_scores_use_group_l2_and_threshold_frequency():

@@ -151,6 +151,14 @@
     "hf_hub_url": "sahil2801/CodeAlpaca-20k",
     "ms_hub_url": "AI-ModelScope/CodeAlpaca-20k"
   },
+  "neupat_text_probe_2048": {
+    "file_name": "neupat_text_probe_2048.jsonl",
+    "columns": {
+      "prompt": "instruction",
+      "query": "input",
+      "response": "output"
+    }
+  },
   "alpaca_cot": {
     "hf_hub_url": "QingyiSi/Alpaca-CoT",
     "ms_hub_url": "AI-ModelScope/Alpaca-CoT"

@@ -490,6 +490,32 @@ class ActivationAlignArguments:
 
 
 @dataclass
+class NeuPATArguments:
+    r"""Arguments for neuron-aware language-preserving multimodal tuning."""
+
+    use_neupat: bool = field(
+        default=False,
+        metadata={"help": "Whether to enable NeuPAT role-aware FFN tuning constraints during SFT."},
+    )
+    neupat_role_path: str | None = field(
+        default=None,
+        metadata={"help": "Path to neupat_roles.json produced by collect_neupat_importance.py."},
+    )
+    neupat_lambda_in: float = field(
+        default=0.1,
+        metadata={"help": "Coefficient for shared-neuron gate/up input-side L2 preservation."},
+    )
+    neupat_lambda_out: float = field(
+        default=0.1,
+        metadata={"help": "Coefficient for shared-neuron down-projection cosine preservation."},
+    )
+    neupat_reduction: Literal["sum", "mean"] = field(
+        default="sum",
+        metadata={"help": "Reduction for NeuPAT shared-neuron regularization: sum reproduces the paper equation."},
+    )
+
+
+@dataclass
 class SwanLabArguments:
     use_swanlab: bool = field(
         default=False,
@@ -539,6 +565,7 @@ class FinetuningArguments(
     LoraArguments,
     OFTArguments,
     FreezeArguments,
+    NeuPATArguments,
     ActivationAlignArguments,
 ):
     r"""Arguments pertaining to which techniques we are going to fine-tuning with."""
@@ -775,6 +802,21 @@ class FinetuningArguments(
         if self.collapse_loss_scale < 0:
             raise ValueError("`collapse_loss_scale` must be non-negative.")
 
+        if self.use_neupat and self.stage != "sft":
+            raise ValueError("`use_neupat` is only supported for SFT.")
+
+        if self.use_neupat and self.finetuning_type != "full":
+            raise ValueError("`use_neupat` currently requires full fine-tuning.")
+
+        if self.use_neupat and not self.neupat_role_path:
+            raise ValueError("`neupat_role_path` is required when `use_neupat` is enabled.")
+
+        if self.neupat_lambda_in < 0 or self.neupat_lambda_out < 0:
+            raise ValueError("NeuPAT regularization coefficients must be non-negative.")
+
+        if self.neupat_reduction not in ["sum", "mean"]:
+            raise ValueError("`neupat_reduction` must be one of: sum, mean.")
+
         if self.use_activation_align and self.stage != "sft":
             raise ValueError("`use_activation_align` is only supported for SFT.")
 
@@ -811,7 +853,9 @@ class FinetuningArguments(
             raise ValueError("At least one neuron rank_margin alignment weight must be positive.")
 
         if self.use_activation_align and not (0.0 <= self.align_layer_start_ratio < self.align_layer_end_ratio <= 1.0):
-            raise ValueError("`align_layer_start_ratio` and `align_layer_end_ratio` must satisfy 0 <= start < end <= 1.")
+            raise ValueError(
+                "`align_layer_start_ratio` and `align_layer_end_ratio` must satisfy 0 <= start < end <= 1."
+            )
 
         if self.use_activation_align and self.align_mode == "cluster":
             if not self.align_cluster_idx_path:

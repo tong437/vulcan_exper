@@ -25,7 +25,7 @@ from ...extras.packages import is_transformers_version_greater_than
 from ...extras.ploting import plot_loss
 from ...model import load_model, load_tokenizer
 from ..trainer_utils import create_modelcard_and_push, create_ref_model
-from ..vulcan import ActivationAligner, find_mlp_layers, init_collapse_lambdas, load_cluster_idx
+from ..vulcan import ActivationAligner, NeuPATController, find_mlp_layers, init_collapse_lambdas, load_cluster_idx
 from .metric import ComputeAccuracy, ComputeSimilarity, eval_logit_processor
 from .trainer import CustomSeq2SeqTrainer
 
@@ -71,6 +71,22 @@ def run_sft(
     template = get_template_and_fix_tokenizer(tokenizer, data_args)
     dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
     model = load_model(tokenizer, model_args, finetuning_args, training_args.do_train)
+
+    neupat_controller = None
+    if finetuning_args.use_neupat:
+        if training_args.weight_decay != 0:
+            raise ValueError(
+                "NeuPAT language-neuron gradient masking requires `weight_decay: 0`; decoupled weight decay "
+                "would otherwise move slices whose task gradient is frozen."
+            )
+        neupat_controller = NeuPATController(
+            model,
+            finetuning_args.neupat_role_path,
+            lambda_in=finetuning_args.neupat_lambda_in,
+            lambda_out=finetuning_args.neupat_lambda_out,
+            reduction=finetuning_args.neupat_reduction,
+        )
+        logger.info_rank0(f"Initialized NeuPAT controller with role counts: {neupat_controller.role_counts()}.")
 
     vulcan_cluster_idx = None
     if finetuning_args.use_collapse_loss:
@@ -181,6 +197,7 @@ def run_sft(
         ref_model=ref_model,
         vulcan_cluster_idx=vulcan_cluster_idx,
         activation_aligner=activation_aligner,
+        neupat_controller=neupat_controller,
         **dataset_module,
         **tokenizer_module,
         **metric_module,

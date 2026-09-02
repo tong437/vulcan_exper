@@ -108,6 +108,10 @@ class AblationSpec:
             if self.reference is None or self.score_column is None or self.score_order is None:
                 raise ValueError("matched_score requires a score column, order, and reference ablation.")
             return f"matched_score:{self.score_column}:{self.score_order}:{self.reference.result_name}"
+        if self.name == "mask":
+            if self.score_column is None:
+                raise ValueError("mask requires a boolean score column.")
+            return f"mask:{self.score_column}"
         parts = [self.name]
         if self.ratio:
             parts.append(f"{self.ratio:g}")
@@ -190,7 +194,7 @@ def parse_args() -> argparse.Namespace:
             " Exact rank-window format: rank_window:multimodal:180:512."
             " Exact-count control format: matched_random:rank_band:multimodal:0.05:0.20:seed1."
             " Exact-budget score format: matched_score:weight_magnitude:lowest:"
-            "rank_band:multimodal:0.05:0.20."
+            "rank_band:multimodal:0.05:0.20. Boolean mask format: mask:neupat_language."
         ),
     )
     parser.add_argument("--max_samples", type=int, default=None, help="Exact number of eval rows after slicing.")
@@ -203,12 +207,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--typing_manifest", default=None, help="Phase-1 typing sample_manifest.json.")
     parser.add_argument("--calibration_manifest", default=None, help="Phase-1 calibration sample_manifest.json.")
     parser.add_argument(
+        "--exclude_manifest",
+        action="append",
+        default=[],
+        help="Additional probe/analysis manifest that must be disjoint from evaluation. Repeatable.",
+    )
+    parser.add_argument(
         "--require_data_isolation",
         action="store_true",
         help="Fail unless typing/calibration manifests are provided and image-disjoint.",
     )
     parser.add_argument("--dataset", default=None, help="Override dataset name in the YAML config.")
     parser.add_argument("--eval_dataset", default=None, help="Override eval_dataset name in the YAML config.")
+    parser.add_argument(
+        "--dataset_stage",
+        choices=["sft", "pt"],
+        default="sft",
+        help="Use SFT response labels or pretraining-style all-token labels for text-only perplexity.",
+    )
     parser.add_argument("--batch_size", type=int, default=None, help="Override eval dataloader batch size.")
     parser.add_argument("--num_workers", type=int, default=None, help="Override eval dataloader workers.")
     parser.add_argument(
@@ -377,6 +393,14 @@ def parse_ablation_spec(text: str, base_seed: int) -> AblationSpec:
             score_column=score_column,
             score_order=score_order,
         )
+
+    if name == "mask":
+        if len(parts) != 2:
+            raise ValueError("Boolean mask format is mask:<column>.")
+        score_column = parts[1].strip()
+        if not score_column.isidentifier():
+            raise ValueError(f"Invalid mask column name: {score_column!r}.")
+        return AblationSpec(name="mask", score_column=score_column)
 
     if name not in {*TYPE_NAMES, "unknown_safe", "random", "layer_random"}:
         raise ValueError(f"Unknown ablation type {name!r}.")
@@ -830,18 +854,56 @@ def build_type_mask(
             selected_count = int(reference_mask.sum().item())
             if selected_count == 0:
                 continue
-            scores = build_score_vector(grouped[layer_idx], neuron_col, spec.score_column, reference_mask.numel())
-            if not bool(torch.isfinite(scores).all()):
-                raise ValueError(
-                    f"Column {spec.score_column!r} has missing or non-finite scores in layer {layer_idx}."
-                )
-            ranking_scores = -scores if spec.score_order == "lowest" else scores
+            group = grouped[layer_idx]
+            scores = build_score_vector(group, neuron_col, spec.score_column, reference_mask.numel())
+            finite = torch.isfinite(scores)
+            if not bool(finite.all()):
+                if "is_dead" not in group.columns:
+                    raise ValueError(
+                        f"Column {spec.score_column!r} has missing or non-finite scores in layer {layer_idx}."
+                    )
+                dead = torch.zeros(reference_mask.numel(), dtype=torch.bool)
+                neuron_ids = torch.tensor(group[neuron_col].to_numpy(), dtype=torch.long)
+                dead[neuron_ids] = torch.tensor(group["is_dead"].astype(bool).to_numpy(), dtype=torch.bool)
+                invalid_alive = ~finite & ~dead
+                if bool(invalid_alive.any()):
+                    raise ValueError(
+                        f"Column {spec.score_column!r} has non-finite scores for "
+                        f"{int(invalid_alive.sum())} non-dead neurons in layer {layer_idx}."
+                    )
+                if int(finite.sum()) < selected_count:
+                    raise ValueError(
+                        f"Column {spec.score_column!r} has only {int(finite.sum())} finite scores in layer "
+                        f"{layer_idx}, fewer than the requested {selected_count}."
+                    )
+            directed_scores = -scores if spec.score_order == "lowest" else scores
+            ranking_scores = torch.where(finite, directed_scores, torch.full_like(directed_scores, float("-inf")))
             selected, _ = select_k_indices_deterministic(
                 ranking_scores,
                 selected_count,
                 neuron_ids=torch.arange(reference_mask.numel(), dtype=torch.long),
             )
             masks[layer_idx][selected] = True
+        return masks
+
+    if spec.name == "mask":
+        if spec.score_column is None or spec.score_column not in table.columns:
+            raise ValueError(
+                f"Boolean mask column {spec.score_column!r} is absent from the score table. "
+                f"Available columns: {list(table.columns)}"
+            )
+        grouped = {int(layer_idx): group for layer_idx, group in table.groupby(layer_col)}
+        for layer_idx, dim in layer_dims.items():
+            if allowed_layers is not None and layer_idx not in allowed_layers:
+                continue
+            group = grouped[layer_idx]
+            neuron_ids = torch.tensor(group[neuron_col].to_numpy(), dtype=torch.long)
+            values = group[spec.score_column]
+            if bool(values.isna().any()):
+                raise ValueError(f"Boolean mask column {spec.score_column!r} contains missing values.")
+            if not all(isinstance(value, (bool, np.bool_)) for value in values.tolist()):
+                raise ValueError(f"Boolean mask column {spec.score_column!r} must contain only booleans.")
+            masks[layer_idx][neuron_ids] = torch.tensor(values.to_numpy(dtype=bool), dtype=torch.bool)
         return masks
 
     if spec.name == "random":
@@ -980,7 +1042,10 @@ def summarize_cutoffs(
     unknown_safe_multimodal_weight: float,
     unknown_safe_activation_weight: float,
 ) -> dict[str, Any]:
-    if spec.name in {"none", "random", "layer_random", "matched_random"}:
+    # Explicit boolean masks have membership rather than a ranked score and
+    # therefore have no meaningful cutoff. Their counts are already recorded
+    # by summarize_masks().
+    if spec.name in {"none", "random", "layer_random", "matched_random", "mask"}:
         return {}
     if spec.name == "matched_score":
         if spec.score_column is None or spec.score_order is None:
@@ -1291,6 +1356,17 @@ def prepare_config(args: argparse.Namespace) -> dict[str, Any]:
     return config
 
 
+def add_pretraining_labels(dataset):
+    """Use every pretraining token as a next-token prediction label."""
+    if "labels" in dataset.column_names:
+        return dataset
+    return dataset.map(
+        lambda examples: {"labels": [list(input_ids) for input_ids in examples["input_ids"]]},
+        batched=True,
+        desc="Adding all-token labels for text-only perplexity",
+    )
+
+
 def build_dataloader(
     config: dict[str, Any],
     model: torch.nn.Module,
@@ -1303,10 +1379,15 @@ def build_dataloader(
     allow_short_dataset: bool,
     max_image_repeat: int,
     allow_excessive_image_repeats: bool,
+    dataset_stage: str = "sft",
 ):
     model_args, data_args, training_args, _, _ = get_train_args(config)
-    dataset_module = get_dataset(template, model_args, data_args, training_args, stage="sft", **tokenizer_module)
+    dataset_module = get_dataset(
+        template, model_args, data_args, training_args, stage=dataset_stage, **tokenizer_module
+    )
     dataset = dataset_module.get("eval_dataset") or dataset_module["train_dataset"]
+    if dataset_stage == "pt":
+        dataset = add_pretraining_labels(dataset)
     dataset, source_indices = slice_dataset(dataset, sample_offset, max_samples, allow_short=allow_short_dataset)
     manifest = build_dataset_manifest(
         dataset,
@@ -1612,9 +1693,14 @@ def main() -> None:
         args.allow_short_dataset,
         args.max_image_repeat,
         args.allow_excessive_image_repeats,
+        args.dataset_stage,
     )
-    comparison_manifests = [path for path in (args.calibration_manifest, args.typing_manifest) if path]
-    if args.require_data_isolation and len(comparison_manifests) != 2:
+    comparison_manifests = list(
+        dict.fromkeys(
+            path for path in (args.calibration_manifest, args.typing_manifest, *args.exclude_manifest) if path
+        )
+    )
+    if args.require_data_isolation and not (args.calibration_manifest and args.typing_manifest):
         raise ValueError("--require_data_isolation requires both --calibration_manifest and --typing_manifest.")
     isolation = assert_disjoint_manifests(eval_manifest, comparison_manifests) if comparison_manifests else None
     output_path = Path(args.output_file)
@@ -1630,6 +1716,7 @@ def main() -> None:
             "sample_offset": args.sample_offset,
             "dataset": config.get("dataset"),
             "eval_dataset": config.get("eval_dataset"),
+            "dataset_stage": args.dataset_stage,
             "selection": args.selection,
             "score_columns": score_cols,
             "layer_column": layer_col,

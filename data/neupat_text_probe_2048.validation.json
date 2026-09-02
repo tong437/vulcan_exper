@@ -1,0 +1,79 @@
+{
+  "artifact_version": 1,
+  "created_at": "2026-08-28T03:14:30.487037+00:00",
+  "probe_file": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/data/neupat_text_probe_2048.jsonl",
+  "probe_sha256": "69492a1c0ba9bedc94bb7d71cdf3282d7d591e43ddf038f0cd524d844cce5ed7",
+  "num_examples": 2048,
+  "source_counts": {
+    "codealpaca": 512,
+    "dolly": 512,
+    "halueval": 512,
+    "metamathqa": 512
+  },
+  "unique_prompt_hashes": 2048,
+  "template": "qwen3_5_nothink",
+  "cutoff_len": 1024,
+  "token_length_before_truncation": {
+    "all": {
+      "min": 16,
+      "max": 1355,
+      "mean": 164.69873046875,
+      "median": 134.0,
+      "p95": 405
+    },
+    "by_source": {
+      "codealpaca": {
+        "min": 26,
+        "max": 460,
+        "mean": 95.09765625,
+        "median": 80.0,
+        "p95": 197
+      },
+      "dolly": {
+        "min": 16,
+        "max": 1355,
+        "mean": 168.82421875,
+        "median": 103.0,
+        "p95": 522
+      },
+      "halueval": {
+        "min": 43,
+        "max": 355,
+        "mean": 138.833984375,
+        "median": 136.0,
+        "p95": 232
+      },
+      "metamathqa": {
+        "min": 72,
+        "max": 1087,
+        "mean": 256.0390625,
+        "median": 228.5,
+        "p95": 467
+      }
+    }
+  },
+  "truncation": {
+    "count": 9,
+    "rate": 0.00439453125,
+    "by_source": {
+      "dolly": 7,
+      "metamathqa": 2
+    }
+  },
+  "evaluation_isolation": {
+    "eval_files": [
+      "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/datasets/vqa_rad/test.jsonl",
+      "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/saves/neuron_typing/pope_data/coco_pope_random.json",
+      "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/saves/neuron_typing/pope_data/coco_pope_popular.json",
+      "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/saves/neuron_typing/pope_data/coco_pope_adversarial.json"
+    ],
+    "unique_eval_prompts": 315,
+    "exact_prompt_overlap_count": 0,
+    "exact_prompt_overlaps": [],
+    "c4_file": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/data/c4_demo.jsonl",
+    "c4_document_count": 300,
+    "probe_prompt_substring_overlap_count": 0,
+    "probe_prompt_substring_overlaps": []
+  },
+  "passed": true
+}

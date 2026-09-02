@@ -56,6 +56,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         ref_model: Optional["torch.nn.Module"] = None,
         vulcan_cluster_idx: Optional[list[Optional[list[dict[str, Any]]]]] = None,
         activation_aligner: Optional[Any] = None,
+        neupat_controller: Optional[Any] = None,
         **kwargs,
     ) -> None:
         kwargs["processing_class"] = kwargs.pop("tokenizer")
@@ -89,6 +90,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         self.ref_model = ref_model
         self.vulcan_cluster_idx = vulcan_cluster_idx
         self.activation_aligner = activation_aligner
+        self.neupat_controller = neupat_controller
         self._vulcan_log_cache: dict[str, float] = {}
         self._align_grad_diagnostic_done = False
 
@@ -329,6 +331,13 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
 
         return loss + align_loss.to(loss.device, dtype=loss.dtype)
 
+    def _add_neupat_loss(self, loss: "torch.Tensor") -> "torch.Tensor":
+        if self.neupat_controller is None:
+            return loss
+        neupat_loss, neupat_log = self.neupat_controller.regularization()
+        self._vulcan_log_cache.update(neupat_log)
+        return loss + neupat_loss.to(loss.device, dtype=loss.dtype)
+
     @override
     def compute_loss(self, model, inputs, *args, **kwargs):
         return_outputs = kwargs.get("return_outputs", False)
@@ -365,6 +374,7 @@ class CustomSeq2SeqTrainer(Seq2SeqTrainer):
         # Do not treat them as the same statistical quantity.
         self._vulcan_log_cache["sft_loss"] = loss.detach().float().item()
         loss = self._add_vulcan_loss(model, loss)
+        loss = self._add_neupat_loss(loss)
         loss = self._add_align_loss(loss)
         if return_outputs:
             return loss, outputs
