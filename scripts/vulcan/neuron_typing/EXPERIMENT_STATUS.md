@@ -1,7 +1,40 @@
 # Qwen3.5-VL Neuron Typing Research Status
 
-> Last updated: 2026-07-22 (500-versus-2k stability validation)
-> Status: corrected Phase 1/2 reruns and the final sample-size stability check are complete; use the 2k mask for Phase 3.
+> Last updated: 2026-09-04 (formal NeuPAT post-SFT evaluation)
+> Status: the `language U shared` causal gate passed, but the matched post-SFT language-retention criterion and VQA-RAD non-inferiority criterion did not pass. Structural pruning remains unauthorized.
+
+## NeuPAT primary hypothesis update
+
+The primary NeuPAT hypothesis is now: **does protecting `language U shared`
+retain language ability during multimodal domain SFT?** Component-role
+specificity is exploratory, because the pilot did not support clean
+language-only versus multimodal-only separation.
+
+The prerequisite causal test passed on two isolated 500-example evaluations
+with five layerwise exact-count random controls. Protection-set excess NLL was
++5.440 on Caption (paired 95% CI [5.365, 5.520]) and +5.480 on packed C4
+(paired 95% CI [5.421, 5.537]). This establishes causal language enrichment,
+not language retention.
+
+The post-SFT test did not establish a comparative language-preservation
+advantage. On the fixed 500-example, 255,000-token C4 slice, NLL was 3.381973
+for the base model, 3.378277 for vanilla full-SFT, 3.375873 for LoRA, and
+3.380206 for NeuPAT. NeuPAT improved over base by -0.001767 NLL, but was worse
+than vanilla by +0.001929 (paired 95% CI [0.001120, 0.002706]); the
+pre-registered primary criterion therefore failed. This low-learning-rate,
+small-data setup produced no language forgetting in any arm, so it does not
+provide the failure regime NeuPAT is designed to repair.
+
+On 251 held-out VQA-RAD binary questions, accuracy was 0.6614 base, 0.6733
+vanilla, 0.7052 LoRA, and 0.6853 NeuPAT. NeuPAT's point estimate exceeded
+vanilla by 1.20 percentage points, but the image-cluster bootstrap 95% CI was
+[-5.58, 7.97] points. Its lower bound missed the pre-registered -2-point
+non-inferiority margin. NeuPAT used standard single-GPU training because its
+activation regularizer is incompatible with the current ZeRO-2 reduction
+path; the other arms used their configured backend. Treat that backend
+difference as an implementation limitation even though the data, seed,
+effective batch size, epochs, full-SFT learning rate, and checkpoint-selection
+rule were held fixed.
 
 ## 0. P0 data-audit correction
 

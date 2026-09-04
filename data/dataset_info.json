@@ -656,6 +656,12 @@
       "prompt": "text"
     }
   },
+  "neupat_language_eval_c4_700": {
+    "file_name": "neupat_language_eval_c4_700.jsonl",
+    "columns": {
+      "prompt": "text"
+    }
+  },
   "refinedweb": {
     "hf_hub_url": "tiiuae/falcon-refinedweb",
     "columns": {

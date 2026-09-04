@@ -2,9 +2,10 @@
 
 ## Scope
 
-This extension tests whether NeuPAT's response-based neuron roles transfer from
-LLM-to-MLLM expansion to Qwen3.5-VL medical-domain adaptation. It does not
-assume that a NeuPAT reserve neuron is safe to prune.
+This extension primarily tests whether the NeuPAT protection set
+(`language U shared`) preserves language ability during Qwen3.5-VL
+medical-domain adaptation. Component-role specificity is exploratory. It does
+not assume that a NeuPAT reserve neuron is safe to prune.
 
 The implementation has four independently gated stages:
 
@@ -100,38 +101,40 @@ The report includes Spearman correlations, Jaccard overlap, recall, odds-ratio
 enrichment, layerwise counts, and the number of original q-band candidates
 removed by NeuPAT/mapping protection.
 
-## P1: Matched-Count Causal Validation
+## P1: Protection-Set Matched-Count Causal Validation
 
-All four role masks use exact role membership. Each matched-random control has
-the same selected count in every layer as its corresponding role.
+The pre-registered primary mask is the exact `language U shared` membership.
+Each of its five matched-random controls has the same selected count in every
+layer. The language-only, multimodal-only, shared-only, and reserve-only masks
+are optional exploratory analyses (`--include_component_roles`).
 
 ```bash
 python scripts/vulcan/neuron_typing/run_neupat_causality.py \
   --caption_config scripts/vulcan/neuron_typing/configs/formal_coco.yaml \
-  --text_config scripts/vulcan/neuron_typing/configs/phase26_text_only.example.yaml \
+  --text_config scripts/vulcan/neuron_typing/configs/neupat_language_eval.formal.yaml \
   --score_file saves/neuron_typing/neupat_overlap_formal_2048/neupat_combined_scores.parquet \
-  --output_dir saves/neuron_typing/neupat_causality \
-  --image_root /root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images \
+  --output_dir saves/neuron_typing/neupat_protection_formal_500 \
   --calibration_manifest saves/neuron_typing/phase1_clean_2k/calibration/sample_manifest.json \
   --typing_manifest saves/neuron_typing/phase1_clean_2k/activations/sample_manifest.json \
   --probe_manifest saves/neuron_typing/neupat_probe_formal_2048/vision_manifest.json \
   --probe_manifest saves/neuron_typing/neupat_probe_formal_2048/text_manifest.json \
-  --pope random=saves/neuron_typing/pope_data/coco_pope_random.json \
-  --pope popular=saves/neuron_typing/pope_data/coco_pope_popular.json \
-  --pope adversarial=saves/neuron_typing/pope_data/coco_pope_adversarial.json \
   --control_seed_count 5 \
-  --batch_size 4
+  --caption_max_samples 500 \
+  --text_max_samples 500 \
+  --bootstrap_samples 2000 \
+  --seed 20260902 \
+  --batch_size 4 \
+  --skip_pope
 ```
 
-Role transfer is supported only if:
+The primary causal gate passes only when the text data are isolated and the
+paired-bootstrap 95% lower bound for
+`NLL(language U shared)-mean NLL(matched random)` is above zero. Caption is a
+supportive endpoint. POPE is resumed later as a secondary multimodal check.
 
-- language/shared ablation causes more text damage than its matched controls;
-- multimodal ablation causes multimodal damage without the same text-specific
-  enrichment;
-- conclusions are stable across at least the three primary tasks and are not
-  driven by one layer or one random seed.
-
-Reserve is treated as an update-capacity hypothesis, not a pruning hypothesis.
+This gate establishes causal language sensitivity, not post-SFT language
+retention. Reserve remains an update-capacity hypothesis, not a pruning
+hypothesis.
 
 ## P2: NeuPAT-Guided Domain SFT
 
@@ -143,9 +146,17 @@ The training implementation:
 - applies shared-role output-side cosine preservation;
 - requires full SFT and zero weight decay.
 
+After the P1 gate passes, run the hash-recorded comparison matrix:
+
 ```bash
-WANDB_DISABLED=true python src/train.py \
-  examples/vulcan/qwen35_08b_vqa_rad_neupat_sft.yaml
+PYTHONPATH=src WANDB_DISABLED=true python \
+  scripts/vulcan/neuron_typing/run_neupat_sft_matrix.py
+
+PYTHONPATH=src WANDB_DISABLED=true python \
+  scripts/vulcan/neuron_typing/evaluate_neupat_sft_language.py
+
+PYTHONPATH=src WANDB_DISABLED=true python \
+  scripts/vulcan/neuron_typing/evaluate_neupat_sft_vqa.py
 ```
 
 Required comparison matrix:
@@ -207,7 +218,7 @@ latency evaluation. Existing Phase-3 evidence cannot be reused.
 - The current Phase-2.6 zero-pass screening result must be resolved before any
   broad language-preservation claim is made.
 
-## Current Formal Results and Gate Decision (2026-09-02)
+## Current Formal Results and Gate Decision (2026-09-04)
 
 - The formal text probe contains 2,048 unique prompts, exactly 512 from each
   paper source. Its SHA-256 is
@@ -223,14 +234,35 @@ latency evaluation. Existing Phase-3 evidence cannot be reused.
 - Mapping top-1% is strongly enriched in shared channels: 729/864 (84.4%),
   odds ratio 4.58. Joint protection removes 9,086/12,888 (70.5%) original
   q-band candidates, leaving 3,802 diagnostic candidates.
-- The held-out pilot supports the shared and combined protection masks. Shared
-  ablation has excess NLL versus matched random of +5.10 on Caption and +3.80
-  on C4 text-only. The `language U shared` mask has excess NLL +4.30 and +4.84.
-  Language-only and multimodal-only causal specificity do not pass the pilot
-  gate.
+- The pre-registered primary hypothesis is now the combined protection set,
+  not component-role transfer. On 500 held-out Caption samples, its ablation
+  increases NLL by +9.761 versus baseline; five matched controls average
+  +4.321, for +5.440 excess damage (paired 95% CI [5.365, 5.520]).
+- On the independent 500-example packed C4 evaluation, protection-set
+  ablation increases NLL by +10.363; matched controls average +4.883, for
+  +5.480 excess damage (paired 95% CI [5.421, 5.537]). Both datasets are
+  isolated and all per-layer control counts match exactly.
 
-Decision: do not run structural pruning or claim full NeuPAT role transfer.
-The 3,802-neuron joint mask remains `structural_pruning_allowed: false`.
-Before P2/full formal P1, either pre-register protection-set validation as the
-primary hypothesis or revise the modality-specific role definition and repeat
-the pilot. The pilot is screening evidence, not a paper-scale result.
+The matched three-arm SFT matrix completed at 354 steps/3 epochs. Best
+VQA-RAD eval losses were 0.198223 for vanilla full-SFT (step 50), 0.193958 for
+LoRA (step 50), and 0.241588 for NeuPAT (step 100). On the fixed 500-example
+C4 test, NLL was 3.381973 base, 3.378277 vanilla, 3.375873 LoRA, and 3.380206
+NeuPAT. NeuPAT minus vanilla was +0.001929 (paired 95% CI [0.001120,
+0.002706]), so the primary post-SFT language-retention criterion failed.
+
+On 251 held-out binary VQA-RAD questions, accuracy was 0.6614 base, 0.6733
+vanilla, 0.7052 LoRA, and 0.6853 NeuPAT. NeuPAT minus vanilla was +0.0120 by
+point estimate, but its image-cluster bootstrap 95% CI [-0.0558, 0.0797]
+failed the -0.02 non-inferiority margin. The causal protection-set gate remains
+valid, but the experiment does not support a comparative NeuPAT
+language-preservation claim in this no-forgetting regime. A stronger
+forgetting stress test and a larger/grouped multimodal evaluation should be
+pre-registered before retesting; do not tune on this held-out C4 slice.
+
+NeuPAT ran without DeepSpeed because the current activation-preservation
+regularizer triggers duplicate parameter reduction under ZeRO-2. The matched
+seed, data, effective batch size, epochs, learning rate (versus vanilla full
+SFT), and best-checkpoint rule were retained, but the backend difference is a
+limitation. Do not claim full component-role transfer or authorize structural
+pruning. The 3,802-neuron joint mask remains
+`structural_pruning_allowed: false`.

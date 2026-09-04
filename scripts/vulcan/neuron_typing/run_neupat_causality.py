@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import statistics
 import subprocess
 import sys
@@ -26,7 +27,12 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROLES = ("language", "multimodal", "shared", "reserve")
+COMPONENT_ROLES = ("language", "multimodal", "shared", "reserve")
+PRIMARY_TARGET = "language_protection"
+TARGET_COLUMNS = {
+    PRIMARY_TARGET: "neupat_role_protect",
+    **{role: f"neupat_{role}" for role in COMPONENT_ROLES},
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,7 +41,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--text_config", required=True)
     parser.add_argument("--score_file", required=True, help="Combined score parquet containing NeuPAT booleans.")
     parser.add_argument("--output_dir", required=True)
-    parser.add_argument("--pope", action="append", required=True, help="Repeat NAME=FILE for POPE splits.")
+    parser.add_argument("--pope", action="append", default=[], help="Repeat NAME=FILE for POPE splits.")
+    parser.add_argument(
+        "--skip_pope",
+        action="store_true",
+        help="Run only the primary Caption/text causal gate; POPE can be added by resuming the same output directory.",
+    )
     parser.add_argument("--image_root", default=None)
     parser.add_argument("--calibration_manifest", required=True)
     parser.add_argument("--typing_manifest", required=True)
@@ -46,6 +57,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--text_sample_offset", type=int, default=0)
     parser.add_argument("--pope_max_images", type=int, default=None)
     parser.add_argument("--control_seed_count", type=int, default=5)
+    parser.add_argument(
+        "--include_component_roles",
+        action="store_true",
+        help="Also evaluate the four exploratory component roles. The primary target remains language U shared.",
+    )
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--bootstrap_samples", type=int, default=1000)
@@ -67,12 +83,24 @@ def parse_named_files(values: list[str]) -> dict[str, str]:
     return result
 
 
-def build_conditions(control_seed_count: int) -> list[str]:
+def get_targets(include_component_roles: bool) -> tuple[str, ...]:
+    return (PRIMARY_TARGET, *COMPONENT_ROLES) if include_component_roles else (PRIMARY_TARGET,)
+
+
+def target_condition(target: str) -> str:
+    if target not in TARGET_COLUMNS:
+        raise ValueError(f"Unknown NeuPAT causal target: {target!r}.")
+    return f"mask:{TARGET_COLUMNS[target]}"
+
+
+def build_conditions(control_seed_count: int, targets: tuple[str, ...] = (PRIMARY_TARGET,)) -> list[str]:
     if control_seed_count <= 0:
         raise ValueError("control_seed_count must be positive.")
-    conditions = [f"mask:neupat_{role}" for role in ROLES]
+    conditions = [target_condition(target) for target in targets]
     conditions.extend(
-        f"matched_random:mask:neupat_{role}:seed{seed}" for role in ROLES for seed in range(1, control_seed_count + 1)
+        f"matched_random:{target_condition(target)}:seed{seed}"
+        for target in targets
+        for seed in range(1, control_seed_count + 1)
     )
     return conditions
 
@@ -99,13 +127,13 @@ def run_command(
 
 def summarize_metric(
     payload: dict[str, Any],
-    role: str,
+    target: str,
     metric: str,
     *,
     control_seed_count: int,
 ) -> dict[str, Any]:
-    """Compare one role's causal effect against exact-count random controls."""
-    condition = f"mask:neupat_{role}"
+    """Compare one target's causal effect against exact-count random controls."""
+    condition = target_condition(target)
     metrics = payload.get("metrics", {})
     observed = metrics.get(condition, {}).get(metric)
     controls = [
@@ -125,6 +153,64 @@ def summarize_metric(
     }
 
 
+def paired_excess_nll_bootstrap(
+    payload: dict[str, Any],
+    target: str,
+    *,
+    control_seed_count: int,
+    bootstrap_samples: int,
+    bootstrap_seed: int,
+) -> dict[str, Any]:
+    """Bootstrap target-minus-control NLL using aligned examples and token weights."""
+    condition = target_condition(target)
+    metrics = payload.get("metrics", {})
+    target_rows = metrics.get(condition, {}).get("per_example", [])
+    control_rows = [
+        metrics.get(f"matched_random:{condition}:seed{seed}", {}).get("per_example", [])
+        for seed in range(1, control_seed_count + 1)
+    ]
+    if not target_rows or any(not rows for rows in control_rows):
+        return {"available": False}
+
+    def index_rows(rows: list[dict[str, Any]]) -> dict[int, dict[str, Any]]:
+        return {int(row["source_index"]): row for row in rows}
+
+    target_by_index = index_rows(target_rows)
+    controls_by_index = [index_rows(rows) for rows in control_rows]
+    common = set(target_by_index)
+    for indexed in controls_by_index:
+        common &= set(indexed)
+    ordered = sorted(common)
+    if len(ordered) != len(target_rows) or any(len(ordered) != len(rows) for rows in control_rows):
+        raise ValueError("Target and matched-random per-example results are not exactly aligned.")
+
+    excesses = []
+    weights = []
+    for source_index in ordered:
+        target_row = target_by_index[source_index]
+        control_delta = statistics.fmean(indexed[source_index]["delta_nll"] for indexed in controls_by_index)
+        excesses.append(float(target_row["delta_nll"]) - control_delta)
+        weights.append(int(target_row["token_count"]))
+
+    def weighted_mean(indices: list[int]) -> float:
+        total_weight = sum(weights[index] for index in indices)
+        return sum(excesses[index] * weights[index] for index in indices) / total_weight
+
+    point = weighted_mean(list(range(len(ordered))))
+    rng = random.Random(bootstrap_seed)
+    draws = sorted(weighted_mean([rng.randrange(len(ordered)) for _ in ordered]) for _ in range(bootstrap_samples))
+    low_index = max(0, int(0.025 * bootstrap_samples))
+    high_index = min(bootstrap_samples - 1, int(0.975 * bootstrap_samples))
+    return {
+        "available": True,
+        "num_examples": len(ordered),
+        "bootstrap_samples": bootstrap_samples,
+        "excess_nll": point,
+        "ci_low": draws[low_index],
+        "ci_high": draws[high_index],
+    }
+
+
 def add_yes_ratio_deltas(payload: dict[str, Any]) -> None:
     """Derive yes-ratio deltas because evaluate_vqa stores only the absolute ratio."""
     metrics = payload.get("metrics", {})
@@ -136,7 +222,15 @@ def add_yes_ratio_deltas(payload: dict[str, Any]) -> None:
             values["delta_yes_ratio"] = float(values["yes_ratio"]) - float(baseline)
 
 
-def summarize_results(output_dir: Path, pope_names: list[str], *, control_seed_count: int) -> dict[str, Any]:
+def summarize_results(
+    output_dir: Path,
+    pope_names: list[str],
+    *,
+    targets: tuple[str, ...],
+    control_seed_count: int,
+    bootstrap_samples: int,
+    bootstrap_seed: int,
+) -> dict[str, Any]:
     summary: dict[str, Any] = {"complete": True, "tasks": {}}
     for task_name in ("caption", "text_only"):
         path = output_dir / f"{task_name}.json"
@@ -144,11 +238,12 @@ def summarize_results(output_dir: Path, pope_names: list[str], *, control_seed_c
             summary["complete"] = False
             continue
         payload = json.loads(path.read_text(encoding="utf-8"))
-        required = {"none", *build_conditions(control_seed_count)}
+        required = {"none", *build_conditions(control_seed_count, targets)}
         if not required.issubset(payload.get("metrics", {})):
             summary["complete"] = False
         summary["tasks"][task_name] = {
-            role: summarize_metric(payload, role, "delta_nll", control_seed_count=control_seed_count) for role in ROLES
+            target: summarize_metric(payload, target, "delta_nll", control_seed_count=control_seed_count)
+            for target in targets
         }
     for name in pope_names:
         path = output_dir / f"pope_{name}.json"
@@ -156,17 +251,48 @@ def summarize_results(output_dir: Path, pope_names: list[str], *, control_seed_c
             summary["complete"] = False
             continue
         payload = json.loads(path.read_text(encoding="utf-8"))
-        required = {"none", *build_conditions(control_seed_count)}
+        required = {"none", *build_conditions(control_seed_count, targets)}
         if payload.get("complete") is False or not required.issubset(payload.get("metrics", {})):
             summary["complete"] = False
         add_yes_ratio_deltas(payload)
         summary["tasks"][f"pope_{name}"] = {
-            role: {
-                key: summarize_metric(payload, role, key, control_seed_count=control_seed_count)
+            target: {
+                key: summarize_metric(payload, target, key, control_seed_count=control_seed_count)
                 for key in ("delta_accuracy", "delta_f1", "delta_yes_ratio")
             }
-            for role in ROLES
+            for target in targets
         }
+
+    primary_evidence = {}
+    for task_name in ("caption", "text_only"):
+        path = output_dir / f"{task_name}.json"
+        if path.exists():
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            primary_evidence[task_name] = paired_excess_nll_bootstrap(
+                payload,
+                PRIMARY_TARGET,
+                control_seed_count=control_seed_count,
+                bootstrap_samples=bootstrap_samples,
+                bootstrap_seed=bootstrap_seed,
+            )
+            primary_evidence[task_name]["data_isolated"] = bool(payload.get("data_isolation", {}).get("is_isolated"))
+    text_evidence = primary_evidence.get("text_only", {})
+    gate_passed = bool(
+        summary["complete"]
+        and text_evidence.get("available")
+        and text_evidence.get("data_isolated")
+        and text_evidence.get("ci_low", float("-inf")) > 0
+    )
+    summary["primary_hypothesis"] = {
+        "target": "language U shared",
+        "mask_column": TARGET_COLUMNS[PRIMARY_TARGET],
+        "claim": "The NeuPAT protection set is causally enriched for language ability versus layerwise matched random masks.",
+        "primary_endpoint": "text-only target-minus-random excess NLL with paired 95% bootstrap CI",
+        "evidence": primary_evidence,
+        "gate_passed": gate_passed,
+        "gate_rule": "complete run, isolated text data, and paired-bootstrap CI lower bound > 0",
+        "scope": "This gate tests causal language sensitivity; post-SFT preservation requires the baseline matrix.",
+    }
     return summary
 
 
@@ -174,7 +300,12 @@ def main() -> None:
     args = parse_args()
     output_dir = Path(args.output_dir)
     pope_files = parse_named_files(args.pope)
-    conditions = build_conditions(args.control_seed_count)
+    if not args.skip_pope and not pope_files:
+        raise ValueError("Provide at least one --pope NAME=FILE value, or explicitly pass --skip_pope.")
+    if args.skip_pope and pope_files:
+        raise ValueError("Do not combine --skip_pope with --pope inputs.")
+    targets = get_targets(args.include_component_roles)
+    conditions = build_conditions(args.control_seed_count, targets)
     common = ["--score_file", args.score_file]
     for condition in conditions:
         common.extend(["--ablation", condition])
@@ -289,17 +420,27 @@ def main() -> None:
         )
 
     plan = {
-        "roles": list(ROLES),
+        "primary_hypothesis": "NeuPAT language U shared protection set is causally enriched for language ability.",
+        "targets": list(targets),
+        "target_columns": {target: TARGET_COLUMNS[target] for target in targets},
         "conditions": conditions,
         "control_seed_count": args.control_seed_count,
         "score_file": str(Path(args.score_file).resolve()),
+        "pope_deferred": args.skip_pope,
     }
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "neupat_causality_plan.json").write_text(
         json.dumps(plan, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     if not args.dry_run:
-        summary = summarize_results(output_dir, list(pope_files), control_seed_count=args.control_seed_count)
+        summary = summarize_results(
+            output_dir,
+            list(pope_files),
+            targets=targets,
+            control_seed_count=args.control_seed_count,
+            bootstrap_samples=args.bootstrap_samples,
+            bootstrap_seed=args.seed,
+        )
         (output_dir / "neupat_causality.json").write_text(
             json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )

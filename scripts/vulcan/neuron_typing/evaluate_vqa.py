@@ -57,6 +57,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional model-path override, used by Phase-3 structural checkpoint evaluation.",
     )
+    parser.add_argument("--adapter_name_or_path", default=None, help="Optional LoRA adapter-path override.")
     parser.add_argument("--score_file", required=True)
     parser.add_argument("--vqa_file", required=True, help="JSON/JSONL with image, question, answer fields.")
     parser.add_argument("--image_root", default=None, help="Root directory for relative image paths.")
@@ -150,6 +151,14 @@ def load_binary_records(
             image_value = image_value[0] if image_value else None
         question = _first_value(record, ("question", "text", "prompt"))
         answer = normalize_binary_answer(_first_value(record, ("answer", "answers", "label")))
+        if isinstance(record.get("messages"), list):
+            messages = record["messages"]
+            user_message = next((item for item in messages if item.get("role") == "user"), None)
+            assistant_message = next((item for item in messages if item.get("role") == "assistant"), None)
+            if user_message is not None:
+                question = str(user_message.get("content", "")).replace("<image>", "").strip()
+            if assistant_message is not None:
+                answer = normalize_binary_answer(assistant_message.get("content"))
         if not image_value or not question or answer is None:
             raise ValueError(f"Invalid binary VQA record at source index {source_index}: {record}")
         image_path = Path(str(image_value))
@@ -651,8 +660,11 @@ def run_evaluation(args: argparse.Namespace, task_name: str = "vqa") -> dict[str
     if needs_model:
         config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
         config.update({"do_train": False, "do_eval": False, "do_predict": False})
+        config.pop("deepspeed", None)
         if getattr(args, "model_name_or_path", None) is not None:
             config["model_name_or_path"] = args.model_name_or_path
+        if getattr(args, "adapter_name_or_path", None) is not None:
+            config["adapter_name_or_path"] = args.adapter_name_or_path
         config.setdefault("output_dir", f"saves/neuron_typing/{task_name}_tmp")
         model_args, _, _, finetuning_args, _ = get_train_args(config)
         tokenizer_module = load_tokenizer(model_args)

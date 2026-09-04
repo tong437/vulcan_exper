@@ -15,16 +15,34 @@ The repository now includes a separately gated NeuPAT extension:
   sample-disjoint probing runs;
 - `analyze_neupat_overlap.py` compares those roles with q/r, the frozen q-band,
   and Phase-4 mapping protection;
-- `run_neupat_causality.py` runs exact role masks and per-layer matched-random
-  controls on Caption, text-only, and POPE;
+- `run_neupat_causality.py` treats the exact `language U shared` protection
+  mask as primary, runs five per-layer matched-random controls on 500 Caption
+  and 500 isolated C4 examples, and defers component roles/POPE to secondary
+  analyses;
 - `use_neupat: true` enables language-slice gradient masking and shared-slice
   L2/cosine preservation during full SFT;
+- `run_neupat_sft_matrix.py` gates and runs matched vanilla full-SFT, LoRA, and
+  NeuPAT jobs; the two `evaluate_neupat_sft_*` scripts then compare language
+  retention and held-out VQA-RAD performance;
 - `build_neupat_joint_candidate.py` produces a pre-causal-gate protected
   q-band candidate and never authorizes structural pruning.
 
 See
 [`neupat_integration_plan.md`](../../../docs/my-exper/typing%20neuron/neupat_integration_plan.md)
 for commands, gates, and interpretation limits.
+
+The formal protection-set causal gate passed on 2026-09-02. Excess NLL versus
+the five layerwise exact-count controls was +5.440 on Caption (paired 95% CI
+[5.365, 5.520]) and +5.480 on packed C4 (paired 95% CI [5.421, 5.537]). This
+authorized the SFT matrix. The completed post-SFT test did not show a NeuPAT
+advantage: NeuPAT minus vanilla C4 NLL was +0.001929 (paired 95% CI
+[0.001120, 0.002706]), although both improved slightly over the base model.
+NeuPAT VQA-RAD accuracy was 0.6853 versus vanilla's 0.6733, but the 95% CI for
+the difference [-0.0558, 0.0797] failed the -0.02 non-inferiority margin. LoRA
+was best on both measured endpoints (C4 NLL 3.375873; VQA accuracy 0.7052).
+These results support causal language sensitivity of the protection set, not
+a language-preservation benefit under the present small-data/low-LR SFT
+regime.
 
 For the corrected q/r scoring definition, current 2k Phase 1 results, corrected Phase 2 ablations, and the prioritized research roadmap, see [EXPERIMENT_STATUS.md](EXPERIMENT_STATUS.md).
 

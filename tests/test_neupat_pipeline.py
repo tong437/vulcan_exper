@@ -20,13 +20,20 @@ from analyze_neupat_overlap import build_overlap_outputs  # noqa: E402
 from analyze_neupat_stability import build_stability_report  # noqa: E402
 from build_neupat_joint_candidate import build_joint_candidate  # noqa: E402
 from compare_neupat_replications import compare_tables  # noqa: E402
+from evaluate_neupat_sft_language import paired_weighted_bootstrap  # noqa: E402
 from prepare_neupat_text_probe import (  # noqa: E402
     SourceSpec,
     convert_halueval,
     normalize_prompt,
     select_source_examples,
 )
-from run_neupat_causality import add_yes_ratio_deltas, summarize_metric  # noqa: E402
+from run_neupat_causality import (  # noqa: E402
+    add_yes_ratio_deltas,
+    build_conditions,
+    paired_excess_nll_bootstrap,
+    summarize_metric,
+)
+from run_neupat_sft_matrix import latest_resume_checkpoint  # noqa: E402
 from run_phase2_ablation import (  # noqa: E402
     build_type_mask,
     get_layer_dims,
@@ -305,6 +312,79 @@ def test_causality_summary_compares_exact_count_controls_and_derives_yes_shift()
     assert nll["excess_vs_random"] == pytest.approx(0.15)
     assert yes_ratio["observed"] == pytest.approx(0.1)
     assert yes_ratio["random_mean"] == pytest.approx(0.0)
+
+
+def test_protection_set_is_the_default_causal_hypothesis():
+    assert build_conditions(2) == [
+        "mask:neupat_role_protect",
+        "matched_random:mask:neupat_role_protect:seed1",
+        "matched_random:mask:neupat_role_protect:seed2",
+    ]
+
+
+def test_paired_excess_bootstrap_uses_aligned_token_weighted_examples():
+    def rows(deltas):
+        return [
+            {"source_index": index, "delta_nll": delta, "token_count": weight}
+            for index, (delta, weight) in enumerate(zip(deltas, [1, 3]))
+        ]
+
+    payload = {
+        "metrics": {
+            "mask:neupat_role_protect": {"per_example": rows([3.0, 5.0])},
+            "matched_random:mask:neupat_role_protect:seed1": {"per_example": rows([1.0, 1.0])},
+            "matched_random:mask:neupat_role_protect:seed2": {"per_example": rows([1.0, 3.0])},
+        }
+    }
+    result = paired_excess_nll_bootstrap(
+        payload,
+        "language_protection",
+        control_seed_count=2,
+        bootstrap_samples=100,
+        bootstrap_seed=7,
+    )
+    assert result["available"]
+    assert result["excess_nll"] == pytest.approx(2.75)
+    assert result["ci_low"] > 0
+
+
+def test_post_sft_language_bootstrap_is_paired_and_token_weighted():
+    base = [
+        {"source_index": 0, "nll_sum": 1.0, "token_count": 1},
+        {"source_index": 1, "nll_sum": 3.0, "token_count": 3},
+    ]
+    tuned = [
+        {"source_index": 0, "nll_sum": 2.0, "token_count": 1},
+        {"source_index": 1, "nll_sum": 9.0, "token_count": 3},
+    ]
+    result = paired_weighted_bootstrap(tuned, base, samples=100, seed=7)
+    assert result["delta_nll"] == pytest.approx(1.75)
+    assert result["ci_low"] > 0
+
+    misaligned = [dict(tuned[1]), dict(tuned[0])]
+    with pytest.raises(ValueError, match="not aligned"):
+        paired_weighted_bootstrap(misaligned, base, samples=100, seed=7)
+
+
+def test_matrix_resume_uses_highest_complete_checkpoint(tmp_path):
+    for step in (50, 100, 150):
+        checkpoint = tmp_path / f"checkpoint-{step}"
+        checkpoint.mkdir()
+        (checkpoint / "trainer_state.json").write_text(json.dumps({"global_step": step}), encoding="utf-8")
+        (checkpoint / "adapter_model.safetensors").touch()
+        (checkpoint / f"global_step{step}").mkdir()
+    (tmp_path / "checkpoint-150" / "adapter_model.safetensors").unlink()
+    assert latest_resume_checkpoint(tmp_path) == tmp_path / "checkpoint-100"
+
+
+def test_matrix_resume_accepts_standard_trainer_checkpoint(tmp_path):
+    checkpoint = tmp_path / "checkpoint-50"
+    checkpoint.mkdir()
+    (checkpoint / "trainer_state.json").write_text(json.dumps({"global_step": 50}), encoding="utf-8")
+    (checkpoint / "model.safetensors").touch()
+    (checkpoint / "optimizer.pt").touch()
+    (checkpoint / "scheduler.pt").touch()
+    assert latest_resume_checkpoint(tmp_path) == checkpoint
 
 
 def test_probe_source_selection_filters_hallucinations_and_deduplicates():

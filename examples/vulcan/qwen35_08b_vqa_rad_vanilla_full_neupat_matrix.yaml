@@ -20,19 +20,7 @@ trust_remote_code: true
 stage: sft
 do_train: true
 finetuning_type: full
-# ZeRO-2 reduces a parameter twice when the same weight participates in both
-# the task loss and NeuPAT's preservation loss. On this single-GPU 0.8B run,
-# standard DDP fits in memory and preserves the exact NeuPAT objective.
-deepspeed: null
-
-### NeuPAT
-# The protection-set causal gate passed on 500 held-out Caption and text rows.
-# Post-SFT language preservation still requires comparison with both baselines.
-use_neupat: true
-neupat_role_path: saves/neuron_typing/neupat_probe_formal_2048/neupat_roles.json
-neupat_lambda_in: 0.1
-neupat_lambda_out: 0.1
-neupat_reduction: sum
+deepspeed: examples/deepspeed/ds_z2_config.json
 
 ### dataset
 dataset_dir: datasets/vqa_rad
@@ -49,7 +37,7 @@ image_max_pixels: 524288
 image_min_pixels: 1024
 
 ### output
-output_dir: saves/qwen35-0_8b-vqa-rad/neupat_matrix_20260902/neupat
+output_dir: saves/qwen35-0_8b-vqa-rad/neupat_matrix_20260902/vanilla_full
 logging_steps: 10
 save_steps: 50
 save_total_limit: 2

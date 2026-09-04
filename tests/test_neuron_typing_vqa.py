@@ -12,6 +12,7 @@ import torch
 SCRIPT_DIR = Path(__file__).resolve().parents[1] / "scripts" / "vulcan" / "neuron_typing"
 sys.path.insert(0, str(SCRIPT_DIR))
 
+from evaluate_neupat_sft_vqa import evaluation_command as post_sft_evaluation_command  # noqa: E402
 from evaluate_vqa import (  # noqa: E402
     binary_candidate_logprobs,
     build_shuffled_image_control,
@@ -67,6 +68,49 @@ def test_official_pope_json_lines_and_complete_image_selection(tmp_path):
         "yes_count": 1,
         "no_count": 1,
     }
+
+
+def test_sharegpt_vqa_records_are_normalized(tmp_path):
+    image_root = tmp_path / "images"
+    image_root.mkdir()
+    (image_root / "sample.png").touch()
+    data_file = tmp_path / "test.jsonl"
+    data_file.write_text(
+        json.dumps(
+            {
+                "messages": [
+                    {"role": "system", "content": "Answer yes or no."},
+                    {"role": "user", "content": "<image>is there a lesion?"},
+                    {"role": "assistant", "content": "yes"},
+                ],
+                "images": ["sample.png"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert load_binary_records(str(data_file), str(image_root)) == [
+        {
+            "source_index": 0,
+            "question_id": 0,
+            "images": [str(image_root / "sample.png")],
+            "question": "is there a lesion?",
+            "answer": "yes",
+        }
+    ]
+
+
+def test_post_sft_vqa_command_lets_evaluator_insert_baseline(tmp_path):
+    args = SimpleNamespace(
+        score_file="scores.parquet",
+        vqa_file="test.jsonl",
+        image_root="images",
+        bootstrap_samples=1000,
+        bootstrap_seed=7,
+        matrix_dir=str(tmp_path),
+        base_model="base-model",
+    )
+    command = post_sft_evaluation_command(args, "base", tmp_path / "base.json")
+    assert "--ablation" not in command
 
 
 def test_image_group_selection_rejects_question_slice_options():
