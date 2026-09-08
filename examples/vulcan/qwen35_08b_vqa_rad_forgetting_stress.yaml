@@ -1,0 +1,70 @@
+# Copyright 2026 the LlamaFactory team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+### model
+model_name_or_path: /root/autodl-pub-RTX4090-hdd-1/models/qwen3.5-0.8b
+trust_remote_code: true
+
+### method
+stage: sft
+do_train: true
+finetuning_type: full
+deepspeed: examples/deepspeed/ds_z2_config.json
+
+### dataset
+dataset_dir: datasets/vqa_rad
+dataset: vqa_rad_stress_train
+eval_dataset: vqa_rad_stress_dev
+template: qwen3_5_nothink
+cutoff_len: 2048
+preprocessing_num_workers: 8
+dataloader_num_workers: 4
+enable_thinking: false
+
+### processor
+image_max_pixels: 524288
+image_min_pixels: 1024
+
+### output
+# The stress runner always overrides this path with a candidate-specific directory.
+output_dir: saves/qwen35-0_8b-vqa-rad/neupat_forgetting_stress/placeholder
+logging_steps: 10
+save_steps: 100
+save_total_limit: 1
+plot_loss: true
+overwrite_output_dir: true
+save_only_model: false
+report_to: none
+
+### train
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 5.0e-6
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.0
+bf16: true
+seed: 20260904
+data_seed: 20260904
+ddp_timeout: 180000000
+resume_from_checkpoint: null
+
+### eval
+predict_with_generate: false
+per_device_eval_batch_size: 1
+eval_strategy: steps
+eval_steps: 100
+# Stress discovery deliberately evaluates the final update, not a VQA-selected best checkpoint.
+load_best_model_at_end: false

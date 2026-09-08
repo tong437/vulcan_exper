@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Evaluate the post-SFT matrix on the held-out VQA-RAD test set."""
+"""Reproduce the post-SFT matrix on the historical, image-leaky VQA-RAD question split."""
 
 from __future__ import annotations
 
@@ -143,6 +143,10 @@ def main() -> None:
     ci_low = comparison["delta_accuracy_ci95"][0]
     summary = {
         "complete": True,
+        "data_isolation_valid": False,
+        "data_isolation_note": (
+            "Diagnostic only: 121/135 unique image-content hashes in the historical test split occur in train."
+        ),
         "criterion": (
             "NeuPAT is non-inferior to vanilla full-SFT when the lower 95% image-cluster bootstrap bound "
             f"for accuracy(NeuPAT)-accuracy(vanilla) exceeds -{args.noninferiority_margin:.3f}."

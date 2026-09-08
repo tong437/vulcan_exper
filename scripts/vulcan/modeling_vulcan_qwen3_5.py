@@ -33,6 +33,12 @@ class VulcanQwen3_5ForConditionalGeneration(Qwen3_5ForConditionalGeneration):
 
     config_class = VulcanQwen3_5Config
 
+    def tie_weights(self, missing_keys=None, recompute_mapping=True):
+        """Restore the native embedding tie after Transformers remote-code loading."""
+        super().tie_weights(missing_keys=missing_keys, recompute_mapping=recompute_mapping)
+        if self.config.tie_word_embeddings:
+            self.lm_head.weight = self.model.language_model.embed_tokens.weight
+
     def __init__(self, config):
         super().__init__(config)
         intermediate_sizes = getattr(config, "vulcan_intermediate_sizes", None)

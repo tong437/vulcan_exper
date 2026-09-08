@@ -57,13 +57,24 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Repeatable NAME=POPE_FILE for the cross-task main dose curve.",
     )
-    parser.add_argument("--control_vqa", required=True, help="NAME=POPE_FILE for 20-seed control distributions.")
+    parser.add_argument("--control_vqa", required=True, help="NAME=POPE_FILE for matched-control distributions.")
     parser.add_argument("--image_root", default=None)
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--calibration_manifest", default=None)
     parser.add_argument("--typing_manifest", default=None)
     parser.add_argument("--ratios", default="0.01,0.025,0.05,0.10,0.15")
     parser.add_argument("--control_seed_count", type=int, default=20)
+    parser.add_argument(
+        "--reuse_control_result",
+        default=None,
+        help="Reuse exactly equivalent completed conditions from an earlier control evaluation.",
+    )
+    parser.add_argument(
+        "--reuse_main_result",
+        action="append",
+        default=[],
+        help="Repeat NAME=FILE to reuse exactly equivalent main-task conditions.",
+    )
     parser.add_argument("--q_bins", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--bootstrap_samples", type=int, default=2000)
@@ -224,12 +235,8 @@ def build_qstratified_control_table(
                         continue
                     candidates = np.flatnonzero(q_bin_ids == bin_index)
                     if count > len(candidates):
-                        raise RuntimeError(
-                            f"q-stratified request exceeds bin size: layer={layer}, bin={bin_index}."
-                        )
-                    rng = np.random.default_rng(
-                        _stable_rng_seed(base_seed, ratio, seed, layer, bin_index)
-                    )
+                        raise RuntimeError(f"q-stratified request exceeds bin size: layer={layer}, bin={bin_index}.")
+                    rng = np.random.default_rng(_stable_rng_seed(base_seed, ratio, seed, layer, bin_index))
                     selected_parts.append(rng.choice(candidates, size=count, replace=False))
                 selected = np.concatenate(selected_parts) if selected_parts else np.empty(0, dtype=np.int64)
                 if len(selected) != selected_count or len(np.unique(selected)) != selected_count:
@@ -252,8 +259,7 @@ def build_qstratified_control_table(
         for seed in control_seeds:
             column = qstrat_column(ratio, seed)
             actual = {
-                str(int(layer)): int(group[column].sum())
-                for layer, group in table.groupby(layer_col, sort=True)
+                str(int(layer)): int(group[column].sum()) for layer, group in table.groupby(layer_col, sort=True)
             }
             matches = actual == expected_by_layer
             metadata["verification"][column] = {
@@ -279,9 +285,7 @@ def _write_test_subset(
     output_path: Path,
 ) -> int:
     records = load_binary_records(source_path, image_root)
-    selected = [
-        record for record in records if normalize_image_id(record["images"][0]) in test_image_ids
-    ]
+    selected = [record for record in records if normalize_image_id(record["images"][0]) in test_image_ids]
     selected_ids = {normalize_image_id(record["images"][0]) for record in selected}
     missing = test_image_ids - selected_ids
     if missing:
@@ -325,6 +329,7 @@ def _run_evaluation(
     calibration_manifest: str | None,
     typing_manifest: str | None,
     seed: int,
+    reuse_metrics_from: str | None = None,
 ) -> None:
     required = {"none", *conditions}
     if _evaluation_complete(output_file, required):
@@ -361,6 +366,8 @@ def _run_evaluation(
         command.append("--require_data_isolation")
     if output_file.exists():
         command.append("--resume")
+    elif reuse_metrics_from:
+        command.extend(("--reuse_metrics_from", reuse_metrics_from))
     print(f"Running P4.4a evaluation: {output_file}", flush=True)
     subprocess.run(command, check=True)
 
@@ -413,12 +420,11 @@ def summarize_results(
     min_enriched_ratios: int,
     max_empirical_p: float,
 ) -> dict[str, Any]:
-    main_payloads = {
-        name: json.loads(path.read_text(encoding="utf-8")) for name, path in main_files.items()
-    }
+    main_payloads = {name: json.loads(path.read_text(encoding="utf-8")) for name, path in main_files.items()}
     control_payload = json.loads(control_file.read_text(encoding="utf-8"))
     main_summary: dict[str, Any] = {}
-    dose_correlations = []
+    dose_correlations: list[float] = []
+    dose_response_applicable = len(ratios) >= 2
     for task_name, payload in main_payloads.items():
         metrics = payload["metrics"]
         task_rows = {}
@@ -444,8 +450,9 @@ def summarize_results(
                 },
             }
             mapping_damage.append(-mapping_delta)
-        correlation = float(spearmanr(ratios, mapping_damage).statistic)
-        dose_correlations.append(correlation)
+        correlation = float(spearmanr(ratios, mapping_damage).statistic) if dose_response_applicable else None
+        if correlation is not None:
+            dose_correlations.append(correlation)
         unsafe_ratios = [
             ratio
             for ratio in ratios
@@ -492,13 +499,17 @@ def summarize_results(
             "enriched_against_both_controls": enriched,
         }
 
-    median_dose_spearman = float(np.median(dose_correlations))
+    median_dose_spearman = float(np.median(dose_correlations)) if dose_correlations else None
     return {
         "main_dose_curve": main_summary,
         "control_distributions": control_summary,
         "gates": {
             "monotonic_dose_response": {
-                "passed": median_dose_spearman >= min_dose_spearman,
+                "passed": True if not dose_response_applicable else median_dose_spearman >= min_dose_spearman,
+                "applicable": dose_response_applicable,
+                "reason": None
+                if dose_response_applicable
+                else "A single-ratio confirmatory test has no dose ordering.",
                 "per_task_spearman": {
                     task: row["dose_spearman_accuracy_damage"] for task, row in main_summary.items()
                 },
@@ -532,6 +543,10 @@ def run_phase44a(args: argparse.Namespace) -> dict[str, Any]:
         )
     control_seeds = list(range(1, args.control_seed_count + 1))
     main_vqa = parse_named_files(args.main_vqa)
+    reusable_main = parse_named_files(args.reuse_main_result)
+    unknown_reuse_tasks = sorted(set(reusable_main) - set(main_vqa))
+    if unknown_reuse_tasks:
+        raise ValueError(f"reuse_main_result contains tasks absent from main_vqa: {unknown_reuse_tasks}")
     control_vqa = parse_named_files([args.control_vqa])
     control_name, control_source = next(iter(control_vqa.items()))
     if control_name not in main_vqa:
@@ -542,9 +557,7 @@ def run_phase44a(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("Phase-4 Gate A/B did not pass; P4.4a is forbidden.")
     source_score_file = Path(mapping_metrics["outputs"]["augmented_score_file"])
     split_payload = json.loads((Path(args.activation_dir) / "splits.json").read_text(encoding="utf-8"))
-    test_image_ids = {
-        image_id for image_id, split in split_payload["image_to_split"].items() if split == "test"
-    }
+    test_image_ids = {image_id for image_id, split in split_payload["image_to_split"].items() if split == "test"}
 
     output_dir = Path(args.output_dir)
     score_file = output_dir / "controls" / "neuron_scores_phase44a.parquet"
@@ -559,14 +572,10 @@ def run_phase44a(args: argparse.Namespace) -> dict[str, Any]:
     if args.stage in {"build", "all"}:
         if score_file.exists() and control_metadata_file.exists():
             existing_metadata = json.loads(control_metadata_file.read_text(encoding="utf-8"))
-            existing_config = {
-                key: existing_metadata.get(key) for key in expected_control_config
-            }
+            existing_config = {key: existing_metadata.get(key) for key in expected_control_config}
             if existing_config != expected_control_config:
                 differing = sorted(
-                    key
-                    for key in expected_control_config
-                    if existing_config.get(key) != expected_control_config[key]
+                    key for key in expected_control_config if existing_config.get(key) != expected_control_config[key]
                 )
                 raise ValueError(f"Existing P4.4a control table configuration mismatch: {differing}")
             print(f"Skipping existing P4.4a control table: {score_file}", flush=True)
@@ -597,11 +606,7 @@ def run_phase44a(args: argparse.Namespace) -> dict[str, Any]:
     if Path(control_source) != Path(main_vqa[control_name]):
         raise ValueError("control_vqa and the same-named main_vqa must reference the same source file.")
 
-    main_conditions = [
-        condition
-        for ratio in ratios
-        for condition in (q_condition(ratio), mapping_condition(ratio))
-    ]
+    main_conditions = [condition for ratio in ratios for condition in (q_condition(ratio), mapping_condition(ratio))]
     main_files = {name: output_dir / "main" / f"{name}.json" for name in main_vqa}
     if args.stage in {"main", "all"}:
         for task_index, name in enumerate(main_vqa):
@@ -616,6 +621,7 @@ def run_phase44a(args: argparse.Namespace) -> dict[str, Any]:
                 calibration_manifest=args.calibration_manifest,
                 typing_manifest=args.typing_manifest,
                 seed=args.seed + task_index,
+                reuse_metrics_from=reusable_main.get(name),
             )
 
     control_conditions = build_control_conditions(ratios, control_seeds)
@@ -632,6 +638,7 @@ def run_phase44a(args: argparse.Namespace) -> dict[str, Any]:
             calibration_manifest=args.calibration_manifest,
             typing_manifest=args.typing_manifest,
             seed=args.seed + 100,
+            reuse_metrics_from=args.reuse_control_result,
         )
 
     if args.stage in {"summarize", "all"}:

@@ -43,6 +43,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--exclude_file", action="append", default=["data/c4_demo.jsonl"])
     parser.add_argument("--documents", type=int, default=700)
     parser.add_argument("--seed", type=int, default=20260902)
+    parser.add_argument(
+        "--purpose",
+        choices=("formal_evaluation", "stress_development", "stress_lockbox"),
+        default="formal_evaluation",
+    )
     parser.add_argument("--min_chars", type=int, default=200)
     parser.add_argument("--max_chars", type=int, default=50000)
     parser.add_argument("--dataset_server", default=DATASET_SERVER)
@@ -150,7 +155,8 @@ def main() -> None:
     lengths = [len(row["text"]) for row in selected]
     manifest = {
         "artifact_version": 1,
-        "method": "neupat_formal_language_evaluation",
+        "method": "neupat_language_corpus_preparation",
+        "purpose": args.purpose,
         "created_at": datetime.now(UTC).isoformat(),
         "repository": REPOSITORY,
         "revision": repo.get("sha"),
@@ -178,6 +184,13 @@ def main() -> None:
             "Documents used by the earlier 300-document screening corpus are excluded by normalized SHA-256.",
             "Any document containing a normalized NeuPAT probe prompt is rejected.",
             "The LlamaFactory config packs these documents into fixed-length, all-token PT evaluation blocks.",
+            (
+                "Stress-development data may select training strength and must not be reported as a final test."
+                if args.purpose == "stress_development"
+                else "Stress-lockbox data must remain unopened until a stress setting has been frozen."
+                if args.purpose == "stress_lockbox"
+                else "This corpus is intended for formal evaluation."
+            ),
         ],
     }
     write_json(manifest_path, manifest)

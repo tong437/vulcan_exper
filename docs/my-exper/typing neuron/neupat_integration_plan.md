@@ -250,7 +250,7 @@ C4 test, NLL was 3.381973 base, 3.378277 vanilla, 3.375873 LoRA, and 3.380206
 NeuPAT. NeuPAT minus vanilla was +0.001929 (paired 95% CI [0.001120,
 0.002706]), so the primary post-SFT language-retention criterion failed.
 
-On 251 held-out binary VQA-RAD questions, accuracy was 0.6614 base, 0.6733
+On the historical 251-question binary VQA-RAD split, accuracy was 0.6614 base, 0.6733
 vanilla, 0.7052 LoRA, and 0.6853 NeuPAT. NeuPAT minus vanilla was +0.0120 by
 point estimate, but its image-cluster bootstrap 95% CI [-0.0558, 0.0797]
 failed the -0.02 non-inferiority margin. The causal protection-set gate remains
@@ -266,3 +266,10 @@ SFT), and best-checkpoint rule were retained, but the backend difference is a
 limitation. Do not claim full component-role transfer or authorize structural
 pruning. The 3,802-neuron joint mask remains
 `structural_pruning_allowed: false`.
+
+Post-hoc image-content auditing invalidated the "held-out" interpretation of
+that VQA-RAD comparison: 121 of its 135 distinct image hashes occur in the
+training split. The numerical result is retained only as a diagnostic. The
+replacement development protocol groups by image SHA-256 and is frozen in
+`neupat_forgetting_stress_plan.md`; a separate final multimodal test source is
+still required before a new formal NeuPAT comparison.

@@ -1,549 +1,371 @@
-# Qwen3.5-VL Neuron Typing Research Status
+# Qwen3.5-VL Neuron Typing: Phase 1--4 Status
 
-> Last updated: 2026-09-04 (formal NeuPAT post-SFT evaluation)
-> Status: the `language U shared` causal gate passed, but the matched post-SFT language-retention criterion and VQA-RAD non-inferiority criterion did not pass. Structural pruning remains unauthorized.
+> Last updated: 2026-09-05
+> Source of truth: saved formal artifacts under `saves/neuron_typing/`
+> Main line: continuous neuron typing -> causal ablation -> structural deletion -> visual-to-text activation mapping
 
-## NeuPAT primary hypothesis update
+## 1. Research question
 
-The primary NeuPAT hypothesis is now: **does protecting `language U shared`
-retain language ability during multimodal domain SFT?** Component-role
-specificity is exploratory, because the pilot did not support clean
-language-only versus multimodal-only separation.
+This project asks whether modality-related structure in Qwen3.5-VL-0.8B FFN
+channels can support safe structural compression, and whether image-induced
+text-side FFN changes reveal an additional causal protection signal.
 
-The prerequisite causal test passed on two isolated 500-example evaluations
-with five layerwise exact-count random controls. Protection-set excess NLL was
-+5.440 on Caption (paired 95% CI [5.365, 5.520]) and +5.480 on packed C4
-(paired 95% CI [5.421, 5.537]). This establishes causal language enrichment,
-not language retention.
+The current evidence supports two complementary signals:
 
-The post-SFT test did not establish a comparative language-preservation
-advantage. On the fixed 500-example, 255,000-token C4 slice, NLL was 3.381973
-for the base model, 3.378277 for vanilla full-SFT, 3.375873 for LoRA, and
-3.380206 for NeuPAT. NeuPAT improved over base by -0.001767 NLL, but was worse
-than vanilla by +0.001929 (paired 95% CI [0.001120, 0.002706]); the
-pre-registered primary criterion therefore failed. This low-learning-rate,
-small-data setup produced no language forgetting in any arm, so it does not
-provide the failure regime NeuPAT is designed to repair.
+- `q_multimodal` identifies a safe medium-rank deletion band;
+- `mapping_signal` identifies a compact high-rank causal protection core.
 
-On 251 held-out VQA-RAD binary questions, accuracy was 0.6614 base, 0.6733
-vanilla, 0.7052 LoRA, and 0.6853 NeuPAT. NeuPAT's point estimate exceeded
-vanilla by 1.20 percentage points, but the image-cluster bootstrap 95% CI was
-[-5.58, 7.97] points. Its lower bound missed the pre-registered -2-point
-non-inferiority margin. NeuPAT used standard single-GPU training because its
-activation regularizer is incompatible with the current ZeRO-2 reduction
-path; the other arms used their configured backend. Treat that backend
-difference as an implementation limitation even though the data, seed,
-effective batch size, epochs, full-SFT learning rate, and checkpoint-selection
-rule were held fixed.
+The intended joint rule is therefore:
 
-## 0. P0 data-audit correction
-
-The directory named `phase1_2k_v2` processed only 400 rows because an existing
-400-row `tokenized_path` cache caused LlamaFactory to ignore the requested
-sample count. Its score files are byte-identical to `phase1_500_test`.
-Furthermore, 200 of those 400 cached rows reference the same test image, and
-the Phase-2 evaluation reused the same cached rows as typing. Therefore the
-previously reported corrected 2k distributions and q/r ablation curves are
-engineering diagnostics, not final experimental evidence.
-
-The repaired pipeline now:
-
-- uses the verified COCO val source only;
-- builds a new `coco_val_5k_clean` cache;
-- fails when a cache is shorter than the requested offset plus sample count;
-- fails on excessive repeated-image mappings;
-- writes image manifests for calibration, typing, and evaluation;
-- verifies image-disjoint splits before formal evaluation.
-
-All numerical tables below are retained as historical diagnostics and must be
-replaced by clean, held-out reruns.
-
-## 1. Research objective
-
-This project studies modality-related FFN neurons in the Qwen3.5-VL 0.8B hybrid architecture. The main questions are:
-
-1. Can FFN neurons be separated by their responses to visual and text tokens?
-2. Do Full Attention (FA) and GatedDeltaNet (GDN) layers have different neuron-type distributions?
-3. Do the resulting neuron scores identify causally different subspaces under ablation?
-4. Can these scores guide type-aware pruning more safely than random, magnitude, or activation-based pruning?
-
-The current research direction is no longer simply “unknown neurons are safe to prune.” Corrected experiments instead suggest that modality purity and causal importance are non-monotonic:
-
-- extremely high multimodal-purity neurons may be important;
-- a broader medium-purity multimodal subspace may be highly redundant;
-- neurons that are inactive on most samples may be sparse specialists rather than noise.
-
-## 2. Model and experiment setup
-
-| Item | Value |
-|---|---|
-| Model | Qwen3.5-VL 0.8B |
-| Transformer layers | 24 |
-| FFN neurons per layer | 3,584 |
-| Total FFN neurons | 86,016 |
-| FA layers | 3, 7, 11, 15, 19, 23 |
-| GDN layers | Remaining 18 layers |
-| Calibration samples | 500 |
-| Corrected formal typing samples | 2,000 |
-| Visual activation threshold | Per-neuron q97, index 1 |
-| Text activation threshold | Per-neuron q95, index 0 |
-| Representative sample lists | Separate visual/text top-K, then deduplicated union |
-| Current top-K | 50 |
-| Phase 2 primary metric | Teacher-forced label NLL; PPL is auxiliary |
-
-The exact model checkpoint, dataset split, count thresholds, preprocessing configuration, calibration-file hash, and sample IDs should be taken from the saved run `config.json` when reporting formal results.
-
-## 3. Corrected neuron-typing definition
-
-For each sample and neuron, let `v_count` and `t_count` be the number of visual/text tokens whose normalized activation exceeds the calibrated threshold. The active conditions use minimum-count semantics:
-
-```python
-visual_on = v_count >= visual_required
-text_on = t_count >= text_required
-
-is_visual = visual_on & ~text_on
-is_text = ~visual_on & text_on
-is_multimodal = visual_on & text_on
-is_unknown = ~visual_on & ~text_on
+```text
+q 5--20% rank band       -> deletion candidates
+mapping top-1%           -> protected causal core
 ```
 
-The four sample-level classes are mutually exclusive and exhaustive.
+Low activation frequency, low mapping signal, and an `unknown` label must not
+be interpreted as evidence that a neuron is safe to remove.
 
-### 3.1 Representative-sample purity q
+## 2. Formal setup
 
-For neuron \(n\), let \(S_n^v\) and \(S_n^t\) be its final visual and text top-K sample lists. The representative set is the deduplicated union:
-
-\[
-S_n=S_n^v\cup S_n^t.
-\]
-
-The four purity scores are computed on the same set:
-
-\[
-q_c(n)=\frac{\#\{s\in S_n:\operatorname{type}(n,s)=c\}}{|S_n|}.
-\]
-
-For every alive neuron:
-
-\[
-q_v+q_t+q_m+q_u=1.
-\]
-
-Dead neurons have `q_* = NaN` internally and `null` in JSON.
-
-### 3.2 Full-dataset frequency r
-
-The full-dataset frequency is:
-
-\[
-r_c(n)=\frac{\#\{s\in D:\operatorname{type}(n,s)=c\}}{|D|},
-\]
-
-with:
-
-\[
-r_v+r_t+r_m+r_u=1.
-\]
-
-Interpretation:
-
-- `q_*`: type purity among representative high-response samples;
-- `r_*`: response-type frequency across the full typing dataset.
-
-These quantities must not be mixed into a single probability vector.
-
-### 3.3 Neuron-level labels
-
-- `dominant_type`: `argmax(q_visual, q_text, q_multimodal, q_unknown)` for alive neurons;
-- `high-confidence type`: a q score at or above 0.7;
-- `mixed/low-confidence`: `max(q) < 0.7`;
-- `dead`: `global_max <= 1e-6`.
-
-`dominant_type` is a forced descriptive label. It must not be interpreted as a high-confidence functional class.
-
-## 4. Bugs found and corrected
-
-The initial reproduction exposed several implementation and transfer issues:
-
-1. **Layer-dependent activation scale.** Deep-layer activations were approximately 3–5 times larger than shallow-layer activations, so the paper’s fixed thresholds could not be transferred directly.
-2. **Float16 underflow.** A `1e-8` clamp became zero in float16, producing division by zero and NaNs. Loaded maxima are now converted to float32 and clamped safely.
-3. **Visual/text token imbalance.** Approximately 258 visual tokens versus 12.8 caption tokens made the original text criterion too strict. Visual q97 and text q95 are now calibrated separately.
-4. **Minimum-count off-by-one.** `count > required` incorrectly required one additional token; it was replaced with `count >= required`.
-5. **Streaming top-K history contamination.** Historical type counts were incremented when samples temporarily entered top-K but were not decremented after eviction. Top-K entries now carry score, sample ID, and type code together.
-6. **Non-deduplicated visual/text union.** The old “union” used two list lengths rather than a sample-ID union. The corrected q scores use a deduplicated union.
-7. **Incomparable old `p_*` scores.** Visual, text, multimodal, and unknown scores used different denominators. They have been replaced by q/r.
-8. **Dropped dead mask.** `dead_mask` was computed but not serialized. It is now saved and excluded from alive-neuron statistics.
-9. **Quantile parameter mismatch.** The pipeline now passes separate visual and text quantile indices.
-10. **Slow q computation.** The union implementation was reduced from approximately \(O(DK^2)\) Python work to \(O(DK)\).
-
-The earlier soft-score means above 1 were direct evidence of the streaming top-K bug. Old `p_*` distributions and typed masks are not final evidence.
-
-## 5. Corrected Phase 1 results: 2k samples
-
-### 5.1 Integrity checks
-
-| Quantity | Result |
+| Item | Value |
 |---|---:|
-| Total neurons | 86,016 |
-| Alive neurons | 86,013 |
-| Dead neurons | 3 |
+| Model | Qwen3.5-VL-0.8B |
+| Decoder layers | 24 |
+| FFN width | 3,584 per layer |
+| Total FFN channels | 86,016 |
+| Full Attention layers | 3, 7, 11, 15, 19, 23 |
+| GatedDeltaNet layers | remaining 18 layers |
+| Phase-1 calibration samples | 500 |
+| Phase-1 typing samples | 2,000 |
+| Visual/text thresholds | per-neuron q97 / q95 |
+| Primary Phase-2 metrics | Caption label NLL; POPE Accuracy/F1/yes ratio |
 
-The dominant counts sum to 86,013, and the rounded mean q/r values each sum to approximately 1.
+Formal calibration, typing, Caption evaluation, POPE evaluation, and Phase-4
+train/validation/test image sets are isolated by saved manifests. Historical
+results produced before the cache and image-overlap audit are diagnostics only.
 
-Before the formal 2k run, the corrected end-to-end pipeline also passed a
-500-sample validation. The final comparison used the same calibration file and
-the exact first 500 rows of the 2k typing run; results are reported below.
+## 3. Phase 1: continuous modality selectivity
 
-#### 5.1.1 Typing-sample stability: first 500 versus full 2,000
+### Status: complete
 
-Integrity checks passed:
+The authoritative score file is:
 
-| Check | Result |
+```text
+saves/neuron_typing/phase1_clean_2k/scores/neuron_type_scores.parquet
+```
+
+The formal artifact contains 86,016 rows:
+
+| Dominant label | Count |
 |---|---:|
-| Controlled activation/scoring configuration identical | yes |
-| Calibration file identical | yes |
-| Calibration SHA-256 | `90d030feab7ecfcb80cd29d99b519c1d25935d35b1d6a1d349378599ba6d8899` |
-| 500 source indices are exact 2k prefix | yes |
-| 500 row-level image IDs are exact 2k prefix | yes |
-| Dead-neuron masks identical | yes (3 dead; 86,013 matched alive) |
+| multimodal | 54,767 |
+| visual | 31,113 |
+| unknown | 67 |
+| text | 66 |
+| dead | 3 |
 
-For `q_multimodal`:
+Dominant labels are descriptive `argmax(q)` labels, not discrete functional
+classes. Only 8,478 alive channels have `max(q) >= 0.7`; approximately 90.14%
+are mixed/low-confidence. The principal Phase-1 contribution is the separation
+of:
 
-| Stability statistic | Result |
-|---|---:|
-| Global Spearman rho | 0.8182 |
-| Per-layer Spearman rho, mean / median | 0.7695 / 0.7658 |
-| Per-layer Spearman rho, min / max | 0.6596 / 0.8776 |
-| 5--20% band size in each run | 12,888 (537/layer) |
-| Band intersection | 5,385 |
-| Global band Jaccard | 0.2641 |
-| Per-layer Jaccard, mean / median | 0.2654 / 0.2540 |
-| Per-layer Jaccard, min / max | 0.2081 / 0.3425 |
+- `q`: modality purity among representative high-response samples;
+- `r`: response frequency over the complete typing set.
 
-The global ranking meets the originally proposed rho > 0.8 heuristic, but the
-exact medium-rank membership is not stable at 500 samples. This is expected to
-be a harder criterion than global rank correlation because the final mask is a
-narrow per-layer band with two moving boundaries. The result does not weaken
-the held-out causal safety evidence for the full-2k mask; it shows that 500
-typing samples are insufficient to reproduce that mask. Therefore Phase 3 must
-freeze the 5--20% band derived from the full 2,000-sample run, not the pilot.
+The FA-versus-GDN enrichment hypothesis is not statistically supported. For
+high-confidence multimodal channels the observed difference is +0.587
+percentage point, but exact blocked permutation gives `p=0.8125`.
 
-Full machine-readable results, including all q/r scores and per-layer values,
-are stored in `saves/neuron_typing/phase1_stability_500_vs_2k.json`.
+The 500-versus-2,000 comparison gives global `q_multimodal` Spearman 0.8182,
+but the exact 5--20% band Jaccard is only 0.2641. All downstream masks must use
+the frozen full-2,000 ranking.
 
-### 5.2 Dominant type distribution
+## 4. Phase 2: held-out causal ablation
 
-| Dominant type | Count | Percentage of all neurons |
+### Status: complete for the frozen q-band
+
+The causal effect of `q_multimodal` is non-monotonic:
+
+- the extreme top 0--5% contains important specialists;
+- the per-layer 5--20% rank band is a safe deletion candidate;
+- high `r_unknown` and low activation frequency are not safe deletion rules.
+
+The frozen q-band removes 537 channels per layer, 12,888 in total
+(14.983% of decoder FFN channels).
+
+On 500 held-out Caption examples:
+
+| Mask | NLL | Delta NLL |
 |---|---:|---:|
-| visual | 41,214 | 47.9% |
-| text | 85 | 0.1% |
-| multimodal | 44,388 | 51.6% |
-| unknown | 326 | 0.4% |
+| Original | 4.106730 | 0 |
+| q 5--20% band | 3.974039 | -0.132691 |
+| Matched random | 4.238996 | +0.132266 |
+| Lowest magnitude | 3.974513 | -0.132217 |
+| Lowest activation frequency | 4.298968 | +0.192238 |
 
-This table reports forced `argmax(q)` labels. It does not imply that 51.6% of neurons are high-confidence multimodal neurons.
+Across POPE random/popular/adversarial, q-band Accuracy drops are only
+0.69/0.40/0.62 percentage point. Matched random is worse, while magnitude and
+lowest-activation masks lose roughly 9--18 points and introduce large answer
+biases. Caption NLL alone is therefore not an adequate pruning safety metric.
 
-### 5.3 q statistics among alive neurons
+## 5. Phase 3: structural deletion
 
-| Score | Mean | Std | Median | Max |
-|---|---:|---:|---:|---:|
-| `q_visual` | 0.4556 | 0.1986 | 0.4719 | 1.0000 |
-| `q_text` | 0.0213 | 0.0330 | 0.0114 | 0.7470 |
-| `q_multimodal` | 0.5054 | 0.2224 | 0.5000 | 1.0000 |
-| `q_unknown` | 0.0178 | 0.0558 | 0.0000 | 1.0000 |
+### Status: complete
 
-Rounded mean check:
+Both the exact 3,047-width q-band checkpoint and the 3,072-width
+hardware-aligned checkpoint pass structural correctness and formal Caption plus
+three-split POPE quality gates.
 
-\[
-0.4556+0.0213+0.5054+0.0178\approx1.
-\]
+The three authoritative quality gates all contain `passed: true`:
 
-### 5.4 r statistics among alive neurons
+```text
+saves/neuron_typing/phase3_structural_qband/evaluation/quality_gate.json
+saves/neuron_typing/phase34_aligned_3072/hook_evaluation/quality_gate.json
+saves/neuron_typing/phase34_aligned_3072/structural_evaluation/quality_gate.json
+```
 
-| Score | Mean | Std | Median | Max |
-|---|---:|---:|---:|---:|
-| `r_visual` | 0.7365 | 0.1888 | 0.8050 | 1.0000 |
-| `r_text` | 0.0072 | 0.0179 | 0.0050 | 0.6775 |
-| `r_multimodal` | 0.1908 | 0.1754 | 0.1350 | 1.0000 |
-| `r_unknown` | 0.0656 | 0.1351 | 0.0225 | 1.0000 |
+| Width | Removed parameters | Full-model reduction | Checkpoint reduction |
+|---:|---:|---:|---:|
+| 3,047 | 39,591,936 | 4.642% | 117.42 MiB |
+| 3,072 | 37,748,736 | 4.425% | 113.89 MiB |
 
-Rounded mean check:
+The result establishes real parameter, checkpoint, and peak-memory reduction.
+It does not establish overall inference acceleration on RTX 4090 + torch SDPA:
+the aligned model slightly improves TTFT and fixed-length generation, but the
+primary multimodal prefill scenarios remain slightly slower.
 
-\[
-0.7365+0.0072+0.1908+0.0656\approx1.
-\]
+## 6. Phase 4: visual-to-text activation mapping
 
-The q/r difference suggests that neurons are visual on most ordinary samples, while their representative high-response samples exhibit substantially more multimodal behavior.
+### Status: primary mapping and 100-control top-1% confirmation complete
 
-### 5.5 Per-layer dominant counts
+Phase 4 predicts the image-induced text-side FFN change
 
-| Layer | Architecture | Visual | Text | Multimodal | Unknown | Dead |
-|---:|---|---:|---:|---:|---:|---:|
-| 0 | GDN | 2,030 | 2 | 1,541 | 11 | 0 |
-| 1 | GDN | 1,596 | 1 | 1,980 | 7 | 0 |
-| 2 | GDN | 1,653 | 1 | 1,923 | 7 | 0 |
-| 3 | FA | 1,552 | 2 | 2,027 | 3 | 0 |
-| 4 | GDN | 1,610 | 2 | 1,971 | 1 | 0 |
-| 5 | GDN | 1,555 | 2 | 2,025 | 2 | 0 |
-| 6 | GDN | 1,732 | 2 | 1,844 | 5 | 1 |
-| 7 | FA | 1,811 | 5 | 1,765 | 3 | 0 |
-| 8 | GDN | 1,842 | 1 | 1,738 | 3 | 0 |
-| 9 | GDN | 1,920 | 3 | 1,658 | 3 | 0 |
-| 10 | GDN | 1,963 | 4 | 1,616 | 1 | 0 |
-| 11 | FA | 1,880 | 4 | 1,693 | 7 | 0 |
-| 12 | GDN | 1,892 | 4 | 1,679 | 9 | 0 |
-| 13 | GDN | 2,037 | 0 | 1,544 | 3 | 0 |
-| 14 | GDN | 1,995 | 2 | 1,579 | 8 | 0 |
-| 15 | FA | 1,718 | 3 | 1,841 | 22 | 0 |
-| 16 | GDN | 1,672 | 2 | 1,890 | 20 | 0 |
-| 17 | GDN | 1,591 | 4 | 1,961 | 28 | 0 |
-| 18 | GDN | 1,612 | 2 | 1,946 | 24 | 0 |
-| 19 | FA | 1,466 | 3 | 2,100 | 15 | 0 |
-| 20 | GDN | 1,447 | 0 | 2,115 | 22 | 0 |
-| 21 | GDN | 1,463 | 4 | 2,102 | 15 | 0 |
-| 22 | GDN | 1,554 | 4 | 1,990 | 36 | 0 |
-| 23 | FA | 1,623 | 28 | 1,860 | 71 | 2 |
+```text
+Delta A_l = A_l_text(correct image, question)
+          - A_l_text(shuffled image, same question)
+```
 
-Layer 23 is atypical in text, unknown, and dead counts and should be included in leave-one-FA-layer-out sensitivity analysis.
+from decoder-entry visual and question representations. The formal mapping
+artifact is complete and passes both pre-registered model gates:
 
-### 5.6 High-confidence FA versus GDN comparison
+| Metric | Result | Gate |
+|---|---:|---:|
+| Mean V+Q test R2 | 0.10797 | >= 0.01 |
+| Mean Q-only test R2 | -0.01401 | descriptive |
+| Mean incremental R2 | 0.12198 | >= 0.002 |
+| Aggregate permutation p | 0.04762 | <= 0.05 |
+| Layers with positive R2 | 24/24 | >= 4 |
 
-Threshold: `q >= 0.7`; alive neurons only.
+`mapping_signal` and `q_multimodal` have weak global Spearman correlation
+(0.1505), so they provide largely complementary information.
 
-| Type | FA count | FA ratio | GDN count | GDN ratio | Difference |
-|---|---:|---:|---:|---:|---:|
-| visual | 1,964 | 0.0913 | 5,415 | 0.0839 | +0.0074 |
-| text | 3 | 0.0001 | 0 | 0.0000 | +0.0001 |
-| multimodal | 4,587 | 0.2133 | 12,612 | 0.1955 | +0.0178 |
-| unknown | 61 | 0.0028 | 113 | 0.0018 | +0.0011 |
+The 15% mapping-high group is more damaging than matched random, but the
+combined-low deletion proposal fails its safety gate. Mapping signal is a
+protection prior, not an invertible deletion score.
 
-High-confidence totals:
+P4.4a tests nested mapping-high masks at 1%, 2.5%, 5%, 10%, and 15%. The broad
+ranking fails the pre-registered monotonicity and 3-of-5 enrichment gates. The
+clean result is restricted to top-1% (36 per layer; 864 total):
 
-| Type | Count |
+- POPE-random Accuracy delta: -3.14 percentage points;
+- image-bootstrap 95% CI: [-5.31, -1.21] points;
+- stronger than all 20 global matched-random controls;
+- stronger than all 20 q-stratified matched-random controls;
+- empirical `p=1/21=0.0476` for both comparisons;
+- effect direction agrees across all three POPE splits.
+
+The 100-seed confirmatory test is complete. It exactly reuses the first 20
+controls after dataset-order and mask-tensor equivalence checks and evaluates 80
+new controls per family. On POPE-random:
+
+| Condition | Accuracy delta |
 |---|---:|
-| visual | 7,379 |
-| text | 3 |
-| multimodal | 17,199 |
-| unknown | 174 |
-| all high-confidence | 24,755 |
+| mapping top-1% | -3.140 points |
+| 100 global random, mean | -0.244 point |
+| 100 q-stratified random, mean | -0.297 point |
 
-Approximately 28.8% of alive neurons have a q score at or above 0.7. The remaining approximately 71.2% should be treated as mixed/low-confidence rather than strongly typed.
+The mapping set is more damaging than all 100 global controls
+(`p=1/101=0.0099`) and than 98 of 100 q-stratified controls
+(`p=3/101=0.0297`). The confirmatory causal-enrichment gate passes. The effect
+also remains directionally consistent on POPE popular (-2.657 points) and
+adversarial (-1.932 points). This confirms a compact causal protection core;
+it still does not justify deleting low-mapping neurons.
 
-The +1.78 percentage-point multimodal difference is currently descriptive. Significance must be evaluated at the layer/block level, not by treating all neurons as independent observations.
+## 7. NeuPAT extension
 
-## 6. Historical Phase 1 results that are no longer final
+NeuPAT is an external validation/optional extension, not the Phase 1--4 main
+line. Its `language U shared` set is stable and causally language-sensitive,
+but the previous small VQA-RAD SFT produced no language-forgetting regime and
+therefore could not test comparative retention.
 
-The old 2k hard classification was approximately 98% visual and approximately 1.5% multimodal. The corrected result is 47.9% visual and 51.6% multimodal. Therefore:
+The prepared leakage-safe COCO + VQA-Med data asset is retained for later task
+generalization. A full NeuPAT/LoRA/vanilla SFT matrix is deferred until the
+Phase 1--4 deletion-plus-protection experiment is complete.
 
-- old hard-type distributions are invalid;
-- old soft-score means are invalid;
-- old FA/GDN typed proportions are invalid;
-- old multimodal, unknown, and unknown-safe masks are invalid as final evidence.
+## 8. Active execution order
 
-The old calibration findings, float16 NaN diagnosis, token-imbalance diagnosis, `none` evaluations, and random-ablation diagnostics remain useful because they do not depend on the corrupted type-score ranking.
+### Completed confirmatory and joint-mask evaluation
 
-## 7. Corrected Phase 2 results: first q/r ablation sweep
+1. The 100 global and 100 q-stratified top-1% confirmation is complete under
+   `saves/neuron_typing/phase44a_top1_controls100/`; its causal-enrichment gate
+   passes.
+2. Six four-layer blocks, FA/GDN, FA excluding layer 23, layer 23, and all-layer
+   localization is complete under
+   `saves/neuron_typing/phase4_top1_localization/`.
+3. The equal-budget joint mask is frozen under
+   `saves/neuron_typing/phase4_joint_qband_mapping_top1/`. It starts from the
+   exact Phase-3 q 5--20% mask, protects mapping top-1%, and refills only from
+   the immediately lower same-layer q ranks.
 
-Baseline:
+The joint construction changes 147 of 12,888 deletion choices while retaining
+exactly 537 deletions per layer:
 
-| Metric | Value |
+| Joint-mask quantity | Count |
 |---|---:|
-| NLL | 4.7323 |
-| PPL | 113.56 |
+| Original q-band deletions | 12,888 |
+| Mapping top-1% protected set | 864 |
+| Protected neurons overlapping q-band | 147 |
+| Same-layer adjacent-q refills | 147 |
+| Final joint deletions | 12,888 |
 
-### 7.1 Full ratio sweep
+Static verification confirms exact reproduction of the frozen Phase-3 mask,
+equal per-layer budgets, protection/deletion disjointness, and same-layer
+refill. Hook evaluation accepts only two equal-budget conditions: original
+q-band and joint mapping-protected q-band.
 
-| Selection score | Ratio | NLL | PPL | Delta NLL | Delta PPL |
-|---|---:|---:|---:|---:|---:|
-| `q_multimodal` | 5% | 5.1263 | 168.40 | +0.3940 | +54.84 |
-| `q_multimodal` | 20% | 4.4064 | 81.98 | -0.3259 | -31.58 |
-| `q_multimodal` | 30% | 4.0405 | 56.85 | -0.6918 | -56.71 |
-| `q_multimodal` | 50% | 4.3756 | 79.49 | -0.3567 | -34.07 |
-| `r_unknown` | 5% | 4.6660 | 106.27 | -0.0663 | -7.29 |
-| `r_unknown` | 20% | 5.3345 | 207.36 | +0.6021 | +93.80 |
-| `r_unknown` | 30% | 5.4809 | 240.07 | +0.7486 | +126.51 |
-| `r_unknown` | 50% | 8.1495 | 3,461.54 | +3.4171 | +3,347.98 |
-| `unknown_safe` | 5% | 4.2075 | 67.19 | -0.5248 | -46.37 |
-| `unknown_safe` | 20% | 4.2220 | 68.17 | -0.5104 | -45.39 |
-| `unknown_safe` | 30% | 5.4371 | 229.78 | +0.7048 | +116.22 |
-| `unknown_safe` | 50% | 8.4746 | 4,791.40 | +3.7422 | +4,677.84 |
-| per-layer random, current seed | 5% | 4.2896 | 72.94 | -0.4427 | -40.62 |
-| per-layer random, current seed | 20% | 4.3643 | 78.59 | -0.3680 | -34.97 |
-| per-layer random, current seed | 30% | 4.5743 | 96.96 | -0.1580 | -16.60 |
-| per-layer random, current seed | 50% | 7.4777 | 1,768.23 | +2.7454 | +1,654.67 |
+The joint hook safety gate passes Caption and all three full held-out POPE
+splits. Relative to the unablated model:
 
-`random` and `layer_random` produced identical masks and metrics under the current per-layer selection mode, ratio, and seed. They are duplicate controls rather than independent baselines.
+| Task | Original q-band | Joint mask |
+|---|---:|---:|
+| Caption delta NLL | -0.13161 | -0.18645 |
+| POPE random Accuracy drop | 0.753 point | 0.430 point |
+| POPE popular Accuracy drop | 0.430 point | -0.036 point |
+| POPE adversarial Accuracy drop | 0.538 point | 0.215 point |
 
-### 7.2 Previous random multi-seed diagnostic
+The joint mask is non-inferior to the original q-band on every endpoint. Its
+Caption NLL is lower than the original q-band by 0.05485 with paired 95% CI
+[-0.06412, -0.04510]. Its POPE Accuracy is higher by 0.323, 0.466, and 0.323
+point on random, popular, and adversarial respectively. These task improvements
+are supportive; the primary conclusion is that protecting 147 overlapping
+mapping neurons and refilling the exact budget does not reduce hook safety.
 
-These random results do not depend on neuron typing and remain useful if the evaluation setup and masks are confirmed identical:
+The top-1% localization result is distributed rather than attributable to one
+four-layer block. Mapping-mask Accuracy deltas in percentage points are:
 
-- random 20%, five seeds: mean Delta NLL approximately -0.714, standard deviation approximately 0.235;
-- random 50%, five seeds: mean Delta NLL approximately +1.674;
-- random 50% seed values: +0.957, +0.906, +1.670, +2.735, +2.101;
-- random 80% seed42: Delta NLL approximately +3.124.
+| Group | Neurons | Random | Popular | Adversarial |
+|---|---:|---:|---:|---:|
+| Block 1 | 144 | -0.242 | -0.725 | +0.242 |
+| Block 2 | 144 | -0.242 | -0.483 | +0.483 |
+| Block 3 | 144 | -0.483 | -0.966 | 0.000 |
+| Block 4 | 144 | -0.483 | +0.483 | +0.966 |
+| Block 5 | 144 | +0.483 | -0.242 | -0.242 |
+| Block 6 | 144 | 0.000 | -0.242 | +0.242 |
+| FA | 216 | -0.725 | +0.483 | +1.208 |
+| GDN | 648 | -1.449 | -1.691 | -0.966 |
+| Layer 23 | 36 | 0.000 | 0.000 | -0.242 |
+| All layers | 864 | -3.140 | -2.657 | -1.932 |
 
-The random 50%/80% collapse confirms that the hook and teacher-forced NLL metric can detect severe model damage.
+GDN is the only coarse partition with a consistently harmful direction across
+all three splits, whereas layer 23 is negligible and does not explain the FA
+partition. Individual block confidence intervals mostly include zero. The
+all-layer damage is also more negative than the sum of separately ablated
+blocks, especially on random and adversarial, indicating cross-layer
+non-additivity. The defensible interpretation is a distributed protection core
+with a GDN-leaning aggregate effect, not a uniquely causal block or layer.
 
-### 7.3 Current causal interpretation
+### Extended gate result and structural decision
 
-#### Multimodal-purity ranking
+The C4 and VQA-Med hook evaluations are complete. The aggregate result is
+stored in
+`saves/neuron_typing/phase4_joint_qband_mapping_top1/gates/quality_gate.json`
+and reports `passed: false` and `structural_checkpoint_allowed: false`.
 
-The cumulative `q_multimodal` curve is strongly non-monotonic:
+| Task | Baseline NLL | Original q-band delta | Joint-mask delta | Joint minus q-band |
+|---|---:|---:|---:|---:|
+| C4 text-only, 500 packed blocks | 3.36422 | +0.46254 | +0.44032 | -0.02222 |
+| VQA-Med, 1,501 examples | 6.49539 | +0.64982 | +0.71520 | +0.06539 |
 
-- the top 5% is causally important on the current caption-NLL task;
-- 20%–50% cumulative ablation improves NLL;
-- at 50%, random ablation collapses while `q_multimodal` ablation remains better than baseline.
+The frozen absolute-safety threshold was delta NLL <= 0.05, with a joint-mask
+non-inferiority margin of 0.02 relative to the original q-band. The joint mask
+fails absolute safety on both extended endpoints. It modestly improves C4 over
+the original q-band, but is also worse than the q-band on VQA-Med and therefore
+fails that non-inferiority check. Its paired 95% CI for VQA-Med delta NLL versus
+the unablated model is [0.66057, 0.77101]; the failure is not a borderline
+sampling result.
 
-A plausible hypothesis is that the extreme high-purity tail contains important multimodal specialists, while a broader medium-purity multimodal subspace is redundant or overactive. This is not yet a final pruning conclusion because mask ties, nesting, held-out evaluation, and non-NLL tasks have not been verified.
+Consequently, no new structural checkpoint is generated from this candidate.
+The earlier Caption/POPE pass is a domain-local safety result and must not be
+reported as general language or cross-domain multimodal safety. The extended
+gate instead rejects the q 5--20% deletion budget as a universal safe-pruning
+candidate. Mapping top-1% protection recovers a small amount of C4 loss, but
+protecting only the 147 q-band overlaps is insufficient and does not generalize
+to VQA-Med.
 
-#### High-r_unknown ranking
+VQA-Med is measured by teacher-forced answer NLL under the hook mask; this is a
+retention gate, not a generated-answer EM claim. Low mapping score must never
+be used as the refill criterion. The next Phase-4 iteration should reduce the
+deletion dose and/or protect text-important NeuPAT `language U shared` neurons,
+then rerun the same hook gate before any structural build.
 
-High `r_unknown` neurons are not safe noise:
+### Reduced-dose NeuPAT protection follow-up
 
-- 5% has little effect;
-- 20% and 30% are damaging;
-- 50% is more damaging than the current random 50% mask.
+That follow-up is complete under
+`saves/neuron_typing/phase4_protected_dose_sweep/`. Four equal-budget deletion
+doses were constructed from q ranks beginning at 5%: 1%, 2.5%, 5%, and 10%.
+For every dose, the primary protected condition excludes both the causally
+validated NeuPAT `language U shared` set and mapping top-1%, then refills from
+lower same-layer q ranks. It is compared with an equal-budget q-only condition;
+mapping-only is retained as an exploratory mechanism control.
 
-High `r_unknown` should be described as `rarely-active` or `sparse-response`, not as unimportant. These neurons may encode rare concepts or specialist features.
+The protection set contains 61,961 neurons: 61,896 NeuPAT language/shared
+neurons plus only 65 mapping-top-1% neurons not already in that union. At the
+1% dose, 617 of 864 original q-band choices are protected and replaced. All
+candidates have exact equal per-layer budgets and are disjoint from their
+declared protection sets.
 
-#### Current unknown-safe score
+The frozen C4 screen gives:
 
-The current score is approximately:
+| Deletion dose | q-only delta NLL | NeuPAT + mapping delta NLL | Protected minus q-only | C4 pass |
+|---|---:|---:|---:|---:|
+| 1% | +0.02154 | +0.01376 | -0.00778 | yes |
+| 2.5% | +0.05456 | +0.03805 | -0.01650 | yes |
+| 5% | +0.12276 | +0.08680 | -0.03596 | no |
+| 10% | +0.29533 | +0.17657 | -0.11876 | no |
 
-\[
-S_{safe}=r_u-\lambda q_m-\gamma\widetilde a.
-\]
+The largest C4-safe dose, 2.5%, failed Caption: protected delta NLL was
++0.11808 versus +0.01508 for q-only. The hierarchy therefore fell back to the
+1% dose. Its formal results are:
 
-It is safe at 5%–20% on the current metric but collapses at 30%–50%, and is not a validated Phase 3 method. Protecting only multimodal purity may redirect pruning toward rare visual/text specialists.
+| Endpoint | q-only | mapping-only | NeuPAT + mapping | Protected absolute gate |
+|---|---:|---:|---:|---:|
+| Caption delta NLL | +0.09457 | +0.10390 | +0.01081 | pass |
+| C4 delta NLL | +0.02154 | not run | +0.01376 | pass |
+| VQA-Med delta NLL | +0.28569 | +0.32392 | -0.13788 | pass |
+| POPE random Accuracy delta | -1.219 points | -1.183 points | +0.215 points | pass |
+| POPE popular Accuracy delta | -0.215 points | -0.179 points | -0.502 points | pass |
+| POPE adversarial Accuracy delta | +0.430 points | +0.502 points | -0.753 points | pass |
 
-## 8. Claims currently supported
+The 1% protected candidate passes every absolute task-safety check, including
+the 1-point POPE accuracy and 5-point yes-ratio limits. It nevertheless fails
+the preregistered POPE adversarial non-inferiority comparison: its accuracy
+drop relative to q-only is 1.183 points, above the 0.5-point margin. The
+aggregate result at
+`saves/neuron_typing/phase4_protected_dose_sweep/gates/formal_p010/quality_gate.json`
+therefore reports `passed: false` and `structural_checkpoint_allowed: false`.
 
-The following statements are supported as preliminary findings:
+This is positive mechanistic evidence for NeuPAT protection, not authorization
+for pruning. At equal 1% budget it changes failing Caption, VQA-Med, and POPE
+random q-only masks into safe masks, while mapping-only does not. However, the
+POPE adversarial trade-off shows that language protection alone does not
+uniformly preserve every multimodal behavior. No structural checkpoint is
+generated. Any further pruning iteration must protect multimodal-sensitive
+roles as well and must be treated as exploratory until validated on a fresh
+held-out multimodal endpoint.
 
-1. Corrected q/r typing produces normalized and interpretable neuron scores.
-2. Neurons are predominantly visual over the full dataset, while representative high-response samples exhibit stronger multimodal purity.
-3. FA layers have a descriptively higher high-confidence multimodal ratio than GDN layers by approximately 1.78 percentage points.
-4. Corrected neuron scores identify subspaces with very different causal ablation curves.
-5. High `r_unknown` does not identify a generally safe pruning subspace and may capture sparse specialists.
-6. `q_multimodal` has a non-monotonic relationship with causal importance on the current caption-NLL task.
+## 9. Canonical reports
 
-The following statements are not yet supported:
-
-- FA layers have significantly more multimodal neurons;
-- 51.6% of all neurons are high-confidence multimodal neurons;
-- unknown neurons are noise;
-- 50% multimodal neurons can be removed without general multimodal loss;
-- negative Delta NLL proves universal regularization;
-- the current results imply real inference speedup.
-
-## 9. Required improvements before Phase 3
-
-### P0: mask validity and data isolation
-
-- [ ] Generate one deterministic full ranking per score and derive every ratio as a prefix.
-- [ ] Verify strict nesting: \(M_{5}\subset M_{20}\subset M_{30}\subset M_{50}\).
-- [ ] Report cutoff score, count strictly above cutoff, tie-group size, and number selected from the tie group.
-- [ ] Use deterministic secondary keys, for example `r_multimodal` and neuron index after `q_multimodal`.
-- [ ] Record typing and evaluation image IDs and confirm zero overlap.
-- [ ] Confirm the Phase 2 evaluation split is held out from calibration and typing.
-
-### P1: Phase 1 statistical maturity
-
-- [ ] Compute the top-two q margin \(q_{(1)}-q_{(2)}\).
-- [ ] Report exact ties and the fractions with margin below 0.05 and 0.10.
-- [ ] Add an explicit mixed/low-confidence category for `max(q) < 0.7`.
-- [ ] Run blocked permutation tests using layers/blocks as the statistical units.
-- [ ] Report layer-level confidence intervals.
-- [ ] Run leave-one-FA-layer-out analysis, especially to test sensitivity to layer 23.
-- [x] Compare corrected 500-sample and 2k-sample scores using Spearman correlation.
-- [x] Compare top-5%, 20%, 30%, and 50% masks using Jaccard overlap, including the primary 5--20% band.
-- [ ] Report visual/text top-K intersection and union-size distributions.
-
-### P1: Phase 2 causal maturity
-
-- [ ] Run per-layer random baselines with at least seeds 1, 2, 3, 42, and 123 at 5%, 20%, 30%, and 50%.
-- [ ] Remove the duplicate `layer_random` control or implement a genuinely distinct global/matched baseline.
-- [ ] Save per-example baseline NLL, ablated NLL, token count, image ID, and Delta NLL.
-- [ ] Report paired bootstrap confidence intervals and the fractions of improved/damaged samples.
-- [ ] Replace signed “safety ratio” with relative damage:
-
-\[
-\operatorname{RelativeDamage}=\Delta NLL_{typed}-\operatorname{mean}(\Delta NLL_{random}).
-\]
-
-- [ ] Add multimodal rank-band ablations: 0–5%, 5–20%, 20–30%, 30–50%, and 5–50%.
-- [ ] Add high-r_unknown rank-band ablations using the same bands.
-- [ ] Test a protected multimodal strategy that preserves the top 5% and ablates 5–X%.
-- [ ] Stop treating the current `unknown_safe` score as the main method until its failure mode is understood.
-
-### P1: task generalization
-
-- [ ] Add held-out yes/no VQA forced-choice accuracy.
-- [ ] Add POPE or a balanced COCO object-existence evaluation.
-- [ ] If resources allow, add CIDEr, BLEU-4, METEOR, or SPICE for generation quality.
-- [ ] Use at least caption NLL plus one non-NLL multimodal metric for pruning decisions.
-
-### P2: pruning baselines and engineering
-
-- [ ] Add global random and per-layer random as distinct baselines.
-- [ ] Add weight-magnitude pruning.
-- [ ] Add mean-activation or activation-aware pruning.
-- [ ] Ensure every method removes the same number of neurons under a clearly stated layer-allocation policy.
-- [ ] Add CPU unit tests for off-by-one, top-K eviction, union deduplication, q/r normalization, JSON null, score mapping, mask nesting, and tie-breaking.
-- [ ] Save git commit, checkpoint, split, sample-ID hash, calibration hash, score columns, masks, seeds, token counts, and evaluation configuration with every run.
-- [ ] Clean remaining Ruff warnings and stale `p_*` help text before final release.
-
-## 10. Recommended next experiment sequence
-
-1. Diagnose q-score ties and enforce deterministic nested masks.
-2. Confirm typing/evaluation split overlap is zero.
-3. Run random multi-seed baselines for every reported ratio.
-4. Run multimodal and high-r_unknown band ablations.
-5. Run paired per-example bootstrap analysis.
-6. Complete blocked FA/GDN permutation and leave-one-layer-out analyses.
-7. ~~Compare 500 versus 2k score and mask stability.~~ Completed; freeze the full-2k mask.
-8. Add held-out VQA/POPE evaluation.
-9. Compare q/r strategies with magnitude and activation baselines.
-10. Select a Phase 3 functional-pruning strategy only after these checks.
-
-## 11. Phase 3 entry criteria
-
-Formal Phase 3 work should begin only when:
-
-- ratio masks are deterministic and nested;
-- cutoff ties are quantified;
-- typing and evaluation data are disjoint;
-- random multi-seed baselines are complete;
-- paired confidence intervals are available;
-- the multimodal band hypothesis has been tested;
-- at least one VQA/POPE metric is available;
-- q/r pruning is compared against random, magnitude, and activation baselines;
-- the final mask is derived from the full 2k run; the 500-sample pilot is not used because exact band membership is unstable.
-
-The frozen Phase 3 functional-mask candidate is:
-
-> Preserve the extreme top `q_multimodal` specialists and structurally prune the 5--20% medium-purity multimodal rank band obtained from the full 2,000-sample typing run.
-
-The executable Phase 3 gate, equivalence, zero-shot evaluation, and efficiency
-benchmark plan is documented in
-`docs/my-exper/typing neuron/phase3_structured_pruning_plan.md`.
-
-Phase 3 implementation status (2026-07-22):
-
-- frozen mask/cluster/provenance builder implemented and run;
-- formal mask SHA-256: `958c27b5f3cd55035497a62a8dff99d68e27fb641b1aaf75bbac5216da5fe538`;
-- structural checkpoint width: 3,047 in every decoder FFN layer;
-- parameters: 852,985,920 -> 813,393,984 (39,591,936 removed; 4.64% of the full model);
-- all gate/up/down keep-index projection hashes match the structural checkpoint;
-- in-memory and reloaded structural outputs are bit-identical in the smoke check;
-- 4/4 POPE smoke predictions match hook ablation;
-- formal caption and three-split POPE structural reruns remain pending and are the next gate;
-- the two-repeat benchmark is engineering smoke only and must not be reported as a speed result.
-
-High `r_unknown` should not be used as the primary pruning target under the current evidence.
-
-## 12. Working paper narrative
-
-A concise current narrative is:
-
-> Corrected modality-aware neuron typing separates representative high-response purity from full-dataset response frequency. In Qwen3.5-VL 0.8B, neurons are predominantly visual across ordinary samples but exhibit stronger multimodal purity among their representative high-response samples. FA layers show a modestly higher high-confidence multimodal ratio than GDN layers. Causal ablation reveals that response frequency and functional importance are not monotonic: rarely active neurons can be important sparse specialists, while the multimodal-purity ranking contains an important extreme tail and a potentially redundant broader subspace. These findings motivate rank-band, type-aware pruning rather than direct removal of an entire neuron type.
+- `docs/my-exper/typing neuron/phase1_to_phase4_advisor_report.md`
+- `docs/my-exper/typing neuron/phase3_phase34_final_report.md`
+- `docs/my-exper/typing neuron/phase4_activation_mapping_plan.md`
+- `docs/my-exper/typing neuron/phase44a_causal_dose_plan.md`

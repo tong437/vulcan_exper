@@ -25,7 +25,12 @@ The repository now includes a separately gated NeuPAT extension:
   NeuPAT jobs; the two `evaluate_neupat_sft_*` scripts then compare language
   retention and held-out VQA-RAD performance;
 - `build_neupat_joint_candidate.py` produces a pre-causal-gate protected
-  q-band candidate and never authorizes structural pruning.
+  q-band candidate and never authorizes structural pruning;
+- `build_phase4_protected_dose_sweep.py` constructs exact-budget 1--10%
+  q-band controls and NeuPAT-plus-mapping protected masks, while
+  `summarize_phase4_dose_screen.py` selects the largest C4-safe dose;
+- `run_phase4_joint_gate.py` accepts dynamic primary mask names and evaluates
+  Caption, C4, all POPE splits, and VQA-Med before any structural build.
 
 See
 [`neupat_integration_plan.md`](../../../docs/my-exper/typing%20neuron/neupat_integration_plan.md)
@@ -37,12 +42,18 @@ the five layerwise exact-count controls was +5.440 on Caption (paired 95% CI
 authorized the SFT matrix. The completed post-SFT test did not show a NeuPAT
 advantage: NeuPAT minus vanilla C4 NLL was +0.001929 (paired 95% CI
 [0.001120, 0.002706]), although both improved slightly over the base model.
-NeuPAT VQA-RAD accuracy was 0.6853 versus vanilla's 0.6733, but the 95% CI for
+On the historical VQA-RAD question split, NeuPAT accuracy was 0.6853 versus vanilla's 0.6733, but the 95% CI for
 the difference [-0.0558, 0.0797] failed the -0.02 non-inferiority margin. LoRA
 was best on both measured endpoints (C4 NLL 3.375873; VQA accuracy 0.7052).
 These results support causal language sensitivity of the protection set, not
 a language-preservation benefit under the present small-data/low-LR SFT
 regime.
+
+An image-content audit subsequently found that 121/135 unique historical test
+images also occur in train, so those VQA figures are diagnostic rather than
+held-out evidence. Forgetting-stress discovery now uses content-hash-disjoint
+VQA train/dev splits plus independent C4 dev and lockbox corpora. See
+[`neupat_forgetting_stress_plan.md`](../../../docs/my-exper/typing%20neuron/neupat_forgetting_stress_plan.md).
 
 For the corrected q/r scoring definition, current 2k Phase 1 results, corrected Phase 2 ablations, and the prioritized research roadmap, see [EXPERIMENT_STATUS.md](EXPERIMENT_STATUS.md).
 

@@ -20,7 +20,10 @@ from analyze_neupat_overlap import build_overlap_outputs  # noqa: E402
 from analyze_neupat_stability import build_stability_report  # noqa: E402
 from build_neupat_joint_candidate import build_joint_candidate  # noqa: E402
 from compare_neupat_replications import compare_tables  # noqa: E402
+from evaluate_neupat_forgetting_stress import language_command as stress_language_command  # noqa: E402
+from evaluate_neupat_forgetting_stress import vqa_command as stress_vqa_command  # noqa: E402
 from evaluate_neupat_sft_language import paired_weighted_bootstrap  # noqa: E402
+from prepare_neupat_stress_splits import build_splits  # noqa: E402
 from prepare_neupat_text_probe import (  # noqa: E402
     SourceSpec,
     convert_halueval,
@@ -33,6 +36,7 @@ from run_neupat_causality import (  # noqa: E402
     paired_excess_nll_bootstrap,
     summarize_metric,
 )
+from run_neupat_forgetting_stress import training_command as stress_training_command  # noqa: E402
 from run_neupat_sft_matrix import latest_resume_checkpoint  # noqa: E402
 from run_phase2_ablation import (  # noqa: E402
     build_type_mask,
@@ -438,3 +442,76 @@ def test_probe_source_selection_filters_hallucinations_and_deduplicates():
         {"instruction": "Same   prompt", "input": ""}
     )
     assert set(counters) == {"converter_rejected", "empty_rejected", "length_rejected", "duplicate_rejected"}
+
+
+def test_stress_split_is_disjoint_by_image_content_and_canonicalized(tmp_path):
+    image_root = tmp_path / "dataset"
+    image_dir = image_root / "images"
+    image_dir.mkdir(parents=True)
+    contents = (b"same-a", b"same-a", b"b", b"c", b"same-d", b"same-d")
+    rows = []
+    for index, content in enumerate(contents):
+        image_path = image_dir / f"{index}.png"
+        image_path.write_bytes(content)
+        rows.append(
+            {
+                "messages": [
+                    {"role": "user", "content": "<image>Question?"},
+                    {"role": "assistant", "content": "yes" if index % 2 else "no"},
+                ],
+                "images": [f"images/{index}.png"],
+            }
+        )
+    input_file = image_root / "input.jsonl"
+    input_file.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
+    args = SimpleNamespace(
+        input_file=str(input_file),
+        image_root=str(image_root),
+        train_output=str(image_root / "stress_train.jsonl"),
+        dev_output=str(image_root / "stress_dev.jsonl"),
+        manifest_file=str(image_root / "manifest.json"),
+        dataset_info_file=str(image_root / "dataset_info.json"),
+        legacy_test_file=str(image_root / "missing.jsonl"),
+        dev_fraction=0.5,
+        seed=17,
+        balance_trials=32,
+        force=False,
+    )
+    manifest = build_splits(args)
+    assert manifest["train_dev_image_hash_overlap"] == 0
+    assert manifest["train"]["unique_image_hashes"] == 2
+    assert manifest["dev"]["unique_image_hashes"] == 2
+    assert manifest["train"]["rows"] + manifest["dev"]["rows"] == len(rows)
+    dataset_info = json.loads(Path(args.dataset_info_file).read_text())
+    assert dataset_info["vqa_rad_stress_train"]["file_name"] == "stress_train.jsonl"
+    assert dataset_info["vqa_rad_stress_dev"]["file_name"] == "stress_dev.jsonl"
+    for path in (Path(args.train_output), Path(args.dev_output)):
+        split_rows = [json.loads(line) for line in path.read_text().splitlines()]
+        references_by_content = {}
+        for row in split_rows:
+            content = (image_root / row["images"][0]).read_bytes()
+            references_by_content.setdefault(content, set()).add(row["images"][0])
+        assert all(len(references) == 1 for references in references_by_content.values())
+
+
+def test_stress_commands_are_candidate_scoped_and_do_not_open_lockbox(tmp_path):
+    candidate = {"learning_rate": 2e-5, "num_train_epochs": 3.0}
+    train = stress_training_command(Path("config.yaml"), tmp_path / "candidate", candidate, seed=11)
+    assert "learning_rate=2e-05" in train
+    assert "num_train_epochs=3.0" in train
+    assert "seed=11" in train
+
+    args = SimpleNamespace(
+        language_config="language_dev.yaml",
+        score_file="scores.parquet",
+        max_language_samples=500,
+        bootstrap_samples=1000,
+        bootstrap_seed=11,
+        training_config="train.yaml",
+    )
+    language = stress_language_command(args, "model", tmp_path / "language.json")
+    vqa = stress_vqa_command(args, "model", tmp_path / "vqa.json")
+    assert "language_dev.yaml" in language
+    assert "datasets/vqa_rad/stress_dev.jsonl" in vqa
+    assert "--allow_excessive_image_repeats" in vqa
+    assert all("lockbox" not in item for item in (*language, *vqa))

@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-09-07T23:30:00Z",
+  "scope": "Qwen3.5-0.8B, one frozen COCO validation image, Phase 5E semantic contract v2",
+  "boundary_progression": [
+    {"stage": "严格轨迹", "deleted_neurons": 13, "criterion": "512 thinking tokens identical", "physical": true, "human_confirmed": false},
+    {"stage": "旧 checkpoint 回溯", "deleted_neurons": 1000, "criterion": "caption semantics", "physical": true, "human_confirmed": false},
+    {"stage": "fresh 静态排序", "deleted_neurons": 48000, "criterion": "caption semantics", "physical": true, "human_confirmed": false},
+    {"stage": "learned gate 首轮", "deleted_neurons": 56000, "criterion": "caption semantics", "physical": true, "human_confirmed": true},
+    {"stage": "learned gate 上侧", "deleted_neurons": 62000, "criterion": "caption semantics", "physical": true, "human_confirmed": false},
+    {"stage": "learned gate 缩窄", "deleted_neurons": 62950, "criterion": "caption semantics", "physical": true, "human_confirmed": true}
+  ],
+  "restart_results": [
+    {"budget": 50000, "clean_passes": 3, "restarts": 3, "clean_pass_rate": 1.0, "round": "boundary"},
+    {"budget": 52000, "clean_passes": 2, "restarts": 3, "clean_pass_rate": 0.666667, "round": "boundary"},
+    {"budget": 54000, "clean_passes": 0, "restarts": 3, "clean_pass_rate": 0.0, "round": "boundary"},
+    {"budget": 56000, "clean_passes": 2, "restarts": 3, "clean_pass_rate": 0.666667, "round": "boundary"},
+    {"budget": 58000, "clean_passes": 3, "restarts": 3, "clean_pass_rate": 1.0, "round": "upper"},
+    {"budget": 60000, "clean_passes": 3, "restarts": 3, "clean_pass_rate": 1.0, "round": "upper"},
+    {"budget": 62000, "clean_passes": 1, "restarts": 3, "clean_pass_rate": 0.333333, "round": "upper"},
+    {"budget": 62500, "clean_passes": 1, "restarts": 3, "clean_pass_rate": 0.333333, "round": "refine"},
+    {"budget": 62750, "clean_passes": 1, "restarts": 3, "clean_pass_rate": 0.333333, "round": "refine"},
+    {"budget": 62875, "clean_passes": 2, "restarts": 3, "clean_pass_rate": 0.666667, "round": "refine"},
+    {"budget": 62950, "clean_passes": 1, "restarts": 3, "clean_pass_rate": 0.333333, "round": "refine"},
+    {"budget": 63000, "clean_passes": 0, "restarts": 3, "clean_pass_rate": 0.0, "round": "refine"},
+    {"budget": 64000, "clean_passes": 0, "restarts": 3, "clean_pass_rate": 0.0, "round": "upper"}
+  ],
+  "final_comparison": [
+    {"model": "原模型", "ffn_neurons": 86016, "deleted_neurons": 0, "parameters": 852985920, "removed_parameters": 0, "gold_mean_nll": 1.678713, "peak_cuda_gb": 1.800005, "semantic_verdict": "pass", "human_confirmed": false},
+    {"model": "Phase 5E 62,950", "ffn_neurons": 23066, "deleted_neurons": 62950, "parameters": 659603520, "removed_parameters": 193382400, "gold_mean_nll": 0.343445, "peak_cuda_gb": 1.413886, "semantic_verdict": "pass", "human_confirmed": true}
+  ],
+  "source_artifacts": [
+    "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_retrospective_caption_prompt_v2.json",
+    "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_static_gold_v2/static_frontier.json",
+    "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_learned_boundary_v2/learned_frontier.json",
+    "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_learned_upper_v2/learned_frontier.json",
+    "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_learned_refine_62950_v2/learned_frontier.json",
+    "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_learned_structural_62950_r0/physical_screen_64.json",
+    "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_learned_structural_62950_r0_reload.json",
+    "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_learned_structural_62950_r0/human_confirmation.json"
+  ]
+}

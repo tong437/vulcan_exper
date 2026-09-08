@@ -44,6 +44,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--include_shuffled_image_control", action="store_true")
     parser.add_argument("--shuffled_image_seed", type=int, default=2026)
     parser.add_argument("--resume", action="store_true", help="Resume completed conditions from output_file.")
+    parser.add_argument(
+        "--reuse_metrics_from",
+        default=None,
+        help="Reuse conditions only after exact dataset-order and neuron-mask equivalence checks.",
+    )
     args = parser.parse_args()
     args.vqa_file = args.pope_file
     return args

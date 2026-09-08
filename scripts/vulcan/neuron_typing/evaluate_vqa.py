@@ -99,6 +99,14 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--shuffled_image_seed", type=int, default=2026)
     parser.add_argument("--resume", action="store_true", help="Resume completed conditions from output_file.")
+    parser.add_argument(
+        "--reuse_metrics_from",
+        default=None,
+        help=(
+            "Seed a new evaluation with compatible completed conditions from another output. "
+            "Dataset identities and every reused neuron mask are verified exactly."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -583,6 +591,80 @@ def compute_random_control_comparisons(
     return comparisons
 
 
+def _evaluation_record_signatures(records: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
+    return [
+        (
+            int(record["source_index"]),
+            str(record["question_id"]),
+            normalize_image_id(record["images"][0]),
+            str(record["question"]),
+            str(record["answer"]),
+        )
+        for record in records
+    ]
+
+
+def _prediction_record_signatures(predictions: list[dict[str, Any]]) -> list[tuple[Any, ...]]:
+    return [
+        (
+            int(record["source_index"]),
+            str(record["question_id"]),
+            normalize_image_id(record.get("image_id") or record["image"]),
+            str(record["question"]),
+            str(record["answer"]),
+        )
+        for record in predictions
+    ]
+
+
+def reuse_compatible_metrics(
+    reuse_path: str | Path,
+    *,
+    task_name: str,
+    records: list[dict[str, Any]],
+    current_masks: dict[str, dict[int, torch.Tensor]],
+    required_conditions: set[str],
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Reuse prior metrics only after exact dataset and mask equivalence checks."""
+    source_path = Path(reuse_path)
+    previous = json.loads(source_path.read_text(encoding="utf-8"))
+    if previous.get("task") != task_name:
+        raise ValueError(f"Metric reuse task mismatch: {previous.get('task')!r} != {task_name!r}.")
+    previous_metrics = previous.get("metrics", {})
+    if "none" not in previous_metrics:
+        raise ValueError("Metric reuse source has no baseline condition.")
+    previous_predictions = previous_metrics["none"].get("predictions", [])
+    if _prediction_record_signatures(previous_predictions) != _evaluation_record_signatures(records):
+        raise ValueError("Metric reuse dataset/order mismatch.")
+
+    previous_config = previous.get("config", {})
+    previous_score_file = previous_config.get("score_file")
+    previous_ablations = previous_config.get("ablation")
+    previous_seed = previous_config.get("seed")
+    if not previous_score_file or not isinstance(previous_ablations, list) or previous_seed is None:
+        raise ValueError("Metric reuse source lacks score-file, ablation, or seed provenance.")
+    _, previous_masks, _ = load_ablation_masks(previous_score_file, previous_ablations, int(previous_seed))
+
+    reusable_names = sorted(required_conditions & set(previous_metrics))
+    reused: dict[str, dict[str, Any]] = {}
+    for name in reusable_names:
+        if name != "none":
+            if name not in current_masks or name not in previous_masks:
+                raise ValueError(f"Metric reuse mask is unavailable for condition {name!r}.")
+            current = current_masks[name]
+            old = previous_masks[name]
+            if set(current) != set(old) or any(not torch.equal(current[layer], old[layer]) for layer in current):
+                raise ValueError(f"Metric reuse mask mismatch for condition {name!r}.")
+        reused[name] = deepcopy(previous_metrics[name])
+    return reused, {
+        "source": str(source_path.resolve()),
+        "reused_conditions": reusable_names,
+        "reused_condition_count": len(reusable_names),
+        "dataset_equivalent": True,
+        "masks_equivalent": True,
+    }
+
+
 def run_evaluation(args: argparse.Namespace, task_name: str = "vqa") -> dict[str, Any]:
     torch.manual_seed(args.seed)
     comparison_paths = list(
@@ -620,6 +702,7 @@ def run_evaluation(args: argparse.Namespace, task_name: str = "vqa") -> dict[str
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     previous: dict[str, Any] = {}
+    reuse_provenance: dict[str, Any] | None = None
     if args.resume:
         if not output_path.exists():
             raise FileNotFoundError(f"Cannot resume because output_file does not exist: {output_path}")
@@ -635,6 +718,21 @@ def run_evaluation(args: argparse.Namespace, task_name: str = "vqa") -> dict[str
             raise ValueError(f"Resume configuration mismatch for keys: {differing_keys}.")
 
     conditions: dict[str, dict[str, Any]] = previous.get("metrics", {})
+    required_conditions = {"none", *masks}
+    if args.reuse_metrics_from:
+        if args.resume:
+            raise ValueError("Use either --resume or --reuse_metrics_from, not both.")
+        conditions, reuse_provenance = reuse_compatible_metrics(
+            args.reuse_metrics_from,
+            task_name=task_name,
+            records=records,
+            current_masks=masks,
+            required_conditions=required_conditions,
+        )
+        print(
+            f"Reused {reuse_provenance['reused_condition_count']} verified conditions from {args.reuse_metrics_from}",
+            flush=True,
+        )
     shuffled_control = previous.get("image_control", {}).get("shuffled")
 
     def save_checkpoint(complete: bool) -> dict[str, Any]:
@@ -645,6 +743,7 @@ def run_evaluation(args: argparse.Namespace, task_name: str = "vqa") -> dict[str
             "manifest": str(manifest_path),
             "selection_summary": selection_summary,
             "data_isolation": isolation,
+            "metric_reuse": reuse_provenance,
             **mask_verification,
             "metrics": conditions,
             "random_control_comparisons": (compute_random_control_comparisons(specs, conditions) if complete else {}),
@@ -653,7 +752,6 @@ def run_evaluation(args: argparse.Namespace, task_name: str = "vqa") -> dict[str
         output_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
         return result
 
-    required_conditions = {"none", *masks}
     needs_model = not required_conditions.issubset(conditions) or (
         args.include_shuffled_image_control and shuffled_control is None
     )

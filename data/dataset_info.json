@@ -662,6 +662,18 @@
       "prompt": "text"
     }
   },
+  "neupat_language_stress_dev_c4_700": {
+    "file_name": "neupat_language_stress_dev_c4_700.jsonl",
+    "columns": {
+      "prompt": "text"
+    }
+  },
+  "neupat_language_stress_lockbox_c4_700": {
+    "file_name": "neupat_language_stress_lockbox_c4_700.jsonl",
+    "columns": {
+      "prompt": "text"
+    }
+  },
   "refinedweb": {
     "hf_hub_url": "tiiuae/falcon-refinedweb",
     "columns": {

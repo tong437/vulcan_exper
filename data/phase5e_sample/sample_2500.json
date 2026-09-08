@@ -1,0 +1,17 @@
+[
+  {
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nWrite one concise English caption for this image in one complete sentence. Output only the caption."
+      },
+      {
+        "role": "assistant",
+        "content": "A group of bicycles on a subway train."
+      }
+    ],
+    "images": [
+      "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000093736.jpg"
+    ]
+  }
+]
