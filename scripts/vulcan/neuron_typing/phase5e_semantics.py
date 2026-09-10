@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import time
+from collections.abc import Callable
 from typing import Any
 
 import torch
@@ -224,6 +225,7 @@ def generate_short_caption(
     prompt_inputs: dict[str, Any],
     *,
     max_new_tokens: int = 64,
+    semantic_evaluator: Callable[..., dict[str, Any]] = evaluate_caption_semantics,
 ) -> dict[str, Any]:
     """Generate one deterministic caption and attach stopping/semantic diagnostics."""
     if max_new_tokens < 1:
@@ -256,7 +258,7 @@ def generate_short_caption(
     hit_token_limit = len(token_ids) >= max_new_tokens and not ended_with_eos
     terminated_normally = ended_with_eos or len(token_ids) < max_new_tokens
     raw_text = tokenizer.decode(token_ids, skip_special_tokens=True)
-    semantic = evaluate_caption_semantics(
+    semantic = semantic_evaluator(
         raw_text,
         terminated_normally=terminated_normally,
         hit_token_limit=hit_token_limit,

@@ -101,6 +101,7 @@ def load_model_bundle(
     *,
     trust_remote_code: bool,
     preprocessing_num_workers: int,
+    infer_dtype: str | None = None,
 ):
     config = load_yaml(config_path)
     config.update(
@@ -113,13 +114,17 @@ def load_model_bundle(
             "do_predict": False,
         }
     )
+    if infer_dtype is not None:
+        config["infer_dtype"] = infer_dtype
     config.setdefault("output_dir", "saves/neuron_typing/phase5_structural_tmp")
     model_args, data_args, _, finetuning_args, _ = get_train_args(config)
     tokenizer_module = load_tokenizer(model_args)
     tokenizer = tokenizer_module["tokenizer"]
     template = get_template_and_fix_tokenizer(tokenizer, data_args)
     model = load_model(tokenizer, model_args, finetuning_args, is_trainable=False)
-    model.to(device).eval().requires_grad_(False)
+    target_dtype = None if infer_dtype in (None, "auto") else getattr(torch, infer_dtype)
+    model = model.to(device) if target_dtype is None else model.to(device=device, dtype=target_dtype)
+    model.eval().requires_grad_(False)
     return model, tokenizer_module, template, config
 
 

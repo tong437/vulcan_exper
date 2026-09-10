@@ -1,0 +1,41 @@
+{
+  "artifact_version": 1,
+  "selection_rule": "Maximum strict semantic-pass deletion budget found under the Phase 6B search; lower gold NLL breaks ties within one budget.",
+  "winners": [
+    {
+      "sample_id": "bicycle_clock",
+      "result_file": "saves/neuron_typing/phase6b_refine_56k_v2/single_sample_limits.json",
+      "run": "delete_56000__restart_1"
+    },
+    {
+      "sample_id": "violin_kitchen",
+      "result_file": "saves/neuron_typing/phase6b_single_sample_limits_coarse_v2/single_sample_limits_regraded.json",
+      "run": "delete_40000__restart_0"
+    },
+    {
+      "sample_id": "toilet_spatial",
+      "result_file": "saves/neuron_typing/phase6b_refine_36k_v1/single_sample_limits.json",
+      "run": "delete_36000__restart_1"
+    },
+    {
+      "sample_id": "people_pizza",
+      "result_file": "saves/neuron_typing/phase6b_single_sample_limits_coarse_v2/single_sample_limits_regraded.json",
+      "run": "delete_40000__restart_0"
+    },
+    {
+      "sample_id": "giraffes_trees",
+      "result_file": "saves/neuron_typing/phase6b_refine_56k_v2/single_sample_limits.json",
+      "run": "delete_56000__restart_2"
+    },
+    {
+      "sample_id": "dogs_car",
+      "result_file": "saves/neuron_typing/phase6b_single_sample_limits_coarse_v2/single_sample_limits_regraded.json",
+      "run": "delete_32000__restart_0"
+    },
+    {
+      "sample_id": "bicycles_train",
+      "result_file": "saves/neuron_typing/phase5_single_sample/sample_2500_phase5e_learned_refine_62950_v2/learned_frontier.json",
+      "run": "delete_62950__restart_0"
+    }
+  ]
+}

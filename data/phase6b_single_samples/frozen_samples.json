@@ -1,0 +1,140 @@
+{
+  "artifact_version": 1,
+  "selection_rule": "Semantic diversity among base-model-clean COCO validation candidates; contracts were frozen before pruning search.",
+  "canonical_prompt": "Write one concise English caption for this image in one complete sentence. Output only the caption.",
+  "samples": [
+    {
+      "sample_id": "bicycle_clock",
+      "source_offset": 0,
+      "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000203564.jpg",
+      "gold_caption": "A bicycle replica with a clock as the front wheel.",
+      "semantic_stratum": "object_attribute",
+      "base_caption": "This image features a vintage-style bicycle clock with a black frame and white face, set against a plain white background.",
+      "contract": {
+        "version": "phase6b_bicycle_clock_v1",
+        "sample_id": "bicycle_clock",
+        "reference_caption": "A bicycle replica with a clock as the front wheel.",
+        "required_concepts": [
+          {"name": "bicycle", "patterns": ["\\b(?:bicycle|bike)s?\\b"]},
+          {"name": "clock", "patterns": ["\\bclock\\b"]}
+        ],
+        "rejected_patterns": []
+      }
+    },
+    {
+      "sample_id": "violin_kitchen",
+      "source_offset": 37,
+      "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000402514.jpg",
+      "gold_caption": "A picture of a man playing a violin in a kitchen.",
+      "semantic_stratum": "person_action_scene",
+      "base_caption": "A bald man in a gray t-shirt is playing the violin in a kitchen.",
+      "contract": {
+        "version": "phase6b_violin_kitchen_v1",
+        "sample_id": "violin_kitchen",
+        "reference_caption": "A picture of a man playing a violin in a kitchen.",
+        "required_concepts": [
+          {"name": "person", "patterns": ["\\b(?:man|person|musician)\\b"]},
+          {"name": "violin_action", "patterns": ["\\b(?:playing|plays|holding|holds)\\b.{0,30}\\b(?:violin|fiddle)\\b", "\\b(?:violin|fiddle)\\b.{0,30}\\b(?:playing|plays|holding|holds)\\b"]},
+          {"name": "kitchen", "patterns": ["\\bkitchen\\b"]}
+        ],
+        "rejected_patterns": []
+      }
+    },
+    {
+      "sample_id": "toilet_spatial",
+      "source_offset": 69,
+      "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000135161.jpg",
+      "gold_caption": "A toilet sits next to a window and in front of a shower.",
+      "semantic_stratum": "spatial_relation",
+      "base_caption": "A bathroom under renovation, with a toilet, shower, and window covered in plastic sheeting.",
+      "contract": {
+        "version": "phase6b_toilet_spatial_v1",
+        "sample_id": "toilet_spatial",
+        "reference_caption": "A toilet sits next to a window and in front of a shower.",
+        "required_concepts": [
+          {"name": "toilet", "patterns": ["\\btoilet\\b"]},
+          {"name": "window", "patterns": ["\\bwindow\\b"]},
+          {"name": "shower_or_bathroom", "patterns": ["\\b(?:shower|bathroom)\\b"]}
+        ],
+        "rejected_patterns": []
+      }
+    },
+    {
+      "sample_id": "people_pizza",
+      "source_offset": 129,
+      "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000268224.jpg",
+      "gold_caption": "Three young people in a kitchen pointing to a pizza.",
+      "semantic_stratum": "count_action_food",
+      "base_caption": "Three friends are posing with a pizza in a kitchen, with one person making a thumbs-up gesture.",
+      "contract": {
+        "version": "phase6b_people_pizza_v1",
+        "sample_id": "people_pizza",
+        "reference_caption": "Three young people in a kitchen pointing to a pizza.",
+        "required_concepts": [
+          {"name": "multiple_people", "patterns": ["\\b(?:three|several|multiple)\\b.{0,25}\\b(?:people|persons?|friends?|students?)\\b", "\\b(?:people|friends|students)\\b"]},
+          {"name": "pizza", "patterns": ["\\bpizza\\b"]},
+          {"name": "kitchen", "patterns": ["\\bkitchen\\b"]}
+        ],
+        "rejected_patterns": []
+      }
+    },
+    {
+      "sample_id": "giraffes_trees",
+      "source_offset": 201,
+      "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000030423.jpg",
+      "gold_caption": "Four giraffes in the wild eating from trees.",
+      "semantic_stratum": "animal_scene",
+      "base_caption": "A group of giraffes stands in a grassy field with a dense tree line in the background.",
+      "contract": {
+        "version": "phase6b_giraffes_trees_v1",
+        "sample_id": "giraffes_trees",
+        "reference_caption": "Four giraffes in the wild eating from trees.",
+        "required_concepts": [
+          {"name": "plural_giraffes", "patterns": ["\\bgiraffes\\b", "\\b(?:group|several|multiple|four)\\b.{0,25}\\bgiraffe(?:s)?\\b"]},
+          {"name": "outdoor_vegetation", "patterns": ["\\b(?:tree|trees|field|grass|grassy|wild|savanna)\\b"]}
+        ],
+        "rejected_patterns": []
+      }
+    },
+    {
+      "sample_id": "dogs_car",
+      "source_offset": 251,
+      "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000370210.jpg",
+      "gold_caption": "Two dogs in a car looking out the window.",
+      "semantic_stratum": "count_animal_spatial",
+      "base_caption": "Two dogs are sitting on the car seats, looking out the window at a street scene.",
+      "contract": {
+        "version": "phase6b_dogs_car_v1",
+        "sample_id": "dogs_car",
+        "reference_caption": "Two dogs in a car looking out the window.",
+        "required_concepts": [
+          {"name": "plural_dogs", "patterns": ["\\bdogs\\b", "\\b(?:two|both)\\b.{0,20}\\bdog(?:s)?\\b"]},
+          {"name": "car", "patterns": ["\\b(?:car|vehicle)\\b"]},
+          {"name": "window_relation", "patterns": ["\\bwindow\\b", "\\blooking\\s+out\\b"]}
+        ],
+        "rejected_patterns": []
+      }
+    },
+    {
+      "sample_id": "bicycles_train",
+      "source_offset": 2500,
+      "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000093736.jpg",
+      "gold_caption": "A group of bicycles on a subway train.",
+      "semantic_stratum": "count_object_spatial",
+      "base_caption": "The interior of a train car is filled with several bicycles, including one with an orange bag, parked along the side near the windows.",
+      "contract": {
+        "version": "phase6b_bicycles_train_v1",
+        "sample_id": "bicycles_train",
+        "reference_caption": "A group of bicycles on a subway train.",
+        "required_concepts": [
+          {"name": "plural_bicycles", "patterns": ["\\b(?:bicycles|bikes)\\b", "\\b(?:group|several|multiple)\\b.{0,25}\\b(?:bicycle|bike)s?\\b"]},
+          {"name": "train", "patterns": ["\\b(?:train|subway|metro|railcar|carriage)\\b"]},
+          {"name": "inside_relation", "patterns": ["\\b(?:inside|interior|in|on|aboard)\\b.{0,50}\\b(?:train|subway|metro|railcar|carriage)\\b", "\\b(?:train|subway|metro|railcar|carriage)\\b.{0,80}\\b(?:with|contains?|filled|bicycles|bikes)\\b"]}
+        ],
+        "rejected_patterns": [
+          {"name": "bus_scene", "pattern": "\\bbus\\b"}
+        ]
+      }
+    }
+  ]
+}

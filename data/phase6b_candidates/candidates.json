@@ -1,0 +1,72 @@
+[
+  {
+    "sample_id": "bicycle_clock",
+    "source_offset": 0,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000203564.jpg",
+    "gold_caption": "A bicycle replica with a clock as the front wheel.",
+    "semantic_stratum": "object_attribute"
+  },
+  {
+    "sample_id": "violin_kitchen",
+    "source_offset": 37,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000402514.jpg",
+    "gold_caption": "A picture of a man playing a violin in a kitchen.",
+    "semantic_stratum": "person_action_scene"
+  },
+  {
+    "sample_id": "toilet_spatial",
+    "source_offset": 69,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000135161.jpg",
+    "gold_caption": "A toilet sits next to a window and in front of a shower.",
+    "semantic_stratum": "spatial_relation"
+  },
+  {
+    "sample_id": "people_pizza",
+    "source_offset": 129,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000268224.jpg",
+    "gold_caption": "Three young people in a kitchen pointing to a pizza.",
+    "semantic_stratum": "count_action_food"
+  },
+  {
+    "sample_id": "giraffes_trees",
+    "source_offset": 201,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000030423.jpg",
+    "gold_caption": "Four giraffes in the wild eating from trees.",
+    "semantic_stratum": "count_animal_action"
+  },
+  {
+    "sample_id": "dogs_car",
+    "source_offset": 251,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000370210.jpg",
+    "gold_caption": "Two dogs in a car looking out the window.",
+    "semantic_stratum": "count_animal_spatial"
+  },
+  {
+    "sample_id": "horse_truck",
+    "source_offset": 283,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000400456.jpg",
+    "gold_caption": "A man riding on the back of a brown horse in front of a truck.",
+    "semantic_stratum": "person_action_spatial"
+  },
+  {
+    "sample_id": "candles_cake",
+    "source_offset": 400,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000449279.jpg",
+    "gold_caption": "Three birthday candles stand lit on a cake.",
+    "semantic_stratum": "count_object_state"
+  },
+  {
+    "sample_id": "birds_car",
+    "source_offset": 518,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000264659.jpg",
+    "gold_caption": "Two birds sit on top of a parked car.",
+    "semantic_stratum": "count_animal_spatial"
+  },
+  {
+    "sample_id": "bicycles_train",
+    "source_offset": 2500,
+    "image": "/root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption-lf/images/COCO_val2014_000000093736.jpg",
+    "gold_caption": "A group of bicycles on a subway train.",
+    "semantic_stratum": "count_object_spatial"
+  }
+]
