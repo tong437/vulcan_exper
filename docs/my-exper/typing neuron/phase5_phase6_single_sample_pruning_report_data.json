@@ -1,0 +1,64 @@
+{
+  "generated_at": "2026-09-08",
+  "model": {
+    "name": "Qwen3.5-0.8B",
+    "total_parameters": 852985920,
+    "ffn_layers": 24,
+    "ffn_width_per_layer": 3584,
+    "total_ffn_neurons": 86016,
+    "parameters_per_ffn_neuron": 3072
+  },
+  "phase5_boundaries": [
+    {"phase": "5A", "criterion": "64-token strict hook", "deleted_neurons": 301, "physical": false},
+    {"phase": "5B", "criterion": "64-token strict hook", "deleted_neurons": 1000, "physical": false},
+    {"phase": "5C", "criterion": "64-token strict physical", "deleted_neurons": 750, "physical": true},
+    {"phase": "5D", "criterion": "256-token strict physical", "deleted_neurons": 100, "physical": true},
+    {"phase": "5D", "criterion": "256-token behavioral physical", "deleted_neurons": 1000, "physical": true},
+    {"phase": "5D", "criterion": "512-token strict physical", "deleted_neurons": 13, "physical": true},
+    {"phase": "5E", "criterion": "fixed-caption semantic physical", "deleted_neurons": 62950, "physical": true}
+  ],
+  "phase6a_audit": [
+    {"metric": "prompt_pass_rate", "original": 1.0, "pruned": 0.8, "numerator_pruned": 4, "denominator": 5},
+    {"metric": "benign_image_pass_rate", "original": 1.0, "pruned": 0.6666666667, "numerator_pruned": 2, "denominator": 3},
+    {"metric": "counterfactual_full_pass_rate", "original": 1.0, "pruned": 0.3333333333, "numerator_pruned": 2, "denominator": 6},
+    {"metric": "output_hygiene_rate", "original": 1.0, "pruned": 0.6, "numerator_pruned": 9, "denominator": 15},
+    {"metric": "paired_retention_rate", "original": 1.0, "pruned": 0.5714285714, "numerator_pruned": 8, "denominator": 14}
+  ],
+  "phase6b_samples": [
+    {"sample": "bicycle clock", "semantic_stratum": "object_attribute", "deleted_neurons": 56000, "kept_neurons": 30016, "keep_rate": 0.3489583333, "parameter_reduction_rate": 0.2016821098},
+    {"sample": "violin kitchen", "semantic_stratum": "person_action_scene", "deleted_neurons": 40000, "kept_neurons": 46016, "keep_rate": 0.5349702381, "parameter_reduction_rate": 0.1440586499},
+    {"sample": "toilet spatial", "semantic_stratum": "spatial_relation", "deleted_neurons": 36000, "kept_neurons": 50016, "keep_rate": 0.5814732143, "parameter_reduction_rate": 0.1296527849},
+    {"sample": "people pizza", "semantic_stratum": "count_action_food", "deleted_neurons": 40000, "kept_neurons": 46016, "keep_rate": 0.5349702381, "parameter_reduction_rate": 0.1440586499},
+    {"sample": "giraffes trees", "semantic_stratum": "animal_scene", "deleted_neurons": 56000, "kept_neurons": 30016, "keep_rate": 0.3489583333, "parameter_reduction_rate": 0.2016821098},
+    {"sample": "dogs car", "semantic_stratum": "count_animal_spatial", "deleted_neurons": 32000, "kept_neurons": 54016, "keep_rate": 0.6279761905, "parameter_reduction_rate": 0.1152469199},
+    {"sample": "bicycles train", "semantic_stratum": "count_object_spatial", "deleted_neurons": 62950, "kept_neurons": 23066, "keep_rate": 0.2681594122, "parameter_reduction_rate": 0.2267123002}
+  ],
+  "phase6b_geometry": {
+    "shared_core_all7": 10970,
+    "shared_core_rate": 0.1275344122,
+    "near_core_6plus": 18584,
+    "union_all7": 74067,
+    "never_kept": 11949,
+    "random_expected_shared_core": 351.3181092486,
+    "observed_over_random": 31.2252619811,
+    "mean_pairwise_jaccard": 0.4698,
+    "mean_smaller_subnet_coverage": 0.7875
+  },
+  "phase6c_mechanisms": [
+    {"experiment": "C7 deletion at 50%", "condition": "learned identity", "passes": 10, "trials": 70, "pass_rate": 0.1428571429},
+    {"experiment": "C7 deletion at 50%", "condition": "matched random", "passes": 24, "trials": 70, "pass_rate": 0.3428571429},
+    {"experiment": "shell swap", "condition": "learned identity", "passes": 19, "trials": 49, "pass_rate": 0.3877551020},
+    {"experiment": "shell swap", "condition": "matched random", "passes": 5, "trials": 147, "pass_rate": 0.0340136054},
+    {"experiment": "pair union targets", "condition": "learned identity", "passes": 34, "trials": 42, "pass_rate": 0.8095238095},
+    {"experiment": "pair union targets", "condition": "matched random", "passes": 83, "trials": 168, "pass_rate": 0.4940476190}
+  ],
+  "phase6d_conflicts": [
+    {"edge_layer": "bicycle-toilet L20", "initial_identities": 435, "final_identities": 135, "random_joint_hits": 0, "random_trials": 3},
+    {"edge_layer": "bicycle-violin L20", "initial_identities": 1082, "final_identities": 337, "random_joint_hits": 0, "random_trials": 3},
+    {"edge_layer": "bicycle-violin L0", "initial_identities": 1040, "final_identities": 325, "random_joint_hits": 0, "random_trials": 3}
+  ],
+  "phase6e_repairs": [
+    {"pair": "bicycle-toilet", "failed_union_passes": 1, "repaired_union_passes": 2, "targets": 2, "random_dual_passes": 0, "random_repairs": 10, "bf16_structural_passes": 1, "fp32_structural_passes": 2},
+    {"pair": "bicycle-violin", "failed_union_passes": 0, "repaired_union_passes": 2, "targets": 2, "random_dual_passes": 0, "random_repairs": 10, "bf16_structural_passes": 2, "fp32_structural_passes": 2}
+  ]
+}

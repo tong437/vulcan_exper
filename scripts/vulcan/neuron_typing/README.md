@@ -1,5 +1,8 @@
 # Neuron Typing Experiment - Phase 1
 
+> **Frozen baseline:** this phase1–6 implementation is retained for historical reproducibility. New cross-model and
+> cross-dataset work belongs in `research/neuron_typing_generalization/`. See [FROZEN_BASELINE.md](FROZEN_BASELINE.md).
+
 ## NeuPAT language-preserving extension
 
 The repository now includes a separately gated NeuPAT extension:
