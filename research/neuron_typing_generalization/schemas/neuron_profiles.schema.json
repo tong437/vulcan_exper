@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Cross-sample neuron stability profile row",
+  "type": "object",
+  "required": [
+    "run_id", "layer", "neuron", "valid_samples", "count_W", "count_V", "count_T", "count_M",
+    "proportion_W", "proportion_V", "proportion_T", "proportion_M", "entropy", "normalized_entropy",
+    "dominant_class", "profile"
+  ],
+  "properties": {
+    "run_id": {"type": "string"},
+    "layer": {"type": "integer", "minimum": 0},
+    "neuron": {"type": "integer", "minimum": 0},
+    "valid_samples": {"type": "integer", "minimum": 0},
+    "count_W": {"type": "integer", "minimum": 0},
+    "count_V": {"type": "integer", "minimum": 0},
+    "count_T": {"type": "integer", "minimum": 0},
+    "count_M": {"type": "integer", "minimum": 0},
+    "proportion_W": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "proportion_V": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "proportion_T": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "proportion_M": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "entropy": {"type": ["number", "null"], "minimum": 0},
+    "normalized_entropy": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "dominant_class": {"enum": ["V", "T", "M", "W", "INVALID"]},
+    "profile": {"type": "string"}
+  },
+  "additionalProperties": false
+}

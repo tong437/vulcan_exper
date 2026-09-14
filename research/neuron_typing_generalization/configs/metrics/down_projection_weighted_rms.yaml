@@ -1,0 +1,17 @@
+name: down_projection_weighted_rms
+kind: forward_activation
+activation_point: down_projection_input
+modalities: [visual, text]
+reduction: down_projection_column_l2_norm_times_token_rms
+accumulation_dtype: float32
+normalization:
+  kind: per_sample_per_layer_per_modality_share
+  denominator: sum_over_ffn_neurons
+classification:
+  threshold: uniform_share
+  threshold_value: 1_over_d_ff
+  comparison: strict_greater_than
+  classes: [V, T, M, W]
+invalid_policy:
+  empty_token_set: mark_invalid
+  zero_layer_importance: mark_invalid

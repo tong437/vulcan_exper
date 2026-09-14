@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Run-level input-dependence summary",
+  "type": "object",
+  "required": [
+    "run_id", "sample_count", "overall_change_rate_including_self", "overall_change_rate_distinct_pairs",
+    "per_layer_change_rate_including_self", "per_layer_change_rate_distinct_pairs", "maximum_pair"
+  ],
+  "properties": {
+    "run_id": {"type": "string"},
+    "sample_count": {"type": "integer", "minimum": 1},
+    "overall_change_rate_including_self": {"type": "number", "minimum": 0, "maximum": 1},
+    "overall_change_rate_distinct_pairs": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "per_layer_change_rate_including_self": {"type": "array", "items": {"type": "number"}},
+    "per_layer_change_rate_distinct_pairs": {"type": "array", "items": {"type": ["number", "null"]}},
+    "maximum_pair": {
+      "type": "object",
+      "required": ["left_sample_id", "right_sample_id", "change_rate", "valid_neurons"],
+      "properties": {
+        "left_sample_id": {"type": "string"},
+        "right_sample_id": {"type": "string"},
+        "change_rate": {"type": "number", "minimum": 0, "maximum": 1},
+        "valid_neurons": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

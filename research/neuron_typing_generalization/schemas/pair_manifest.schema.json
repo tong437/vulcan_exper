@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Controlled sample-pair manifest row",
+  "type": "object",
+  "required": [
+    "dataset", "tier", "left_sample_id", "right_sample_id", "pair_group_id", "pairing_policy",
+    "changed_factor", "directional", "causal_pair", "audit_status", "eligible_for_max_search"
+  ],
+  "properties": {
+    "dataset": {"type": "string", "minLength": 1},
+    "tier": {"enum": ["cpu_fixture", "gpu_smoke", "pilot", "audited_v1"]},
+    "left_sample_id": {"type": "string", "minLength": 1},
+    "right_sample_id": {"type": "string", "minLength": 1},
+    "pair_group_id": {"type": "string", "minLength": 1},
+    "pairing_policy": {"type": "string", "minLength": 1},
+    "changed_factor": {"type": "string", "minLength": 1},
+    "directional": {"type": "boolean"},
+    "causal_pair": {"type": "boolean"},
+    "audit_status": {"enum": ["passed", "pending", "not_applicable"]},
+    "eligible_for_max_search": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

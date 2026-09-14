@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Neuron score row",
+  "type": "object",
+  "required": [
+    "run_id", "sample_id", "model", "dataset", "layer", "neuron", "modality", "token_count",
+    "activation_rms", "down_projection_norm", "importance", "q", "valid"
+  ],
+  "properties": {
+    "run_id": {"type": "string"},
+    "sample_id": {"type": "string"},
+    "model": {"type": "string"},
+    "dataset": {"type": "string"},
+    "layer": {"type": "integer", "minimum": 0},
+    "neuron": {"type": "integer", "minimum": 0},
+    "modality": {"enum": ["visual", "text"]},
+    "token_count": {"type": "integer", "minimum": 0},
+    "activation_rms": {"type": ["number", "null"]},
+    "down_projection_norm": {"type": "number", "minimum": 0},
+    "importance": {"type": ["number", "null"]},
+    "q": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "valid": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

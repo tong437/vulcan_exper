@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pairwise neuron-class change row",
+  "type": "object",
+  "required": [
+    "run_id", "left_sample_id", "right_sample_id", "pair_scope", "layer", "changed_neurons",
+    "valid_neurons", "change_rate"
+  ],
+  "properties": {
+    "run_id": {"type": "string"},
+    "left_sample_id": {"type": "string"},
+    "right_sample_id": {"type": "string"},
+    "pair_scope": {"enum": ["global", "controlled"]},
+    "layer": {"type": ["integer", "null"], "minimum": 0},
+    "changed_neurons": {"type": "integer", "minimum": 0},
+    "valid_neurons": {"type": "integer", "minimum": 0},
+    "change_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+  },
+  "additionalProperties": false
+}

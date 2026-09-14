@@ -1,0 +1,26 @@
+name: llava_1_5_7b
+hub_id: llava-hf/llava-1.5-7b-hf
+model_id_or_path: /root/autodl-pub-RTX4090-hdd-1/models/llava-1.5-7b-hf
+revision: b234b804b114d9e37bb655e11cbbb5f5e971b7a9
+architecture: LlavaForConditionalGeneration
+family: llava
+modality: vision_language
+dtype: bfloat16
+device_map: auto
+trust_remote_code: false
+decoder:
+  model_type: llama
+  auto_discover_ffn: true
+  expected_layers: 32
+  expected_d_ff: 11008
+hooks:
+  module_pattern: "*.layers.<index>.mlp.down_proj"
+  capture: forward_pre_input
+  captured_value: post_gating_activation
+token_roles:
+  visual: model_expanded_image_feature_positions
+  text: user_content_span_after_multimodal_merge
+  exclude_control_and_padding: true
+weights:
+  format: safetensors
+  sha256_verified: true

@@ -1,0 +1,34 @@
+name: gqa_balanced
+dataset_id: lmms-lab-encoder/GQA
+revision: a6e72d6e1b912da88af8b2f9eba05d5ea8ec2dd8
+config: testdev_balanced_instructions
+image_config: testdev_balanced_images
+split: testdev
+license: mit
+columns:
+  sample_id: id
+  image_id: imageId
+  image: image
+  question: question
+  answer: answer
+  semantic_group: groups
+metadata:
+  source: huggingface_parquet_instruction_only
+  max_download_bytes: 10000000
+images:
+  allow_full_download: false
+  materialize_selected_only: true
+  max_materialized_bytes: 500000000
+pairing:
+  global:
+    kind: all_ordered
+    include_self: true
+  controlled:
+    kind: same_image_different_question
+    group_by: image_id
+    require_different: [normalized_question]
+sampling:
+  seed: 42
+  strategy: deterministic_group_hash
+  pilot_groups: 100
+  samples_per_group: 5

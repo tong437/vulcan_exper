@@ -1,0 +1,36 @@
+name: vizwiz_vqa
+dataset_id: lmms-lab-encoder/VizWiz-VQA
+revision: d428a2dae984f79cf1b9d99467dfa883e0c30686
+config: default
+split: val
+license: cc-by-4.0
+columns:
+  sample_id: question_id
+  image_id: question_id
+  image: image
+  question: question
+  answer: answers
+  category: category
+metadata:
+  annotations_url: https://vizwiz.cs.colorado.edu/VizWiz_final/vqa_data/Annotations.zip
+  max_download_bytes: 75000000
+images:
+  source: vizwiz_validation
+  archive_url: https://vizwiz.cs.colorado.edu/VizWiz_final/images/val.zip
+  archive_member_template: val/{image_id}.jpg
+  allow_full_download: false
+  materialize_selected_only: true
+  max_materialized_bytes: 1000000000
+pairing:
+  global:
+    kind: all_ordered
+    include_self: true
+  controlled:
+    kind: stratified_cohort
+    group_by: [answerable, answer_type]
+    causal_pair: false
+    note: Natural VizWiz examples are cohorts, not controlled degradation pairs.
+sampling:
+  seed: 42
+  strategy: deterministic_stratified_hash
+  pilot_samples: 500

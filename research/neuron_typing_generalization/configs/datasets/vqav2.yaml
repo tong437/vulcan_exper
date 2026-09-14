@@ -1,0 +1,35 @@
+name: vqav2
+dataset_id: lmms-lab-encoder/VQAv2
+revision: 32665d35052eb4a6d4414851c3c829a72754915a
+config: default
+split: validation
+license: cc-by-4.0
+columns:
+  sample_id: question_id
+  image_id: image_id
+  image: image
+  question: question
+  answer: multiple_choice_answer
+metadata:
+  questions_url: https://cvmlp.s3.amazonaws.com/vqa/mscoco/vqa/v2_Questions_Val_mscoco.zip
+  annotations_url: https://cvmlp.s3.amazonaws.com/vqa/mscoco/vqa/v2_Annotations_Val_mscoco.zip
+  max_download_bytes: 75000000
+images:
+  source: coco_2014_val
+  local_dataset_path: /root/autodl-pub-RTX4090-hdd-1/datasets/coco-caption
+  allow_full_download: false
+  materialize_selected_only: true
+  max_materialized_bytes: 1000000000
+pairing:
+  global:
+    kind: all_ordered
+    include_self: true
+  controlled:
+    kind: same_normalized_question_different_image
+    group_by: normalized_question
+    require_different: [image_id]
+sampling:
+  seed: 42
+  strategy: deterministic_group_hash
+  pilot_groups: 250
+  samples_per_group: 2

@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "seed": 42,
+  "shape": {
+    "samples": 128,
+    "layers": 24,
+    "d_ff": 6144
+  },
+  "class_tensor_bytes": 18874368,
+  "invalid_observations": 18788,
+  "change_rate_including_self": 0.744114456327203,
+  "maximum_pair": {
+    "left": 59,
+    "right": 115,
+    "rate": 0.7543174314170414,
+    "valid_neurons": 147194
+  },
+  "stability_shape": [
+    24,
+    6144,
+    4
+  ],
+  "chunk_sizes_verified": [
+    32,
+    16
+  ],
+  "elapsed_seconds": {
+    "change_rates": 0.6212681592442095,
+    "stability": 1.2032044120132923,
+    "maximum_pair_first": 1.192055151797831,
+    "maximum_pair_repeat": 1.003411090001464,
+    "total": 4.019939171150327
+  },
+  "peak_process_rss_kib": 783248
+}

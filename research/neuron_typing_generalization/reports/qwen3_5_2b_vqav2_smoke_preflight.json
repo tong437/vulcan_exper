@@ -1,0 +1,170 @@
+{
+  "status": "passed",
+  "model_weights_loaded": false,
+  "run_id": "qwen3_5_2b__vqav2__seed42__ee0f79bbaf",
+  "model": {
+    "path": "/root/autodl-pub-RTX4090-hdd-1/models/Qwen3.5-2B",
+    "architecture": "Qwen3_5ForConditionalGeneration",
+    "decoder_layers": 24,
+    "d_ff": 6144,
+    "weight_files": [
+      "model.safetensors-00001-of-00001.safetensors"
+    ],
+    "weight_bytes": 4548221488
+  },
+  "manifest": {
+    "tier": "gpu_smoke",
+    "samples": 16,
+    "pairs": 8,
+    "sample_sha256": "18506296c18530625ef671b38738b6c73dfbb8668a8e896af0046ccfe4b81df0",
+    "pair_sha256": "cebf1d535bbaaa57e65f60c70be52da990dc853fb07e93d496e78c50d1908f25"
+  },
+  "processor": {
+    "class": "Qwen3VLProcessor",
+    "samples_prepared": 16,
+    "minimum_sequence_tokens": 124,
+    "maximum_sequence_tokens": 414,
+    "minimum_visual_tokens": 112,
+    "minimum_question_tokens": 5,
+    "sample_token_audit": [
+      {
+        "sample_id": "415958003",
+        "sequence_tokens": 274,
+        "visual_tokens": 260,
+        "question_tokens": 7,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "315790004",
+        "sequence_tokens": 314,
+        "visual_tokens": 300,
+        "question_tokens": 7,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "157593000",
+        "sequence_tokens": 316,
+        "visual_tokens": 300,
+        "question_tokens": 9,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "381463005",
+        "sequence_tokens": 316,
+        "visual_tokens": 300,
+        "question_tokens": 9,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "469828000",
+        "sequence_tokens": 313,
+        "visual_tokens": 300,
+        "question_tokens": 6,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "450570002",
+        "sequence_tokens": 313,
+        "visual_tokens": 300,
+        "question_tokens": 6,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "493205000",
+        "sequence_tokens": 314,
+        "visual_tokens": 300,
+        "question_tokens": 7,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "235833001",
+        "sequence_tokens": 414,
+        "visual_tokens": 400,
+        "question_tokens": 7,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "223757011",
+        "sequence_tokens": 313,
+        "visual_tokens": 300,
+        "question_tokens": 6,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "178941002",
+        "sequence_tokens": 313,
+        "visual_tokens": 300,
+        "question_tokens": 6,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "58492003",
+        "sequence_tokens": 236,
+        "visual_tokens": 220,
+        "question_tokens": 9,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "414744002",
+        "sequence_tokens": 316,
+        "visual_tokens": 300,
+        "question_tokens": 9,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "528470002",
+        "sequence_tokens": 124,
+        "visual_tokens": 112,
+        "question_tokens": 5,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "239041001",
+        "sequence_tokens": 272,
+        "visual_tokens": 260,
+        "question_tokens": 5,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "212054001",
+        "sequence_tokens": 276,
+        "visual_tokens": 260,
+        "question_tokens": 9,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      },
+      {
+        "sample_id": "426700001",
+        "sequence_tokens": 377,
+        "visual_tokens": 361,
+        "question_tokens": 9,
+        "control_tokens": 7,
+        "padding_tokens": 0
+      }
+    ]
+  },
+  "storage_estimate": {
+    "score_rows": 4718592,
+    "minimum_dense_numeric_bytes": 150994944,
+    "note": "Parquet size varies with dictionary encoding; reserve at least 2x this numeric lower bound."
+  },
+  "deferred_to_gpu": [
+    "model_forward",
+    "hook_layer_count",
+    "streaming_vs_direct_activation_statistics"
+  ]
+}

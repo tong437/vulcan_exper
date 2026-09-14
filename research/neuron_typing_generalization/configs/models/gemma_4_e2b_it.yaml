@@ -1,0 +1,27 @@
+name: gemma_4_e2b_it
+hub_id: google/gemma-4-E2B-it
+model_id_or_path: /root/autodl-pub-RTX4090-hdd-1/models/gemma-4-E2B-it
+revision: 3e22461f65e89153144f8adb70e3b8c2cc9845a7
+architecture: Gemma4ForConditionalGeneration
+family: gemma4
+modality: vision_language
+dtype: bfloat16
+device_map: auto
+trust_remote_code: false
+minimum_transformers_version: 5.6.0
+decoder:
+  model_type: gemma4_text
+  auto_discover_ffn: true
+  expected_layers: 35
+  expected_d_ff: 6144
+hooks:
+  module_pattern: "*.layers.<index>.mlp.down_proj"
+  capture: forward_pre_input
+  captured_value: post_gating_activation
+token_roles:
+  visual: processor_expanded_decoder_positions
+  text: user_content_span_after_chat_template
+  exclude_control_and_padding: true
+weights:
+  format: safetensors
+  sha256_verified: true

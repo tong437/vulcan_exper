@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frozen sample manifest row",
+  "type": "object",
+  "required": [
+    "dataset", "dataset_revision", "split", "tier", "sample_id", "image_id", "question", "answer",
+    "pair_group_id", "stratum", "selection_seed", "selection_rank", "image_locator", "image_sha256"
+  ],
+  "properties": {
+    "dataset": {"type": "string", "minLength": 1},
+    "dataset_revision": {"type": "string", "minLength": 7},
+    "split": {"type": "string", "minLength": 1},
+    "tier": {"enum": ["cpu_fixture", "gpu_smoke", "pilot", "audited_v1"]},
+    "sample_id": {"type": "string", "minLength": 1},
+    "image_id": {"type": "string", "minLength": 1},
+    "question": {"type": "string", "minLength": 1},
+    "answer": {"type": ["string", "array", "null"], "items": {"type": "string"}},
+    "pair_group_id": {"type": ["string", "null"]},
+    "stratum": {"type": ["string", "null"]},
+    "selection_seed": {"type": "integer"},
+    "selection_rank": {"type": "integer", "minimum": 0},
+    "image_locator": {"type": "string", "minLength": 1},
+    "image_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "metadata": {"type": "object"}
+  },
+  "additionalProperties": false
+}

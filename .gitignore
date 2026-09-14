@@ -189,9 +189,15 @@ predictions_score.json
 
 # datasets
 datasets/
+!/research/neuron_typing_generalization/configs/datasets/
+!/research/neuron_typing_generalization/configs/datasets/*.yaml
 
 # profiling results
 results/
+
+# Cross-model neuron typing artifacts (keep only the usage note)
+/artifacts/neuron_typing_generalization/*
+!/artifacts/neuron_typing_generalization/README.md
 
 # node binary
 node-v20.12.2-linux-x64.tar.xz

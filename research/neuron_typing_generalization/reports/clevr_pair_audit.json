@@ -1,0 +1,40 @@
+{
+  "pending_pilot_audit": {
+    "tier": "pilot",
+    "pairs": 64,
+    "same_scene_pairs": 0,
+    "program_edit_distance_one": 6,
+    "pass_rate": 0.09375,
+    "distance_histogram": {
+      "1": 6,
+      "2": 6,
+      "3": 8,
+      "4": 9,
+      "5": 8,
+      "6": 3,
+      "7": 2,
+      "8": 4,
+      "9": 8,
+      "10": 2,
+      "11": 5,
+      "12": 2,
+      "13": 1
+    },
+    "status": "failed",
+    "failure_reason": "Candidate pairs do not hold the scene fixed while applying exactly one functional-program edit."
+  },
+  "audited_v1": {
+    "status": "passed",
+    "contract": "same image_id and functional-program Levenshtein distance exactly 1 over function, literal arguments, and relative dependency edges",
+    "candidate_pairs": 111,
+    "selected_pairs": 64,
+    "selected_samples": 128,
+    "unique_images": 64,
+    "disjoint_samples": true,
+    "program_edit_distance_histogram": {
+      "1": 64
+    }
+  },
+  "sample_manifest_sha256": "2d4f00872e3d804d15dd95845d68f908296bae7357fb3907521292e6a94fb320",
+  "pair_manifest_sha256": "76df453ffb65df1a870100dbb251137dd9f012e069e248c1ffacab4a9fed48de"
+}

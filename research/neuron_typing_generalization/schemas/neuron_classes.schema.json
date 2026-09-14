@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sample-conditional neuron class row",
+  "type": "object",
+  "required": [
+    "run_id", "sample_id", "model", "dataset", "layer", "neuron", "q_visual", "q_text",
+    "visual_strong", "text_strong", "class", "valid"
+  ],
+  "properties": {
+    "run_id": {"type": "string"},
+    "sample_id": {"type": "string"},
+    "model": {"type": "string"},
+    "dataset": {"type": "string"},
+    "layer": {"type": "integer", "minimum": 0},
+    "neuron": {"type": "integer", "minimum": 0},
+    "q_visual": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "q_text": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "visual_strong": {"type": "boolean"},
+    "text_strong": {"type": "boolean"},
+    "class": {"enum": ["V", "T", "M", "W", "INVALID"]},
+    "valid": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

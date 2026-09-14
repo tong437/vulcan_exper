@@ -1,0 +1,467 @@
+{
+  "status": "ready_with_documented_risks",
+  "critical_failures": 0,
+  "documented_issues": 1,
+  "datasets": [
+    {
+      "dataset": "clevr",
+      "source": {
+        "dataset_id": "HuggingFaceM4/clevr",
+        "configured_revision": "d2a0cc5509d56204238d34969b0b3657f8d3bf32",
+        "snapshot_revision": "d2a0cc5509d56204238d34969b0b3657f8d3bf32",
+        "revision_matches": true,
+        "integrity_failures": [],
+        "identity_conflicts": [
+          {
+            "severity": "medium",
+            "confidence": "high",
+            "finding": "Pinned upstream CLEVR README contains VQAv2/visualqa statistics and no CLEVR identity.",
+            "impact": "The README cannot substantiate CLEVR dataset facts; pinned config and official metadata must govern.",
+            "remediation": "Retain the byte-exact README for provenance and label it as an upstream card defect."
+          }
+        ],
+        "status": "passed_with_documented_source_issue"
+      },
+      "tiers": [
+        {
+          "tier": "audited_v1",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 128,
+          "columns": 15,
+          "pairs": 64,
+          "unique_sample_ids": 128,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 64,
+          "image_reuse_rate": 0.5,
+          "unique_normalized_questions": 128,
+          "normalized_question_collision_rows": 0,
+          "top_answer_counts": {
+            "no": 29,
+            "yes": 15,
+            "0": 9,
+            "1": 9,
+            "small": 8,
+            "2": 7,
+            "large": 7,
+            "rubber": 7,
+            "metal": 6,
+            "4": 5
+          },
+          "stratum_counts": {
+            "program_edit_distance=1|same_scene=true": 128
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        },
+        {
+          "tier": "cpu_fixture",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 16,
+          "columns": 15,
+          "pairs": 8,
+          "unique_sample_ids": 16,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 16,
+          "image_reuse_rate": 0.0,
+          "unique_normalized_questions": 16,
+          "normalized_question_collision_rows": 0,
+          "top_answer_counts": {
+            "no": 3,
+            "yes": 3,
+            "metal": 2,
+            "0": 2,
+            "gray": 1,
+            "red": 1,
+            "cube": 1,
+            "sphere": 1,
+            "1": 1,
+            "2": 1
+          },
+          "stratum_counts": {
+            "<none>": 16
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        },
+        {
+          "tier": "pilot",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 128,
+          "columns": 15,
+          "pairs": 64,
+          "unique_sample_ids": 128,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 128,
+          "image_reuse_rate": 0.0,
+          "unique_normalized_questions": 128,
+          "normalized_question_collision_rows": 0,
+          "top_answer_counts": {
+            "no": 34,
+            "yes": 20,
+            "1": 10,
+            "2": 10,
+            "0": 9,
+            "rubber": 7,
+            "cylinder": 6,
+            "gray": 5,
+            "metal": 5,
+            "small": 5
+          },
+          "stratum_counts": {
+            "<none>": 128
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "dataset": "gqa_balanced",
+      "source": {
+        "dataset_id": "lmms-lab-encoder/GQA",
+        "configured_revision": "a6e72d6e1b912da88af8b2f9eba05d5ea8ec2dd8",
+        "snapshot_revision": "a6e72d6e1b912da88af8b2f9eba05d5ea8ec2dd8",
+        "revision_matches": true,
+        "integrity_failures": [],
+        "identity_conflicts": [],
+        "status": "passed"
+      },
+      "tiers": [
+        {
+          "tier": "cpu_fixture",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 40,
+          "columns": 15,
+          "pairs": 80,
+          "unique_sample_ids": 40,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 8,
+          "image_reuse_rate": 0.8,
+          "unique_normalized_questions": 40,
+          "normalized_question_collision_rows": 0,
+          "top_answer_counts": {
+            "no": 11,
+            "yes": 5,
+            "phone": 2,
+            "hot dogs": 2,
+            "sink": 2,
+            "speaker": 1,
+            "small": 1,
+            "dark": 1,
+            "cloudy": 1,
+            "purple": 1
+          },
+          "stratum_counts": {
+            "<none>": 40
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        },
+        {
+          "tier": "pilot",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 500,
+          "columns": 15,
+          "pairs": 1000,
+          "unique_sample_ids": 500,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 100,
+          "image_reuse_rate": 0.8,
+          "unique_normalized_questions": 495,
+          "normalized_question_collision_rows": 9,
+          "top_answer_counts": {
+            "no": 105,
+            "yes": 96,
+            "right": 14,
+            "left": 13,
+            "girl": 9,
+            "man": 6,
+            "woman": 5,
+            "chair": 5,
+            "skater": 5,
+            "small": 4
+          },
+          "stratum_counts": {
+            "<none>": 500
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "dataset": "vizwiz_vqa",
+      "source": {
+        "dataset_id": "lmms-lab-encoder/VizWiz-VQA",
+        "configured_revision": "d428a2dae984f79cf1b9d99467dfa883e0c30686",
+        "snapshot_revision": "d428a2dae984f79cf1b9d99467dfa883e0c30686",
+        "revision_matches": true,
+        "integrity_failures": [],
+        "identity_conflicts": [],
+        "status": "passed"
+      },
+      "tiers": [
+        {
+          "tier": "cpu_fixture",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 16,
+          "columns": 15,
+          "pairs": 0,
+          "unique_sample_ids": 16,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 16,
+          "image_reuse_rate": 0.0,
+          "unique_normalized_questions": 16,
+          "normalized_question_collision_rows": 0,
+          "top_answer_counts": {
+            "[\"yes\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"yes\", \"yes\", \"unanswerable\", \"unanswerable\", \"yes\"]": 1,
+            "[\"25389186\", \"25389186 08 07 23:39\", \"25389186\", \"253891186\", \"unanswerable\", \"25389186\", \"25389186 8 07 23:59\", \"25389186\", \"25389186\", \"25389186\"]": 1,
+            "[\"screen black\", \"nothing\", \"nothing\", \"nothing\", \"nothing\", \"triangle\", \"reflection\", \"nothing\", \"nothing\", \"screen blank\"]": 1,
+            "[\"no\", \"no\", \"no\", \"on desktop\", \"desktop\", \"unanswerable\", \"desktop\", \"unanswerable\", \"desktop\", \"no\"]": 1,
+            "[\"unanswerable\", \"partial hand\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"palm\", \"unanswerable\", \"unanswerable\"]": 1,
+            "[\"110\", \"image plurry\", \"104\", \"110\", \"100\", \"unanswerable\", \"10\", \"unanswerable\", \"unanswerable\", \"unanswerable\"]": 1,
+            "[\"lexy\", \"kyle xy\", \"unanswerable\", \"kyle xy final season\", \"kyle xy\", \"dvd\", \"kyle xy\", \"lexy\", \"unanswerable\", \"movie\"]": 1,
+            "[\"no\", \"no\", \"unanswerable\", \"no\", \"no\", \"no\", \"no\", \"no\", \"unanswerable\", \"no\"]": 1,
+            "[\"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\"]": 1,
+            "[\"77 degrees\", \"77\", \"77\", \"77\", \"77 degrees\", \"77\", \"77\", \"77\", \"77\", \"77\"]": 1
+          },
+          "stratum_counts": {
+            "answerable=0|answer_type=unanswerable": 4,
+            "answerable=1|answer_type=number": 4,
+            "answerable=1|answer_type=other": 4,
+            "answerable=1|answer_type=yes/no": 4
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        },
+        {
+          "tier": "pilot",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 500,
+          "columns": 15,
+          "pairs": 0,
+          "unique_sample_ids": 500,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 500,
+          "image_reuse_rate": 0.0,
+          "unique_normalized_questions": 435,
+          "normalized_question_collision_rows": 87,
+          "top_answer_counts": {
+            "[\"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\"]": 20,
+            "[\"yes\", \"yes\", \"yes\", \"yes\", \"yes\", \"yes\", \"yes\", \"yes\", \"yes\", \"yes\"]": 13,
+            "[\"no\", \"no\", \"no\", \"no\", \"no\", \"no\", \"no\", \"no\", \"no\", \"no\"]": 11,
+            "[\"blue\", \"blue\", \"blue\", \"blue\", \"blue\", \"blue\", \"blue\", \"blue\", \"blue\", \"blue\"]": 2,
+            "[\"black\", \"black\", \"black\", \"black\", \"black\", \"black\", \"black\", \"black\", \"black\", \"black\"]": 2,
+            "[\"yes\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"yes\", \"yes\", \"unanswerable\", \"unanswerable\", \"yes\"]": 1,
+            "[\"25389186\", \"25389186 08 07 23:39\", \"25389186\", \"253891186\", \"unanswerable\", \"25389186\", \"25389186 8 07 23:59\", \"25389186\", \"25389186\", \"25389186\"]": 1,
+            "[\"screen black\", \"nothing\", \"nothing\", \"nothing\", \"nothing\", \"triangle\", \"reflection\", \"nothing\", \"nothing\", \"screen blank\"]": 1,
+            "[\"no\", \"no\", \"no\", \"on desktop\", \"desktop\", \"unanswerable\", \"desktop\", \"unanswerable\", \"desktop\", \"no\"]": 1,
+            "[\"unanswerable\", \"partial hand\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"unanswerable\", \"palm\", \"unanswerable\", \"unanswerable\"]": 1
+          },
+          "stratum_counts": {
+            "answerable=0|answer_type=unanswerable": 151,
+            "answerable=1|answer_type=other": 151,
+            "answerable=1|answer_type=yes/no": 150,
+            "answerable=1|answer_type=number": 48
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "dataset": "vqav2",
+      "source": {
+        "dataset_id": "lmms-lab-encoder/VQAv2",
+        "configured_revision": "32665d35052eb4a6d4414851c3c829a72754915a",
+        "snapshot_revision": "32665d35052eb4a6d4414851c3c829a72754915a",
+        "revision_matches": true,
+        "integrity_failures": [],
+        "identity_conflicts": [],
+        "status": "passed"
+      },
+      "tiers": [
+        {
+          "tier": "cpu_fixture",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 16,
+          "columns": 15,
+          "pairs": 8,
+          "unique_sample_ids": 16,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 16,
+          "image_reuse_rate": 0.0,
+          "unique_normalized_questions": 8,
+          "normalized_question_collision_rows": 16,
+          "top_answer_counts": {
+            "no": 3,
+            "yes": 3,
+            "towel": 1,
+            "cat": 1,
+            "soccer": 1,
+            "none": 1,
+            "toilet paper": 1,
+            "wall": 1,
+            "couch": 1,
+            "laptop": 1
+          },
+          "stratum_counts": {
+            "<none>": 16
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        },
+        {
+          "tier": "gpu_smoke",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 16,
+          "columns": 15,
+          "pairs": 8,
+          "unique_sample_ids": 16,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 16,
+          "image_reuse_rate": 0.0,
+          "unique_normalized_questions": 8,
+          "normalized_question_collision_rows": 16,
+          "top_answer_counts": {
+            "no": 3,
+            "yes": 3,
+            "towel": 1,
+            "cat": 1,
+            "soccer": 1,
+            "none": 1,
+            "toilet paper": 1,
+            "wall": 1,
+            "couch": 1,
+            "laptop": 1
+          },
+          "stratum_counts": {
+            "<none>": 16
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        },
+        {
+          "tier": "pilot",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 500,
+          "columns": 15,
+          "pairs": 250,
+          "unique_sample_ids": 500,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 493,
+          "image_reuse_rate": 0.014000000000000012,
+          "unique_normalized_questions": 250,
+          "normalized_question_collision_rows": 500,
+          "top_answer_counts": {
+            "yes": 113,
+            "no": 101,
+            "1": 11,
+            "3": 9,
+            "2": 9,
+            "white": 8,
+            "man": 5,
+            "yellow": 5,
+            "blue": 5,
+            "pink": 4
+          },
+          "stratum_counts": {
+            "<none>": 500
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

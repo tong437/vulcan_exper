@@ -1,0 +1,45 @@
+name: clevr
+dataset_id: HuggingFaceM4/clevr
+revision: d2a0cc5509d56204238d34969b0b3657f8d3bf32
+config: default
+split: validation
+license: cc-by-4.0
+columns:
+  sample_id: question_index
+  image_id: image_index
+  image: image
+  question: question
+  answer: answer
+  program: program
+  question_family: question_family_index
+metadata:
+  archive_url: https://dl.fbaipublicfiles.com/clevr/CLEVR_v1.0_no_images.zip
+  max_download_bytes: 125000000
+images:
+  source: clevr_v1_validation
+  archive_url: https://dl.fbaipublicfiles.com/clevr/CLEVR_v1.0.zip
+  archive_member_template: CLEVR_v1.0/images/val/CLEVR_val_{image_id:06d}.png
+  allow_full_download: false
+  materialize_selected_only: true
+  max_materialized_bytes: 1000000000
+pairing:
+  global:
+    kind: all_ordered
+    include_self: true
+  controlled:
+    kind: minimal_program_or_scene_edit
+    group_by: question_family
+    audit_required: true
+    note: Candidate pairs must be verified from functional programs and scene graphs before causal interpretation.
+  audited_v1:
+    kind: same_scene_minimal_program_edit_v1
+    group_by: image_id
+    program_distance: 1
+    distance: levenshtein_over_function_value_inputs_and_relative_dependency_edges
+    disjoint_samples: true
+    audit_required: false
+sampling:
+  seed: 42
+  strategy: deterministic_group_hash
+  pilot_groups: 64
+  samples_per_group: 2

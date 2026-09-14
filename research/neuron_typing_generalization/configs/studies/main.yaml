@@ -1,0 +1,42 @@
+name: neuron_typing_generalization_main
+artifact_root: artifacts/neuron_typing_generalization
+
+models:
+  - ../models/llava_1_5_7b.yaml
+  - ../models/qwen3_5_2b.yaml
+  - ../models/gemma_4_e2b_it.yaml
+
+datasets:
+  - ../datasets/vqav2.yaml
+  - ../datasets/gqa_balanced.yaml
+  - ../datasets/clevr.yaml
+  - ../datasets/vizwiz_vqa.yaml
+
+metrics:
+  - ../metrics/down_projection_weighted_rms.yaml
+
+seeds: [42]
+
+sampling:
+  preserve_dataset_order: true
+  require_frozen_manifest: true
+  require_pair_manifest: true
+  materialize_selected_images_only: true
+  manifest_tier: pilot
+
+classification:
+  method: uniform_importance_share
+  threshold: 1_over_d_ff
+  comparison: strict_greater_than
+  invalid_policy: mark_invalid
+
+pairwise_analysis:
+  global_pairs: all_ordered_including_self
+  also_report_distinct_pairs: true
+  controlled_pairs_from_manifest: true
+  max_pair_chunk_size: 64
+
+stability_analysis:
+  entropy_base: natural
+  report_normalized_entropy: true
+  transitions_from_pair_manifest_only: true
