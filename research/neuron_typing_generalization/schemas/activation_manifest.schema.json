@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reduced activation collection manifest",
+  "type": "object",
+  "required": [
+    "run_id", "samples", "layers", "d_ff", "rows", "statistics_file", "statistics_sha256",
+    "raw_token_activations_retained"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "samples": {"type": "integer", "minimum": 1},
+    "layers": {"type": "integer", "minimum": 1},
+    "d_ff": {"type": "integer", "minimum": 1},
+    "rows": {"type": "integer", "minimum": 1},
+    "statistics_file": {"type": "string", "minLength": 1},
+    "statistics_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "raw_token_activations_retained": {"const": false}
+  },
+  "additionalProperties": false
+}

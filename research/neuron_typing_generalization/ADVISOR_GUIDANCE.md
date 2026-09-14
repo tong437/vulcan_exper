@@ -70,6 +70,12 @@ class counts rather than materializing an `N x N` pair table. Also report:
 Invalid observations are excluded explicitly. Reports must state the valid denominator whenever invalid observations
 occur; they must not mix estimands with different denominators without disclosure.
 
+Concretely, for one neuron with valid sample count `n` and class counts `n_c`, the changed ordered-comparison count is
+`n^2 - sum_c(n_c^2)`. Its including-self denominator is `n^2`, and its distinct-pair denominator is `n(n-1)`.
+Overall and per-layer rates are ratios of summed changed counts to summed valid denominators. They are not unweighted
+averages of per-neuron rates when neurons have different valid sample counts. The changed numerator is identical for
+the including-self and distinct-pair estimands because a self-pair never changes class.
+
 ## 4. Stability summaries
 
 For every `(layer, neuron)`, report valid-sample counts, class counts and proportions, entropy, normalized entropy,

@@ -35,6 +35,14 @@ class ChangeRateSummary:
     distinct_pairs: float
     per_layer_including_self: NDArray[np.float64]
     per_layer_distinct_pairs: NDArray[np.float64]
+    including_self_changed: int
+    including_self_comparisons: int
+    distinct_pairs_changed: int
+    distinct_pair_comparisons: int
+    per_layer_including_self_changed: NDArray[np.int64]
+    per_layer_including_self_comparisons: NDArray[np.int64]
+    per_layer_distinct_pairs_changed: NDArray[np.int64]
+    per_layer_distinct_pair_comparisons: NDArray[np.int64]
 
 
 @dataclass(frozen=True)
@@ -74,31 +82,45 @@ def _validate_classes(classes: ClassArray) -> NDArray[np.int64]:
 def change_rates_from_counts(classes: ClassArray) -> ChangeRateSummary:
     """Compute study-wide mismatch rates without materializing all N-squared pairs."""
     values = _validate_classes(classes)
-    valid_counts = np.count_nonzero(values != INVALID_CLASS, axis=0).astype(np.float64)
+    valid_counts = np.count_nonzero(values != INVALID_CLASS, axis=0).astype(np.int64)
     class_counts = np.stack(
         [np.count_nonzero(values == class_id, axis=0) for class_id in range(len(CLASS_LABELS))], axis=-1
-    ).astype(np.float64)
+    ).astype(np.int64)
     squared_counts = np.square(class_counts).sum(axis=-1)
-    including = 1.0 - np.divide(
-        squared_counts,
-        np.square(valid_counts),
-        out=np.full(valid_counts.shape, np.nan, dtype=np.float64),
-        where=valid_counts > 0,
+    mismatch_counts = np.square(valid_counts) - squared_counts
+    including_denominators = np.square(valid_counts)
+    distinct_denominators = valid_counts * (valid_counts - 1)
+    per_layer_changed = mismatch_counts.sum(axis=1, dtype=np.int64)
+    per_layer_including_denominators = including_denominators.sum(axis=1, dtype=np.int64)
+    per_layer_distinct_denominators = distinct_denominators.sum(axis=1, dtype=np.int64)
+    per_layer_including = np.divide(
+        per_layer_changed,
+        per_layer_including_denominators,
+        out=np.full(values.shape[1], np.nan, dtype=np.float64),
+        where=per_layer_including_denominators > 0,
     )
-    distinct = np.divide(
-        np.square(valid_counts) - squared_counts,
-        valid_counts * (valid_counts - 1),
-        out=np.full(valid_counts.shape, np.nan, dtype=np.float64),
-        where=valid_counts > 1,
+    per_layer_distinct = np.divide(
+        per_layer_changed,
+        per_layer_distinct_denominators,
+        out=np.full(values.shape[1], np.nan, dtype=np.float64),
+        where=per_layer_distinct_denominators > 0,
     )
-
-    per_layer_including = np.nanmean(including, axis=1)
-    per_layer_distinct = np.nanmean(distinct, axis=1)
+    including_changed = int(per_layer_changed.sum())
+    including_comparisons = int(per_layer_including_denominators.sum())
+    distinct_comparisons = int(per_layer_distinct_denominators.sum())
     return ChangeRateSummary(
-        including_self=float(np.nanmean(per_layer_including)),
-        distinct_pairs=float(np.nanmean(per_layer_distinct)),
+        including_self=including_changed / including_comparisons if including_comparisons else float("nan"),
+        distinct_pairs=including_changed / distinct_comparisons if distinct_comparisons else float("nan"),
         per_layer_including_self=per_layer_including,
         per_layer_distinct_pairs=per_layer_distinct,
+        including_self_changed=including_changed,
+        including_self_comparisons=including_comparisons,
+        distinct_pairs_changed=including_changed,
+        distinct_pair_comparisons=distinct_comparisons,
+        per_layer_including_self_changed=per_layer_changed,
+        per_layer_including_self_comparisons=per_layer_including_denominators,
+        per_layer_distinct_pairs_changed=per_layer_changed.copy(),
+        per_layer_distinct_pair_comparisons=per_layer_distinct_denominators,
     )
 
 

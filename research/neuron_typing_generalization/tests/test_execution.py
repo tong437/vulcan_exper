@@ -62,3 +62,5 @@ def test_cpu_postprocessing_stages_write_contract_outputs(tmp_path: Path):
     assert (tmp_path / "distributions/transition_matrices.npy").is_file()
     summary = json.loads((tmp_path / "metrics/summary.json").read_text())
     assert summary["overall_change_rate_distinct_pairs"] == 1.0
+    assert summary["overall_changed_ordered_comparisons"] == 4
+    assert summary["overall_valid_ordered_comparisons_including_self"] == 8

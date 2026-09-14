@@ -4,15 +4,34 @@
   "type": "object",
   "required": [
     "run_id", "sample_count", "overall_change_rate_including_self", "overall_change_rate_distinct_pairs",
-    "per_layer_change_rate_including_self", "per_layer_change_rate_distinct_pairs", "maximum_pair"
+    "per_layer_change_rate_including_self", "per_layer_change_rate_distinct_pairs",
+    "overall_changed_ordered_comparisons", "overall_valid_ordered_comparisons_including_self",
+    "overall_changed_distinct_ordered_comparisons", "overall_valid_distinct_ordered_comparisons",
+    "per_layer_changed_ordered_comparisons", "per_layer_valid_ordered_comparisons_including_self",
+    "per_layer_changed_distinct_ordered_comparisons", "per_layer_valid_distinct_ordered_comparisons",
+    "maximum_pair"
   ],
   "properties": {
     "run_id": {"type": "string"},
     "sample_count": {"type": "integer", "minimum": 1},
-    "overall_change_rate_including_self": {"type": "number", "minimum": 0, "maximum": 1},
+    "overall_change_rate_including_self": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
     "overall_change_rate_distinct_pairs": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-    "per_layer_change_rate_including_self": {"type": "array", "items": {"type": "number"}},
+    "per_layer_change_rate_including_self": {"type": "array", "items": {"type": ["number", "null"]}},
     "per_layer_change_rate_distinct_pairs": {"type": "array", "items": {"type": ["number", "null"]}},
+    "overall_changed_ordered_comparisons": {"type": "integer", "minimum": 0},
+    "overall_valid_ordered_comparisons_including_self": {"type": "integer", "minimum": 0},
+    "overall_changed_distinct_ordered_comparisons": {"type": "integer", "minimum": 0},
+    "overall_valid_distinct_ordered_comparisons": {"type": "integer", "minimum": 0},
+    "per_layer_changed_ordered_comparisons": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+    "per_layer_valid_ordered_comparisons_including_self": {
+      "type": "array", "items": {"type": "integer", "minimum": 0}
+    },
+    "per_layer_changed_distinct_ordered_comparisons": {
+      "type": "array", "items": {"type": "integer", "minimum": 0}
+    },
+    "per_layer_valid_distinct_ordered_comparisons": {
+      "type": "array", "items": {"type": "integer", "minimum": 0}
+    },
     "maximum_pair": {
       "type": "object",
       "required": ["left_sample_id", "right_sample_id", "change_rate", "valid_neurons"],

@@ -12,9 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
+import json
+import sys
+from pathlib import Path
+
 import _bootstrap  # noqa: F401
+from neuron_typing_generalization.execution import compute_importance_run
 from neuron_typing_generalization.planning import run_stage_cli
 
 
+def main() -> None:
+    if "--run-dir" not in sys.argv:
+        run_stage_cli("compute_importance")
+        return
+    parser = argparse.ArgumentParser(description="Compute normalized importance from reduced activation statistics.")
+    parser.add_argument("--run-dir", type=Path, required=True)
+    args = parser.parse_args()
+    print(json.dumps(compute_importance_run(args.run_dir.resolve()), indent=2))
+
+
 if __name__ == "__main__":
-    run_stage_cli("compute_importance")
+    main()

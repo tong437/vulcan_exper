@@ -62,7 +62,13 @@ def validate_frame(frame: pd.DataFrame, schema_name: str) -> None:
     """Validate a complete DataFrame and schema-specific cross-column invariants."""
     records = frame.to_dict(orient="records")
     validate_records(records, schema_name)
-    if schema_name == "neuron_scores.schema.json":
+    if schema_name == "activation_stats.schema.json":
+        for index, row in enumerate(records):
+            if bool(row["valid"]) and pd.isna(row["activation_rms"]):
+                raise ValueError(f"Valid activation row {index} must contain finite activation_rms.")
+            if not bool(row["valid"]) and not pd.isna(row["activation_rms"]):
+                raise ValueError(f"Invalid activation row {index} must have null activation_rms.")
+    elif schema_name == "neuron_scores.schema.json":
         for index, row in enumerate(records):
             if bool(row["valid"]) and any(pd.isna(row[key]) for key in ("activation_rms", "importance", "q")):
                 raise ValueError(f"Valid score row {index} must contain finite activation_rms, importance, and q.")
@@ -107,3 +113,47 @@ def validate_document(document: dict[str, Any], schema_name: str) -> None:
         distinct = document["per_layer_change_rate_distinct_pairs"]
         if len(including) != len(distinct) or not including:
             raise ValueError("Per-layer summary arrays must be nonempty and have identical lengths.")
+        count_arrays = [
+            document["per_layer_changed_ordered_comparisons"],
+            document["per_layer_valid_ordered_comparisons_including_self"],
+            document["per_layer_changed_distinct_ordered_comparisons"],
+            document["per_layer_valid_distinct_ordered_comparisons"],
+        ]
+        if any(len(values) != len(including) for values in count_arrays):
+            raise ValueError("Every per-layer rate and count array must have the same length.")
+        changed = int(document["overall_changed_ordered_comparisons"])
+        changed_distinct = int(document["overall_changed_distinct_ordered_comparisons"])
+        if changed != changed_distinct:
+            raise ValueError(
+                "Including-self and distinct-pair changed counts must match because self-pairs never change."
+            )
+        including_denominator = int(document["overall_valid_ordered_comparisons_including_self"])
+        distinct_denominator = int(document["overall_valid_distinct_ordered_comparisons"])
+        including_rate = document["overall_change_rate_including_self"]
+        if including_denominator and (
+            including_rate is None or not math.isclose(including_rate, changed / including_denominator, abs_tol=1e-12)
+        ):
+            raise ValueError("Overall including-self rate disagrees with its count denominator.")
+        if not including_denominator and including_rate is not None:
+            raise ValueError("Overall including-self rate must be null when its denominator is zero.")
+        distinct_rate = document["overall_change_rate_distinct_pairs"]
+        if distinct_denominator and (
+            distinct_rate is None or not math.isclose(distinct_rate, changed / distinct_denominator, abs_tol=1e-12)
+        ):
+            raise ValueError("Overall distinct-pair rate disagrees with its count denominator.")
+        if not distinct_denominator and distinct_rate is not None:
+            raise ValueError("Overall distinct-pair rate must be null when its denominator is zero.")
+        if sum(count_arrays[0]) != changed or sum(count_arrays[1]) != including_denominator:
+            raise ValueError("Overall including-self counts must equal the sum of per-layer counts.")
+        if sum(count_arrays[2]) != changed_distinct or sum(count_arrays[3]) != distinct_denominator:
+            raise ValueError("Overall distinct-pair counts must equal the sum of per-layer counts.")
+        for index, (rate, numerator, denominator) in enumerate(zip(including, count_arrays[0], count_arrays[1])):
+            if denominator and (rate is None or not math.isclose(rate, numerator / denominator, abs_tol=1e-12)):
+                raise ValueError(f"Layer {index} including-self rate disagrees with its counts.")
+            if not denominator and rate is not None:
+                raise ValueError(f"Layer {index} including-self rate must be null for a zero denominator.")
+        for index, (rate, numerator, denominator) in enumerate(zip(distinct, count_arrays[2], count_arrays[3])):
+            if denominator and (rate is None or not math.isclose(rate, numerator / denominator, abs_tol=1e-12)):
+                raise ValueError(f"Layer {index} distinct-pair rate disagrees with its counts.")
+            if not denominator and rate is not None:
+                raise ValueError(f"Layer {index} distinct-pair rate must be null for a zero denominator.")

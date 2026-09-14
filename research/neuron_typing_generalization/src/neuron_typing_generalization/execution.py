@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import tempfile
@@ -37,6 +38,70 @@ def _write_parquet_atomic(frame: pd.DataFrame, destination: Path) -> None:
         os.replace(temporary_path, destination)
     finally:
         temporary_path.unlink(missing_ok=True)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def compute_importance_run(run_dir: Path) -> dict[str, int | str]:
+    """Convert reduced activation statistics into normalized sample-level importance scores."""
+    activation_path = run_dir / "activations/neuron_activation_stats.parquet"
+    manifest = json.loads((run_dir / "activations/manifest.json").read_text(encoding="utf-8"))
+    validate_document(manifest, "activation_manifest.schema.json")
+    if manifest["statistics_file"] != "activations/neuron_activation_stats.parquet":
+        raise ValueError("Activation manifest points outside the fixed stage contract.")
+    if _sha256(activation_path) != manifest["statistics_sha256"]:
+        raise RuntimeError("Reduced activation statistics digest does not match its manifest.")
+    statistics = pd.read_parquet(activation_path)
+    required = {
+        "run_id",
+        "sample_id",
+        "model",
+        "dataset",
+        "layer",
+        "neuron",
+        "modality",
+        "token_count",
+        "activation_rms",
+        "down_projection_norm",
+        "valid",
+    }
+    missing = sorted(required - set(statistics.columns))
+    if missing:
+        raise ValueError(f"Activation statistics are missing columns: {missing}")
+    validate_frame(statistics, "activation_stats.schema.json")
+    activation_keys = ["run_id", "sample_id", "model", "dataset", "layer", "neuron", "modality"]
+    if statistics.duplicated(activation_keys).any():
+        raise ValueError("Activation statistics contain duplicate sample/layer/neuron/modality rows.")
+    observed_run_ids = set(statistics["run_id"].astype(str))
+    if observed_run_ids != {str(manifest["run_id"])}:
+        raise ValueError("Activation rows do not have the run_id declared by their manifest.")
+    observed_neurons = sorted(int(value) for value in statistics["neuron"].unique())
+    if observed_neurons != list(range(int(manifest["d_ff"]))):
+        raise ValueError("Activation neuron IDs do not match the manifest d_ff.")
+    if (
+        len(statistics) != int(manifest["rows"])
+        or statistics["sample_id"].nunique() != int(manifest["samples"])
+        or statistics["layer"].nunique() != int(manifest["layers"])
+    ):
+        raise ValueError("Activation row/sample/layer cardinality disagrees with its manifest.")
+    scores = statistics.copy()
+    scores["importance"] = scores["activation_rms"] * scores["down_projection_norm"]
+    group_keys = ["run_id", "sample_id", "model", "dataset", "layer", "modality"]
+    denominator = scores.groupby(group_keys, sort=False)["importance"].transform("sum")
+    slice_valid = scores.groupby(group_keys, sort=False)["valid"].transform("all") & denominator.gt(0)
+    scores["valid"] = scores["valid"].astype(bool) & slice_valid
+    scores["importance"] = scores["importance"].where(scores["valid"])
+    scores["q"] = scores["importance"].div(denominator).where(scores["valid"])
+    validate_frame(scores, "neuron_scores.schema.json")
+    output = run_dir / "scores/neuron_scores.parquet"
+    _write_parquet_atomic(scores, output)
+    return {"stage": "compute_importance", "score_rows": len(scores), "output": str(output)}
 
 
 def classify_run(run_dir: Path) -> dict[str, int | str]:

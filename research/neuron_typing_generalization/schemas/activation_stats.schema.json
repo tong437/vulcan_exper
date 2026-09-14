@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reduced per-sample activation statistic row",
+  "type": "object",
+  "required": [
+    "run_id", "sample_id", "model", "dataset", "layer", "neuron", "modality", "token_count",
+    "activation_rms", "down_projection_norm", "valid"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "sample_id": {"type": "string", "minLength": 1},
+    "model": {"type": "string", "minLength": 1},
+    "dataset": {"type": "string", "minLength": 1},
+    "layer": {"type": "integer", "minimum": 0},
+    "neuron": {"type": "integer", "minimum": 0},
+    "modality": {"enum": ["visual", "text"]},
+    "token_count": {"type": "integer", "minimum": 0},
+    "activation_rms": {"type": ["number", "null"], "minimum": 0},
+    "down_projection_norm": {"type": "number", "minimum": 0},
+    "valid": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

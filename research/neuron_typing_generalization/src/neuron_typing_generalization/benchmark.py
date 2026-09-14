@@ -59,6 +59,10 @@ def run_scale_benchmark(
         "class_tensor_bytes": int(classes.nbytes),
         "invalid_observations": int(invalid_mask.sum()),
         "change_rate_including_self": rates.including_self,
+        "changed_ordered_comparisons": rates.including_self_changed,
+        "valid_ordered_comparisons_including_self": rates.including_self_comparisons,
+        "change_rate_distinct_pairs": rates.distinct_pairs,
+        "valid_distinct_ordered_comparisons": rates.distinct_pair_comparisons,
         "maximum_pair": {
             "left": maximum.left,
             "right": maximum.right,

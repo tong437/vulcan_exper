@@ -41,6 +41,32 @@ def test_count_formula_matches_brute_force_with_and_without_self_pairs():
     assert result.including_self == pytest.approx(_brute_force(classes, include_self=True))
     assert result.distinct_pairs == pytest.approx(_brute_force(classes, include_self=False))
     assert result.per_layer_including_self.shape == (2,)
+    assert result.including_self_changed == 12
+    assert result.including_self_comparisons == 36
+    assert result.distinct_pair_comparisons == 24
+
+
+def test_count_formula_uses_total_valid_comparisons_when_invalid_counts_differ():
+    classes = np.array([[[0, 0]], [[1, -1]], [[1, -1]]])
+    result = change_rates_from_counts(classes)
+
+    # Neuron 0: 4 changed / 9 including-self comparisons. Neuron 1: 0 / 1.
+    assert result.including_self_changed == 4
+    assert result.including_self_comparisons == 10
+    assert result.including_self == pytest.approx(0.4)
+    # Only neuron 0 has distinct valid comparisons: 4 changed / 6 comparisons.
+    assert result.distinct_pair_comparisons == 6
+    assert result.distinct_pairs == pytest.approx(2 / 3)
+
+
+def test_count_formula_marks_a_layer_without_valid_comparisons_as_nan():
+    classes = np.array([[[0], [-1]], [[1], [-1]]])
+    result = change_rates_from_counts(classes)
+
+    assert result.per_layer_including_self[0] == pytest.approx(0.5)
+    assert np.isnan(result.per_layer_including_self[1])
+    assert result.per_layer_including_self_comparisons.tolist() == [4, 0]
+    assert result.per_layer_distinct_pair_comparisons.tolist() == [2, 0]
 
 
 def test_pair_change_rate_excludes_invalid_neurons():

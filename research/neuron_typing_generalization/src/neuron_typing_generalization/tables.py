@@ -32,6 +32,10 @@ from .importance import CLASS_LABELS, INVALID_CLASS
 SCORE_KEYS = ["run_id", "sample_id", "model", "dataset", "layer", "neuron"]
 
 
+def _finite_float_or_none(value: float) -> float | None:
+    return float(value) if np.isfinite(value) else None
+
+
 def classify_score_table(scores: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Normalize long-form importance rows and create sample-conditional classes."""
     required = set(SCORE_KEYS) | {
@@ -125,10 +129,22 @@ def analyze_class_table(
     summary = {
         "run_id": run_id,
         "sample_count": len(sample_ids),
-        "overall_change_rate_including_self": rates.including_self,
-        "overall_change_rate_distinct_pairs": rates.distinct_pairs,
-        "per_layer_change_rate_including_self": rates.per_layer_including_self.tolist(),
-        "per_layer_change_rate_distinct_pairs": rates.per_layer_distinct_pairs.tolist(),
+        "overall_change_rate_including_self": _finite_float_or_none(rates.including_self),
+        "overall_change_rate_distinct_pairs": _finite_float_or_none(rates.distinct_pairs),
+        "per_layer_change_rate_including_self": [
+            _finite_float_or_none(value) for value in rates.per_layer_including_self
+        ],
+        "per_layer_change_rate_distinct_pairs": [
+            _finite_float_or_none(value) for value in rates.per_layer_distinct_pairs
+        ],
+        "overall_changed_ordered_comparisons": rates.including_self_changed,
+        "overall_valid_ordered_comparisons_including_self": rates.including_self_comparisons,
+        "overall_changed_distinct_ordered_comparisons": rates.distinct_pairs_changed,
+        "overall_valid_distinct_ordered_comparisons": rates.distinct_pair_comparisons,
+        "per_layer_changed_ordered_comparisons": rates.per_layer_including_self_changed.tolist(),
+        "per_layer_valid_ordered_comparisons_including_self": (rates.per_layer_including_self_comparisons.tolist()),
+        "per_layer_changed_distinct_ordered_comparisons": rates.per_layer_distinct_pairs_changed.tolist(),
+        "per_layer_valid_distinct_ordered_comparisons": rates.per_layer_distinct_pair_comparisons.tolist(),
         "maximum_pair": {
             "left_sample_id": sample_ids[maximum.left],
             "right_sample_id": sample_ids[maximum.right],

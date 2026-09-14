@@ -66,10 +66,11 @@ python research/neuron_typing_generalization/pipelines/audit_cpu_ready.py
 | Module | Responsibility |
 |---|---|
 | `importance.py` | weighted RMS, q normalization, strict four-way classification, mask validation |
-| `analysis.py` | count-based overall/per-layer change rates, chunked maximum pair, stability, entropy, transitions |
+| `analysis.py` | denominator-explicit count-based change rates, chunked maximum pair, stability, entropy, transitions |
 | `tables.py` | long-form score normalization and score → class → analysis table bridge |
 | `hooks.py` | decoder FFN discovery, `down_proj` pre-hooks, token spans, immediate streaming reduction |
 | `adapters.py` | config-only Qwen3.5/LLaVA/Gemma layouts and processor-expanded token-role masks |
+| `collection.py` | injected-model execution and immediate per-sample RMS/down-norm persistence |
 | `sources.py` | size-bounded pinned metadata acquisition |
 | `manifests.py` | deterministic grouping/sampling and immutable manifests |
 | `materialize.py` | selected-image materialization and integrity records |
@@ -82,8 +83,8 @@ token-by-neuron tensors.
 
 ## Pipeline contracts
 
-1. `collect_activations`: requires frozen sample/pair manifests; captures and streams post-gating statistics.
-2. `compute_importance`: writes sample/layer/neuron/modality scores.
+1. `collect_activations`: requires frozen sample/pair manifests; captures and streams reduced post-gating statistics.
+2. `compute_importance`: verifies the activation digest and writes normalized sample/layer/neuron/modality scores.
 3. `classify_neurons`: derives V/T/M/W from visual/text q values.
 4. `compare_distributions`: computes controlled pair changes and cross-sample neuron profiles.
 5. `evaluate`: writes overall/per-layer rates, maximum pair, transitions, and figure manifests.
@@ -98,6 +99,22 @@ python research/neuron_typing_generalization/pipelines/classify_neurons.py --run
 python research/neuron_typing_generalization/pipelines/compare_distributions.py --run-dir /absolute/run/directory
 python research/neuron_typing_generalization/pipelines/evaluate.py --run-dir /absolute/run/directory
 ```
+
+The complete pre-GPU path can be exercised with an injected deterministic CPU model. It uses the production hook,
+reduction, schemas, digests, importance normalization, classification, and analysis code without loading model weights:
+
+```bash
+python research/neuron_typing_generalization/pipelines/collect_activations.py \
+  --run-dir /absolute/initialized/run --synthetic-fixture
+python research/neuron_typing_generalization/pipelines/compute_importance.py \
+  --run-dir /absolute/initialized/run
+python research/neuron_typing_generalization/pipelines/classify_neurons.py --run-dir /absolute/initialized/run
+python research/neuron_typing_generalization/pipelines/compare_distributions.py --run-dir /absolute/initialized/run
+python research/neuron_typing_generalization/pipelines/evaluate.py --run-dir /absolute/initialized/run
+```
+
+The summary records both rates and their overall/per-layer changed-count and valid-comparison denominators. With invalid
+observations, aggregation is `sum(changed) / sum(valid comparisons)`, never an unweighted mean of neuron-local rates.
 
 Inspect the 12-run matrix:
 
