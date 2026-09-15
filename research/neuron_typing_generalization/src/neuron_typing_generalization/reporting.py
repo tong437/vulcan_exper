@@ -43,7 +43,7 @@ def _sha256(path: Path) -> str:
 
 def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
 def _controlled_arrays(changes: pd.DataFrame) -> tuple[list[int], np.ndarray, np.ndarray, pd.DataFrame]:
@@ -498,6 +498,8 @@ def build_unified_multidataset_report(
         reproducibility = json.loads((run_dir / "metrics/reproducibility.json").read_text(encoding="utf-8"))
         cohorts = pd.read_parquet(run_dir / "distributions/cohort_summary.parquet")
         cohort_overall = cohorts[cohorts["layer"].isna()].to_dict(orient="records") if len(cohorts) else []
+        for cohort in cohort_overall:
+            cohort["layer"] = None
         records.append(
             {
                 "run_dir": str(run_dir.resolve()),
