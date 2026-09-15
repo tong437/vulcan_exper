@@ -527,6 +527,7 @@ def build_unified_multidataset_report(
             "Response classes are sample-conditional descriptive states, not immutable neuron identities.",
             "M does not establish causal cross-modal interaction; W does not mean inactive.",
             "GQA bootstrap units are 100 image-level pair groups, not 1,000 independent edges.",
+            "GQA and CLEVR controlled rates are not directly comparable because their pairing interventions differ.",
             "VizWiz cohorts are observational and do not define controlled counterfactual pairs.",
             "The experiment has one seed; cross-seed uncertainty remains unmeasured.",
         ],
