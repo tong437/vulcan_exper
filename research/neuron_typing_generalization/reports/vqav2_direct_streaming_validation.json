@@ -1,0 +1,1980 @@
+{
+  "status": "passed",
+  "method": "same-forward direct retained activation versus immediate streaming reduction",
+  "models": [
+    {
+      "status": "passed",
+      "layers_checked": 24,
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 1e-05,
+      "maximum_rms_absolute_error": 9.5367431640625e-07,
+      "maximum_rms_relative_error": 2.3433784690496395e-07,
+      "raw_activations_retained_after_check": false,
+      "layers": [
+        {
+          "layer": 0,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 2.0069424522262125e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.5311675838347583e-07
+            }
+          }
+        },
+        {
+          "layer": 1,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.999628125304298e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.562510192343325e-07
+            }
+          }
+        },
+        {
+          "layer": 2,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.03670524001609e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.4901161193847656e-08,
+              "maximum_rms_relative_error": 1.557431517085206e-07
+            }
+          }
+        },
+        {
+          "layer": 3,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 2.015557072354568e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5042799361708603e-07
+            }
+          }
+        },
+        {
+          "layer": 4,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.124928784041913e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.427279130439274e-07
+            }
+          }
+        },
+        {
+          "layer": 5,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.1127360128048167e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.54732546775449e-07
+            }
+          }
+        },
+        {
+          "layer": 6,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.1436287056531e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.4494520428343094e-07
+            }
+          }
+        },
+        {
+          "layer": 7,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 2.2809530264567002e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5555727372884576e-07
+            }
+          }
+        },
+        {
+          "layer": 8,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.9851020738315128e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.5551844967376383e-07
+            }
+          }
+        },
+        {
+          "layer": 9,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 2.2141628619465337e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.7586172873507167e-07
+            }
+          }
+        },
+        {
+          "layer": 10,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.983006399086662e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.3619884953186556e-07
+            }
+          }
+        },
+        {
+          "layer": 11,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.3433784690496395e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.547581547356458e-07
+            }
+          }
+        },
+        {
+          "layer": 12,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 2.315463945024021e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.4900422229402466e-07
+            }
+          }
+        },
+        {
+          "layer": 13,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.9318096633469395e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.556061164365019e-07
+            }
+          }
+        },
+        {
+          "layer": 14,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.9501642611885472e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5550315879409027e-07
+            }
+          }
+        },
+        {
+          "layer": 15,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.0127221489474323e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.558266262691177e-07
+            }
+          }
+        },
+        {
+          "layer": 16,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.2638747054770647e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.5506898876083142e-07
+            }
+          }
+        },
+        {
+          "layer": 17,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.9870235234975553e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.4782156654291612e-07
+            }
+          }
+        },
+        {
+          "layer": 18,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.2454310055763926e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.5447587031758303e-07
+            }
+          }
+        },
+        {
+          "layer": 19,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.1393420013282594e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 1.46980141835229e-07
+            }
+          }
+        },
+        {
+          "layer": 20,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.097400795264548e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.5566165245672892e-07
+            }
+          }
+        },
+        {
+          "layer": 21,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.02420579853424e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.4829389272108529e-07
+            }
+          }
+        },
+        {
+          "layer": 22,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 9.5367431640625e-07,
+              "maximum_rms_relative_error": 2.1256725801777065e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.4672711756702483e-07
+            }
+          }
+        },
+        {
+          "layer": 23,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.0248235443887097e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 1.5105150907857023e-07
+            }
+          }
+        }
+      ],
+      "run_id": "qwen3_5_2b__vqav2__seed42__eaa4e9eed8",
+      "model": "qwen3_5_2b",
+      "model_revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+      "dataset": "vqav2",
+      "dataset_revision": "32665d35052eb4a6d4414851c3c829a72754915a",
+      "sample_id": "415958003",
+      "device": "cuda:0",
+      "dtype": "bfloat16",
+      "torch": "2.6.0+cu124",
+      "transformers": "5.6.0"
+    },
+    {
+      "status": "passed",
+      "layers_checked": 35,
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 1e-05,
+      "maximum_rms_absolute_error": 1.9073486328125e-06,
+      "maximum_rms_relative_error": 2.52860587579562e-07,
+      "raw_activations_retained_after_check": false,
+      "layers": [
+        {
+          "layer": 0,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.2966412416280946e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.9073486328125e-06,
+              "maximum_rms_relative_error": 1.5448969747922092e-07
+            }
+          }
+        },
+        {
+          "layer": 1,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 9.5367431640625e-07,
+              "maximum_rms_relative_error": 2.52860587579562e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 1.5390203600418317e-07
+            }
+          }
+        },
+        {
+          "layer": 2,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.192213059970527e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 1.5161798216922762e-07
+            }
+          }
+        },
+        {
+          "layer": 3,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.0565167346831004e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.565721419183319e-07
+            }
+          }
+        },
+        {
+          "layer": 4,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 9.5367431640625e-07,
+              "maximum_rms_relative_error": 2.1716094522616913e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 9.5367431640625e-07,
+              "maximum_rms_relative_error": 1.5736151226519723e-07
+            }
+          }
+        },
+        {
+          "layer": 5,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.2423125756176887e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.5686629240008187e-07
+            }
+          }
+        },
+        {
+          "layer": 6,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.2290709011940635e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.568051857248065e-07
+            }
+          }
+        },
+        {
+          "layer": 7,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.152216609374591e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.5573668576962518e-07
+            }
+          }
+        },
+        {
+          "layer": 8,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.0520559473879985e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.545947441172757e-07
+            }
+          }
+        },
+        {
+          "layer": 9,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.174212454519875e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.569160446024398e-07
+            }
+          }
+        },
+        {
+          "layer": 10,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.9305974774397328e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.544361225569446e-07
+            }
+          }
+        },
+        {
+          "layer": 11,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.842991963485474e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.4277496518388944e-07
+            }
+          }
+        },
+        {
+          "layer": 12,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.2406121047424676e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.4298549899649515e-07
+            }
+          }
+        },
+        {
+          "layer": 13,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.138182395583499e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.4901161193847656e-08,
+              "maximum_rms_relative_error": 1.5477100134830835e-07
+            }
+          }
+        },
+        {
+          "layer": 14,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 2.1693088569918473e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5039007905670587e-07
+            }
+          }
+        },
+        {
+          "layer": 15,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.2149107792301947e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5335815817252296e-07
+            }
+          }
+        },
+        {
+          "layer": 16,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.234044558235837e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.5631140115601738e-07
+            }
+          }
+        },
+        {
+          "layer": 17,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.2229257012895687e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.569939058754244e-07
+            }
+          }
+        },
+        {
+          "layer": 18,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.26557446580955e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.5637371575394354e-07
+            }
+          }
+        },
+        {
+          "layer": 19,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.320998788718498e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.5759765403799975e-07
+            }
+          }
+        },
+        {
+          "layer": 20,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.2093981044690736e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.4957264227177802e-07
+            }
+          }
+        },
+        {
+          "layer": 21,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.291202889637134e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.564391993724712e-07
+            }
+          }
+        },
+        {
+          "layer": 22,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.154022809008893e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.987971955941248e-07
+            }
+          }
+        },
+        {
+          "layer": 23,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.0709707371224795e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.5627783511718008e-07
+            }
+          }
+        },
+        {
+          "layer": 24,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.484297283444903e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5468806680019043e-07
+            }
+          }
+        },
+        {
+          "layer": 25,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.3649278091397719e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5065732839047996e-07
+            }
+          }
+        },
+        {
+          "layer": 26,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.3238422386384627e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.4901335987360653e-07
+            }
+          }
+        },
+        {
+          "layer": 27,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.2226603846320359e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.56489306846197e-07
+            }
+          }
+        },
+        {
+          "layer": 28,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.235204590306239e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.571802101807407e-07
+            }
+          }
+        },
+        {
+          "layer": 29,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.30638505627212e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5215029236514965e-07
+            }
+          }
+        },
+        {
+          "layer": 30,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.2696441703828896e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.5579740875182324e-07
+            }
+          }
+        },
+        {
+          "layer": 31,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.3573247176500445e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 1.4901161193847656e-08,
+              "maximum_rms_relative_error": 1.5657548146918998e-07
+            }
+          }
+        },
+        {
+          "layer": 32,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.1905839275859762e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 7.450580596923828e-09,
+              "maximum_rms_relative_error": 1.5504210182371025e-07
+            }
+          }
+        },
+        {
+          "layer": 33,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.2462205606643693e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5267553976627823e-07
+            }
+          }
+        },
+        {
+          "layer": 34,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                260
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.2147270328787272e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                7
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.5766873673328519e-07
+            }
+          }
+        }
+      ],
+      "run_id": "gemma_4_e2b_it__vqav2__seed42__626b330c2e",
+      "model": "gemma_4_e2b_it",
+      "model_revision": "3e22461f65e89153144f8adb70e3b8c2cc9845a7",
+      "dataset": "vqav2",
+      "dataset_revision": "32665d35052eb4a6d4414851c3c829a72754915a",
+      "sample_id": "415958003",
+      "device": "cuda:0",
+      "dtype": "bfloat16",
+      "torch": "2.6.0+cu124",
+      "transformers": "5.6.0"
+    },
+    {
+      "status": "passed",
+      "layers_checked": 32,
+      "absolute_tolerance": 1e-06,
+      "relative_tolerance": 1e-05,
+      "maximum_rms_absolute_error": 9.5367431640625e-07,
+      "maximum_rms_relative_error": 2.457606171901716e-07,
+      "raw_activations_retained_after_check": false,
+      "layers": [
+        {
+          "layer": 0,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 7.450580596923828e-09,
+              "maximum_rms_relative_error": 1.8762760589652316e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 3.725290298461914e-09,
+              "maximum_rms_relative_error": 1.7751987968495087e-07
+            }
+          }
+        },
+        {
+          "layer": 1,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.2211960981621814e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 7.450580596923828e-09,
+              "maximum_rms_relative_error": 1.6983474893095263e-07
+            }
+          }
+        },
+        {
+          "layer": 2,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.4901161193847656e-08,
+              "maximum_rms_relative_error": 2.1506728842268785e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.4901161193847656e-08,
+              "maximum_rms_relative_error": 1.774061502146651e-07
+            }
+          }
+        },
+        {
+          "layer": 3,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 2.0883970819340902e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.4901161193847656e-08,
+              "maximum_rms_relative_error": 1.667904570012979e-07
+            }
+          }
+        },
+        {
+          "layer": 4,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.935387530238586e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.4901161193847656e-08,
+              "maximum_rms_relative_error": 1.7109769601120206e-07
+            }
+          }
+        },
+        {
+          "layer": 5,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 2.192249581867145e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.509312568259702e-07
+            }
+          }
+        },
+        {
+          "layer": 6,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.1251423731882824e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.6869550734099903e-07
+            }
+          }
+        },
+        {
+          "layer": 7,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.9035448417525913e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.6732269614294637e-07
+            }
+          }
+        },
+        {
+          "layer": 8,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.0740338868563413e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.7546355479680642e-07
+            }
+          }
+        },
+        {
+          "layer": 9,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.358131041546585e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.7278912878282426e-07
+            }
+          }
+        },
+        {
+          "layer": 10,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.8798930057073449e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.781443614845557e-07
+            }
+          }
+        },
+        {
+          "layer": 11,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 2.1659819537944713e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.726975398241848e-07
+            }
+          }
+        },
+        {
+          "layer": 12,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.7502823368431564e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.6928457569065358e-07
+            }
+          }
+        },
+        {
+          "layer": 13,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.0291814450956736e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 2.9802322387695312e-08,
+              "maximum_rms_relative_error": 1.7687375475361478e-07
+            }
+          }
+        },
+        {
+          "layer": 14,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.829808411457634e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.576311632334182e-07
+            }
+          }
+        },
+        {
+          "layer": 15,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.0928038679812744e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.5726240576441342e-07
+            }
+          }
+        },
+        {
+          "layer": 16,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.3679989169522742e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.5243091411321075e-07
+            }
+          }
+        },
+        {
+          "layer": 17,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.8676242063975224e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.7683821340597206e-07
+            }
+          }
+        },
+        {
+          "layer": 18,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.90729025462133e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.7638672034081537e-07
+            }
+          }
+        },
+        {
+          "layer": 19,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.0943643619375507e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.7526818396618182e-07
+            }
+          }
+        },
+        {
+          "layer": 20,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.8602237616960338e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.6133043345689657e-07
+            }
+          }
+        },
+        {
+          "layer": 21,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 2.1409670125649427e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.6689820370174857e-07
+            }
+          }
+        },
+        {
+          "layer": 22,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.075252609756717e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 5.960464477539063e-08,
+              "maximum_rms_relative_error": 1.765699551015132e-07
+            }
+          }
+        },
+        {
+          "layer": 23,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.781154708169197e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.6619878806523047e-07
+            }
+          }
+        },
+        {
+          "layer": 24,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.457606171901716e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.773729536580504e-07
+            }
+          }
+        },
+        {
+          "layer": 25,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 2.369732783336076e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.7401997354227206e-07
+            }
+          }
+        },
+        {
+          "layer": 26,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.940962874869001e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.5895909655228024e-07
+            }
+          }
+        },
+        {
+          "layer": 27,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 1.7881393432617188e-07,
+              "maximum_rms_relative_error": 2.0676210965575592e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 1.7742620173066825e-07
+            }
+          }
+        },
+        {
+          "layer": 28,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.1594084387288603e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.746433326843544e-07
+            }
+          }
+        },
+        {
+          "layer": 29,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.1202245648055396e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 1.1920928955078125e-07,
+              "maximum_rms_relative_error": 1.7291560538978956e-07
+            }
+          }
+        },
+        {
+          "layer": 30,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 2.384185791015625e-07,
+              "maximum_rms_relative_error": 2.1217717005583836e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 1.7362236803819542e-07
+            }
+          }
+        },
+        {
+          "layer": 31,
+          "modalities": {
+            "visual": {
+              "passed": true,
+              "token_count": [
+                576
+              ],
+              "maximum_rms_absolute_error": 9.5367431640625e-07,
+              "maximum_rms_relative_error": 2.2028737589607772e-07
+            },
+            "text": {
+              "passed": true,
+              "token_count": [
+                9
+              ],
+              "maximum_rms_absolute_error": 4.76837158203125e-07,
+              "maximum_rms_relative_error": 1.746712996464339e-07
+            }
+          }
+        }
+      ],
+      "run_id": "llava_1_5_7b__vqav2__seed42__570788a3c6",
+      "model": "llava_1_5_7b",
+      "model_revision": "b234b804b114d9e37bb655e11cbbb5f5e971b7a9",
+      "dataset": "vqav2",
+      "dataset_revision": "32665d35052eb4a6d4414851c3c829a72754915a",
+      "sample_id": "415958003",
+      "device": "cuda:0",
+      "dtype": "bfloat16",
+      "torch": "2.6.0+cu124",
+      "transformers": "5.6.0"
+    }
+  ]
+}
