@@ -37,8 +37,9 @@ The main study contains three models and four datasets, with one seed: 12 model/
 
 The original CLEVR `pilot` candidates remain marked `audit_status=pending` as failure evidence. Controlled analysis
 uses the separately frozen `audited_v1` tier: 64 disjoint pairs holding `image_id` fixed while changing the functional
-program by exactly one Levenshtein operation. VizWiz is a cohort comparison because the source has no matched
-clean/degraded version of each image.
+program by exactly one Levenshtein operation. The precision extension `audited_v2_111` preserves those 64 pairs and
+adds all 47 further disjoint pairs feasible under the same strict contract. VizWiz is a cohort comparison because the
+source has no matched clean/degraded version of each image.
 
 The engineering sample sizes are pilot defaults, not advisor-specified statistical targets. A later power/precision
 analysis may replace them by creating a new manifest tier without overwriting these frozen manifests.
@@ -47,8 +48,8 @@ analysis may replace them by creating a new manifest tier without overwriting th
 
 `pipelines/fetch_dataset_metadata.py` downloads only pinned README/repository records and non-image question metadata.
 `pipelines/build_manifests.py` deterministically selects records and refuses to overwrite a frozen manifest when its
-canonical row digest changes. `pipelines/materialize_selected_images.py` then materializes unique images referenced by
-the pilot manifests only.
+canonical row digest changes. `pipelines/materialize_selected_images.py` then incrementally materializes unique images
+referenced by an explicitly selected frozen manifest tier only.
 
 VQAv2 reuses the machine's existing COCO validation cache. GQA uses selected Hugging Face cached assets. CLEVR and
 VizWiz use bounded HTTP Range requests for selected ZIP members; the 19 GB and 3.5 GB archives are never downloaded as
@@ -178,6 +179,24 @@ Controlled confidence intervals resample the 250 frozen pair edges and recompute
 summed valid counts. Transition output is an NPZ containing explicit `directed` and `symmetrized` arrays with axis order
 `W,V,T,M`; it is accompanied by a JSON interpretation manifest.
 
+## CLEVR precision extension
+
+The 64-pair `audited_v1` pilot estimated that up to 106 pairs were needed for a controlled-mean 95% confidence
+half-width of 0.010. The strict same-scene, program-edit-distance-one, disjoint-pair contract admits only 111 pairs, so
+`audited_v2_111` freezes that maximum feasible set rather than weakening the pairing rule. It contains 222 samples on
+111 images and leaves v1 unchanged.
+
+Run the three models with `configs/studies/clevr_audited_v2_111.yaml`, complete the standard CPU stages, then regenerate
+the nested precision report:
+
+```bash
+python research/neuron_typing_generalization/pipelines/report_clevr_v2.py \
+  --config research/neuron_typing_generalization/configs/analysis/clevr_audited_v2_111_closure.yaml
+```
+
+All three v2 runs achieve the 0.010 target. The report also verifies that every shared v1 activation partition is
+exactly identical in v2; v2 is a nested precision extension, not an independent replication.
+
 ## Reproduction commands
 
 The acquisition commands are intentionally separate so image materialization cannot precede manifest freezing:
@@ -187,7 +206,7 @@ python research/neuron_typing_generalization/pipelines/fetch_dataset_metadata.py
 python research/neuron_typing_generalization/pipelines/build_manifests.py
 python research/neuron_typing_generalization/pipelines/materialize_selected_images.py
 # Incrementally add a non-default frozen tier without downloading the full archive:
-python research/neuron_typing_generalization/pipelines/materialize_selected_images.py --dataset clevr --tier audited_v1
+python research/neuron_typing_generalization/pipelines/materialize_selected_images.py --dataset clevr --tier audited_v2_111
 python research/neuron_typing_generalization/pipelines/audit_cpu_ready.py
 python research/neuron_typing_generalization/pipelines/audit_clevr_pairs.py
 python research/neuron_typing_generalization/pipelines/audit_data_quality.py

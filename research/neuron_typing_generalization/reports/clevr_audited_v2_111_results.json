@@ -1,0 +1,297 @@
+{
+  "status": "complete",
+  "scope": "Nested CLEVR audited_v1 (64 pairs) to audited_v2_111 (111 pairs) precision extension",
+  "analysis_code_commit": "67560d5768956111a97f51ce4ce3344926bad80f",
+  "target_ci_half_width": 0.01,
+  "target_achieved_all_models": true,
+  "strict_contract_capacity": 111,
+  "models": [
+    {
+      "model": "gemma_4_e2b_it",
+      "old_run_dir": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/artifacts/neuron_typing_generalization/runs/remaining_three_dataset_pilot/gemma_4_e2b_it__clevr__seed42__cfd3df37e6",
+      "new_run_dir": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/artifacts/neuron_typing_generalization/runs/clevr_audited_v2_111/gemma_4_e2b_it__clevr__seed42__ad31f3a400",
+      "old_pair_count": 64,
+      "new_pair_count": 111,
+      "old_overall": {
+        "estimate": 0.14548191879734848,
+        "standard_error": 0.006420575632272129,
+        "ci_lower": 0.13297176361083984,
+        "ci_upper": 0.1578827204848781,
+        "ci_half_width": 0.012455478437019121,
+        "changed_neurons": 3146320,
+        "valid_neurons": 21626880
+      },
+      "new_overall": {
+        "estimate": 0.13881344057125308,
+        "standard_error": 0.00483035350025586,
+        "ci_lower": 0.12942984399527369,
+        "ci_upper": 0.14837217055478774,
+        "ci_half_width": 0.009471163279757028,
+        "changed_neurons": 5206770,
+        "valid_neurons": 37509120
+      },
+      "point_estimate_delta": -0.006668478226095398,
+      "ci_half_width_ratio": 0.7604014030972617,
+      "shared_activation_exact_match": true,
+      "new_reproducibility": {
+        "run_id": "gemma_4_e2b_it__clevr__seed42__ad31f3a400",
+        "model": "gemma_4_e2b_it",
+        "model_revision": "3e22461f65e89153144f8adb70e3b8c2cc9845a7",
+        "dataset": "clevr",
+        "dataset_revision": "d2a0cc5509d56204238d34969b0b3657f8d3bf32",
+        "dataset_config": "default",
+        "dataset_split": "validation",
+        "seed": 42,
+        "manifest_tier": "audited_v2_111",
+        "sample_manifest_sha256": "80b519a887f974b778ba1ccd61cfdaa639cabf8fa778625089a95db41af72683",
+        "pair_manifest_sha256": "cd3445f57889de5e664021b50ed62c95303f41b1d1d9de88b32f1be8a05c2259",
+        "activation_parts_sha256": "d5841a582c72222911705931bf9bb94602cdb87d62fce6b23e8a5196f88376df",
+        "token_mask_policy": {
+          "visual": "processor_expanded_decoder_positions",
+          "text": "user_content_span_after_chat_template",
+          "exclude_control_and_padding": true
+        },
+        "importance_policy": {
+          "name": "down_projection_weighted_rms",
+          "kind": "forward_activation",
+          "activation_point": "down_projection_input",
+          "modalities": [
+            "visual",
+            "text"
+          ],
+          "reduction": "down_projection_column_l2_norm_times_token_rms",
+          "accumulation_dtype": "float32",
+          "normalization": {
+            "kind": "per_sample_per_layer_per_modality_share",
+            "denominator": "sum_over_ffn_neurons"
+          },
+          "classification": {
+            "threshold": "uniform_share",
+            "threshold_value": "1_over_d_ff",
+            "comparison": "strict_greater_than",
+            "classes": [
+              "V",
+              "T",
+              "M",
+              "W"
+            ]
+          },
+          "invalid_policy": {
+            "empty_token_set": "mark_invalid",
+            "zero_layer_importance": "mark_invalid"
+          }
+        },
+        "runtime": {
+          "run_id": "gemma_4_e2b_it__clevr__seed42__ad31f3a400",
+          "model": "gemma_4_e2b_it",
+          "samples": 222,
+          "elapsed_seconds": 30.0416410099715,
+          "peak_cuda_memory_bytes": 10760525824,
+          "device": "cuda:0",
+          "dtype": "bfloat16",
+          "transformers": "5.6.0",
+          "torch": "2.6.0+cu124"
+        },
+        "original_run_git": {
+          "commit": "fa8d7a889999941a76f57dbc62269621fb7ee51b",
+          "branch": "main",
+          "dirty": false
+        },
+        "resolved_config_sha256": "b9fbd94b0876946c09cf853a846131a6bab770e5571aef157e195d3aa7c4cf8a"
+      }
+    },
+    {
+      "model": "llava_1_5_7b",
+      "old_run_dir": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/artifacts/neuron_typing_generalization/runs/remaining_three_dataset_pilot/llava_1_5_7b__clevr__seed42__e7442b2632",
+      "new_run_dir": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/artifacts/neuron_typing_generalization/runs/clevr_audited_v2_111/llava_1_5_7b__clevr__seed42__db5d729d80",
+      "old_pair_count": 64,
+      "new_pair_count": 111,
+      "old_overall": {
+        "estimate": 0.1866939899533294,
+        "standard_error": 0.006490152156020545,
+        "ci_lower": 0.1741978257201439,
+        "ci_upper": 0.19937652987103127,
+        "ci_half_width": 0.012589352075443691,
+        "changed_neurons": 4208901,
+        "valid_neurons": 22544384
+      },
+      "new_overall": {
+        "estimate": 0.17981616870777026,
+        "standard_error": 0.0049202111833173265,
+        "ci_lower": 0.1701356316771668,
+        "ci_upper": 0.18969253293878,
+        "ci_half_width": 0.009778450630806595,
+        "changed_neurons": 7030887,
+        "valid_neurons": 39100416
+      },
+      "point_estimate_delta": -0.006877821245559135,
+      "ci_half_width_ratio": 0.7767238990702363,
+      "shared_activation_exact_match": true,
+      "new_reproducibility": {
+        "run_id": "llava_1_5_7b__clevr__seed42__db5d729d80",
+        "model": "llava_1_5_7b",
+        "model_revision": "b234b804b114d9e37bb655e11cbbb5f5e971b7a9",
+        "dataset": "clevr",
+        "dataset_revision": "d2a0cc5509d56204238d34969b0b3657f8d3bf32",
+        "dataset_config": "default",
+        "dataset_split": "validation",
+        "seed": 42,
+        "manifest_tier": "audited_v2_111",
+        "sample_manifest_sha256": "80b519a887f974b778ba1ccd61cfdaa639cabf8fa778625089a95db41af72683",
+        "pair_manifest_sha256": "cd3445f57889de5e664021b50ed62c95303f41b1d1d9de88b32f1be8a05c2259",
+        "activation_parts_sha256": "64fa3233573853280095763ab1e547b5a9981fce543516abec28da9e3111e58b",
+        "token_mask_policy": {
+          "visual": "model_expanded_image_feature_positions",
+          "text": "user_content_span_after_multimodal_merge",
+          "exclude_control_and_padding": true
+        },
+        "importance_policy": {
+          "name": "down_projection_weighted_rms",
+          "kind": "forward_activation",
+          "activation_point": "down_projection_input",
+          "modalities": [
+            "visual",
+            "text"
+          ],
+          "reduction": "down_projection_column_l2_norm_times_token_rms",
+          "accumulation_dtype": "float32",
+          "normalization": {
+            "kind": "per_sample_per_layer_per_modality_share",
+            "denominator": "sum_over_ffn_neurons"
+          },
+          "classification": {
+            "threshold": "uniform_share",
+            "threshold_value": "1_over_d_ff",
+            "comparison": "strict_greater_than",
+            "classes": [
+              "V",
+              "T",
+              "M",
+              "W"
+            ]
+          },
+          "invalid_policy": {
+            "empty_token_set": "mark_invalid",
+            "zero_layer_importance": "mark_invalid"
+          }
+        },
+        "runtime": {
+          "run_id": "llava_1_5_7b__clevr__seed42__db5d729d80",
+          "model": "llava_1_5_7b",
+          "samples": 222,
+          "elapsed_seconds": 30.95396943995729,
+          "peak_cuda_memory_bytes": 14410834432,
+          "device": "cuda:0",
+          "dtype": "bfloat16",
+          "transformers": "5.6.0",
+          "torch": "2.6.0+cu124"
+        },
+        "original_run_git": {
+          "commit": "fa8d7a889999941a76f57dbc62269621fb7ee51b",
+          "branch": "main",
+          "dirty": false
+        },
+        "resolved_config_sha256": "b7e826f1ca511a561af372e20a1d0480d31d1c3ea6c531fbbb839be6ecdc6eb7"
+      }
+    },
+    {
+      "model": "qwen3_5_2b",
+      "old_run_dir": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/artifacts/neuron_typing_generalization/runs/remaining_three_dataset_pilot/qwen3_5_2b__clevr__seed42__2657728124",
+      "new_run_dir": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/artifacts/neuron_typing_generalization/runs/clevr_audited_v2_111/qwen3_5_2b__clevr__seed42__c64f80dcef",
+      "old_pair_count": 64,
+      "new_pair_count": 111,
+      "old_overall": {
+        "estimate": 0.18372493320041233,
+        "standard_error": 0.005976661578028297,
+        "ci_lower": 0.17216918733384873,
+        "ci_upper": 0.19557956324683295,
+        "ci_half_width": 0.011705187956492114,
+        "changed_neurons": 1733846,
+        "valid_neurons": 9437184
+      },
+      "new_overall": {
+        "estimate": 0.17793861977211586,
+        "standard_error": 0.00445364805468698,
+        "ci_lower": 0.16924723490580423,
+        "ci_upper": 0.18672978398320195,
+        "ci_half_width": 0.008741274538698857,
+        "changed_neurons": 2912431,
+        "valid_neurons": 16367616
+      },
+      "point_estimate_delta": -0.005786313428296469,
+      "ci_half_width_ratio": 0.7467863456093103,
+      "shared_activation_exact_match": true,
+      "new_reproducibility": {
+        "run_id": "qwen3_5_2b__clevr__seed42__c64f80dcef",
+        "model": "qwen3_5_2b",
+        "model_revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+        "dataset": "clevr",
+        "dataset_revision": "d2a0cc5509d56204238d34969b0b3657f8d3bf32",
+        "dataset_config": "default",
+        "dataset_split": "validation",
+        "seed": 42,
+        "manifest_tier": "audited_v2_111",
+        "sample_manifest_sha256": "80b519a887f974b778ba1ccd61cfdaa639cabf8fa778625089a95db41af72683",
+        "pair_manifest_sha256": "cd3445f57889de5e664021b50ed62c95303f41b1d1d9de88b32f1be8a05c2259",
+        "activation_parts_sha256": "01674aec04453d1713e54acd20b4e677d38de3451cb93cad59bdee0455a8fb51",
+        "token_mask_policy": {
+          "visual": "processor_expanded_decoder_positions",
+          "text": "user_content_span_after_chat_template",
+          "exclude_control_and_padding": true
+        },
+        "importance_policy": {
+          "name": "down_projection_weighted_rms",
+          "kind": "forward_activation",
+          "activation_point": "down_projection_input",
+          "modalities": [
+            "visual",
+            "text"
+          ],
+          "reduction": "down_projection_column_l2_norm_times_token_rms",
+          "accumulation_dtype": "float32",
+          "normalization": {
+            "kind": "per_sample_per_layer_per_modality_share",
+            "denominator": "sum_over_ffn_neurons"
+          },
+          "classification": {
+            "threshold": "uniform_share",
+            "threshold_value": "1_over_d_ff",
+            "comparison": "strict_greater_than",
+            "classes": [
+              "V",
+              "T",
+              "M",
+              "W"
+            ]
+          },
+          "invalid_policy": {
+            "empty_token_set": "mark_invalid",
+            "zero_layer_importance": "mark_invalid"
+          }
+        },
+        "runtime": {
+          "run_id": "qwen3_5_2b__clevr__seed42__c64f80dcef",
+          "model": "qwen3_5_2b",
+          "samples": 222,
+          "elapsed_seconds": 62.70736259780824,
+          "peak_cuda_memory_bytes": 4578092032,
+          "device": "cuda:0",
+          "dtype": "bfloat16",
+          "transformers": "5.6.0",
+          "torch": "2.6.0+cu124"
+        },
+        "original_run_git": {
+          "commit": "fa8d7a889999941a76f57dbc62269621fb7ee51b",
+          "branch": "main",
+          "dirty": false
+        },
+        "resolved_config_sha256": "4428c439d36c6ab06e78e056f5d8289dcf964efd4b106bb8b9ce6bbea03ac45d"
+      }
+    }
+  ],
+  "interpretation_limits": [
+    "audited_v2_111 contains audited_v1, so old and new estimates are correlated rather than independent.",
+    "Overlapping confidence intervals do not constitute a formal test of point-estimate change.",
+    "The tier exhausts pairs feasible under the frozen same-scene, edit-distance-one, disjoint contract."
+  ]
+}
