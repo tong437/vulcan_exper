@@ -214,6 +214,7 @@ def _save_run_figures(
     profiles: pd.DataFrame,
     transitions: np.ndarray,
     controlled: dict[str, Any],
+    cohorts: pd.DataFrame | None = None,
 ) -> list[dict[str, str]]:
     plt = _load_pyplot()
     figure_dir = run_dir / "figures"
@@ -286,6 +287,25 @@ def _save_run_figures(
     plt.close(figure)
     figures.append((path.name, "Symmetrized controlled transitions, aggregated over layers"))
 
+    if cohorts is not None:
+        overall_cohorts = cohorts[cohorts["layer"].isna()]
+        if len(overall_cohorts) > 1:
+            figure, axis = plt.subplots(figsize=(9, 4.5))
+            positions = np.arange(len(overall_cohorts))
+            bottom = np.zeros(len(overall_cohorts))
+            for label, color in zip(CLASS_LABELS, CLASS_COLORS):
+                values = overall_cohorts[f"proportion_{label}"].to_numpy(dtype=float)
+                axis.bar(positions, values, bottom=bottom, label=label, color=color)
+                bottom += values
+            axis.set_xticks(positions, overall_cohorts["cohort"], rotation=18, ha="right")
+            axis.set(ylabel="Sample-neuron occurrence proportion", ylim=(0, 1))
+            axis.legend(ncol=4)
+            figure.tight_layout()
+            path = figure_dir / "cohort_class_proportions.png"
+            figure.savefig(path, dpi=180)
+            plt.close(figure)
+            figures.append((path.name, "Response-class proportions by natural sample cohort"))
+
     return [
         {"file": f"figures/{name}", "title": title, "sha256": _sha256(figure_dir / name)} for name, title in figures
     ]
@@ -303,6 +323,7 @@ def evaluate_pilot_run(
     changes = pd.read_parquet(run_dir / "distributions/pairwise_changes.parquet")
     pair_manifest = pd.read_parquet(run_dir / "samples/pair_manifest.parquet")
     profiles = pd.read_parquet(run_dir / "distributions/neuron_profiles.parquet")
+    cohorts = pd.read_parquet(run_dir / "distributions/cohort_summary.parquet")
     with np.load(run_dir / "distributions/transition_matrices.npz", allow_pickle=False) as stored:
         symmetrized = stored["symmetrized"]
     controlled = summarize_controlled_pairs(
@@ -321,7 +342,7 @@ def evaluate_pilot_run(
     _write_json(run_dir / "metrics/pilot_statistics.json", statistics)
     reproducibility = _reproducibility_record(run_dir)
     _write_json(run_dir / "metrics/reproducibility.json", reproducibility)
-    figures = _save_run_figures(run_dir, summary, changes, profiles, symmetrized, controlled)
+    figures = _save_run_figures(run_dir, summary, changes, profiles, symmetrized, controlled, cohorts)
     figure_manifest = {"run_id": summary["run_id"], "figures": figures, "status": "complete"}
     _write_json(run_dir / "figures/manifest.json", figure_manifest)
     return {"statistics": statistics, "reproducibility": reproducibility, "figures": figure_manifest}
@@ -460,4 +481,130 @@ model. Large activations and per-sample results remain in the ignored local arti
 ## Interpretation limits
 
 """ + "".join(f"- {item}\n" for item in result["interpretation_limits"])
+    path.write_text(text, encoding="utf-8")
+
+
+def build_unified_multidataset_report(
+    run_dirs: list[Path],
+    output_dir: Path,
+    *,
+    collection_commits: list[str],
+    analysis_commit: str,
+) -> dict[str, Any]:
+    """Combine the remaining three-dataset pilots into one reproducible report."""
+    records = []
+    for run_dir in run_dirs:
+        statistics = json.loads((run_dir / "metrics/pilot_statistics.json").read_text(encoding="utf-8"))
+        reproducibility = json.loads((run_dir / "metrics/reproducibility.json").read_text(encoding="utf-8"))
+        cohorts = pd.read_parquet(run_dir / "distributions/cohort_summary.parquet")
+        cohort_overall = cohorts[cohorts["layer"].isna()].to_dict(orient="records") if len(cohorts) else []
+        records.append(
+            {
+                "run_dir": str(run_dir.resolve()),
+                "statistics": statistics,
+                "reproducibility": reproducibility,
+                "cohort_overall": cohort_overall,
+            }
+        )
+    records.sort(key=lambda row: (row["reproducibility"]["dataset"], row["reproducibility"]["model"]))
+    result = {
+        "status": "complete",
+        "scope": "Three models on frozen GQA Balanced, CLEVR audited_v1, and VizWiz VQA pilot tiers; seed 42",
+        "collection_code_commits": collection_commits,
+        "analysis_code_commit": analysis_commit,
+        "runs": records,
+        "tier_decisions": {
+            "gqa_balanced": "No larger tier required for a controlled-mean 95% CI half-width of 0.005.",
+            "clevr": (
+                "Create a new 128-disjoint-pair audited tier for a 0.010 target; do not overwrite audited_v1. "
+                "The worst-model normal approximation estimates 106 pairs."
+            ),
+            "vizwiz_vqa": "Retain the 500-sample descriptive cohort tier; no controlled-pair precision claim.",
+        },
+        "interpretation_limits": [
+            "Response classes are sample-conditional descriptive states, not immutable neuron identities.",
+            "M does not establish causal cross-modal interaction; W does not mean inactive.",
+            "GQA bootstrap units are 100 image-level pair groups, not 1,000 independent edges.",
+            "VizWiz cohorts are observational and do not define controlled counterfactual pairs.",
+            "The experiment has one seed; cross-seed uncertainty remains unmeasured.",
+        ],
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _write_json(output_dir / "remaining_three_dataset_pilot_results.json", result)
+    _save_multidataset_figures(records, output_dir / "figures")
+    _write_multidataset_markdown(result, output_dir / "remaining_three_dataset_pilot_results.md")
+    return result
+
+
+def _save_multidataset_figures(records: list[dict[str, Any]], figure_dir: Path) -> None:
+    plt = _load_pyplot()
+    figure_dir.mkdir(parents=True, exist_ok=True)
+    controlled = [row for row in records if row["statistics"]["controlled"]["status"] == "complete"]
+    labels = [f"{row['reproducibility']['model']}\n{row['reproducibility']['dataset']}" for row in controlled]
+    estimates = [row["statistics"]["controlled"]["overall"]["estimate"] for row in controlled]
+    lowers = [row["statistics"]["controlled"]["overall"]["ci_lower"] for row in controlled]
+    uppers = [row["statistics"]["controlled"]["overall"]["ci_upper"] for row in controlled]
+    positions = np.arange(len(controlled))
+    figure, axis = plt.subplots(figsize=(10, 4.5))
+    axis.errorbar(
+        positions, estimates, yerr=[np.subtract(estimates, lowers), np.subtract(uppers, estimates)], fmt="o", capsize=5
+    )
+    axis.set_xticks(positions, labels, rotation=18, ha="right")
+    axis.set(ylabel="Controlled class-change rate", ylim=(0, max(uppers) * 1.25))
+    axis.grid(axis="y", alpha=0.25)
+    figure.tight_layout()
+    figure.savefig(figure_dir / "remaining_controlled_bootstrap_ci.png", dpi=200)
+    plt.close(figure)
+
+    labels = [f"{row['reproducibility']['model']}\n{row['reproducibility']['dataset']}" for row in records]
+    values = [row["statistics"]["global"]["overall_change_rate_distinct_pairs"] for row in records]
+    figure, axis = plt.subplots(figsize=(11, 4.5))
+    axis.bar(labels, values, color="#4285f4")
+    axis.set(ylabel="All-distinct-pair class-change rate", ylim=(0, max(values) * 1.2))
+    axis.tick_params(axis="x", rotation=18)
+    axis.grid(axis="y", alpha=0.25)
+    figure.tight_layout()
+    figure.savefig(figure_dir / "remaining_global_change_rates.png", dpi=200)
+    plt.close(figure)
+
+
+def _write_multidataset_markdown(result: dict[str, Any], path: Path) -> None:
+    rows = []
+    for record in result["runs"]:
+        provenance = record["reproducibility"]
+        statistics = record["statistics"]
+        controlled = statistics["controlled"]
+        controlled_text = "descriptive only"
+        if controlled["status"] == "complete":
+            overall = controlled["overall"]
+            controlled_text = f"{overall['estimate']:.4f} [{overall['ci_lower']:.4f}, {overall['ci_upper']:.4f}]"
+        rows.append(
+            f"| {provenance['model']} | {provenance['dataset']} | "
+            f"{statistics['global']['overall_change_rate_distinct_pairs']:.4f} | {controlled_text} | "
+            f"{statistics['classes']['mean_normalized_entropy']:.4f} |"
+        )
+    decisions = "\n".join(f"- **{dataset}:** {decision}" for dataset, decision in result["tier_decisions"].items())
+    limits = "\n".join(f"- {item}" for item in result["interpretation_limits"])
+    text = f"""# Remaining three-dataset frozen-pilot report
+
+Scope: {result["scope"]}.
+
+- Collection commits: {", ".join(f"`{value}`" for value in result["collection_code_commits"])}
+- Analysis commit: `{result["analysis_code_commit"]}`
+
+| Model | Dataset | Global distinct-pair rate | Controlled estimate and 95% CI | Mean normalized entropy |
+|---|---|---:|---:|---:|
+{chr(10).join(rows)}
+
+GQA confidence intervals use 100 image-level clusters. CLEVR uses 64 disjoint manifest pairs. VizWiz has no controlled
+pair manifest, so its rows are descriptive; per-cohort results are retained in the companion JSON and run artifacts.
+
+## Frozen-tier decisions
+
+{decisions}
+
+## Interpretation limits
+
+{limits}
+"""
     path.write_text(text, encoding="utf-8")

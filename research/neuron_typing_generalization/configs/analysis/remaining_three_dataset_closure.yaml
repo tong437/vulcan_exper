@@ -1,0 +1,15 @@
+artifact_root: artifacts/neuron_typing_generalization
+study: remaining_three_dataset_pilot
+collection_code_commits:
+  - 010824e2f7af8e2f68452a8e2e8dbbf28540e27a
+  - ebe8ddd4ef334b16b411118d9f8ae2a8c5eaf97f
+run_ids:
+  - qwen3_5_2b__gqa_balanced__seed42__673e2843d2
+  - qwen3_5_2b__clevr__seed42__2657728124
+  - qwen3_5_2b__vizwiz_vqa__seed42__ef505001fc
+  - llava_1_5_7b__gqa_balanced__seed42__b9b9e15dce
+  - llava_1_5_7b__clevr__seed42__e7442b2632
+  - llava_1_5_7b__vizwiz_vqa__seed42__e02e74856b
+  - gemma_4_e2b_it__gqa_balanced__seed42__44c2999649
+  - gemma_4_e2b_it__clevr__seed42__cfd3df37e6
+  - gemma_4_e2b_it__vizwiz_vqa__seed42__331d7eaad2
