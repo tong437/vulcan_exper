@@ -29,7 +29,9 @@ from .schema_validation import validate_document, validate_frame
 from .tables import (
     analyze_class_table,
     analyze_class_tensor,
+    class_tensor_from_table,
     classify_score_table,
+    cohort_summary_tensor,
     controlled_pair_change_table,
     controlled_pair_change_tensor,
 )
@@ -315,15 +317,22 @@ def compare_run(run_dir: Path, chunk_size: int = 64) -> dict[str, int | str]:
             tensor, sample_ids, str(manifest["run_id"]), pairs, chunk_size=chunk_size
         )
         changes = controlled_pair_change_tensor(tensor, sample_ids, str(manifest["run_id"]), pairs)
+        run_id = str(manifest["run_id"])
     else:
         classes = pd.read_parquet(run_dir / "classifications/neuron_classes.parquet")
         summary, profiles, transitions = analyze_class_table(classes, samples, pairs, chunk_size=chunk_size)
         changes = controlled_pair_change_table(classes, samples, pairs)
+        tensor, _, _ = class_tensor_from_table(classes, [str(value) for value in samples["sample_id"]])
+        run_id = str(classes["run_id"].iloc[0])
+    cohorts = cohort_summary_tensor(tensor, samples, run_id)
     validate_frame(changes, "pairwise_changes.schema.json")
     validate_frame(profiles, "neuron_profiles.schema.json")
+    if len(cohorts):
+        validate_frame(cohorts, "cohort_summary.schema.json")
     validate_document(summary, "summary_metrics.schema.json")
     _write_parquet_atomic(changes, run_dir / "distributions/pairwise_changes.parquet")
     _write_parquet_atomic(profiles, run_dir / "distributions/neuron_profiles.parquet")
+    _write_parquet_atomic(cohorts, run_dir / "distributions/cohort_summary.parquet")
     _write_npz_atomic(
         run_dir / "distributions/transition_matrices.npz",
         directed=transitions["directed"],
@@ -333,7 +342,7 @@ def compare_run(run_dir: Path, chunk_size: int = 64) -> dict[str, int | str]:
     _write_json_atomic(
         run_dir / "distributions/transition_manifest.json",
         {
-            "run_id": str(manifest["run_id"]) if compact_manifest_path.is_file() else str(classes["run_id"].iloc[0]),
+            "run_id": run_id,
             "file": "distributions/transition_matrices.npz",
             "class_axis_order": ["W", "V", "T", "M"],
             "arrays": {
@@ -351,6 +360,7 @@ def compare_run(run_dir: Path, chunk_size: int = 64) -> dict[str, int | str]:
         "stage": "compare_distributions",
         "controlled_pair_rows": len(changes),
         "profile_rows": len(profiles),
+        "cohort_rows": len(cohorts),
         "output": str(run_dir / "distributions"),
     }
 
@@ -360,6 +370,7 @@ def evaluate_run(run_dir: Path) -> dict[str, str]:
     required = (
         run_dir / "distributions/pairwise_changes.parquet",
         run_dir / "distributions/neuron_profiles.parquet",
+        run_dir / "distributions/cohort_summary.parquet",
         run_dir / "distributions/transition_matrices.npz",
         run_dir / "distributions/transition_manifest.json",
         run_dir / "distributions/analysis_summary.json",

@@ -26,16 +26,22 @@ REPOSITORY_ROOT = EXPERIMENT_ROOT.parents[1]
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Materialize images referenced by frozen pilot manifests only.")
+    parser = argparse.ArgumentParser(description="Materialize images referenced by frozen manifests only.")
     parser.add_argument(
         "--artifact-root",
         type=Path,
         default=REPOSITORY_ROOT / "artifacts/neuron_typing_generalization",
     )
+    parser.add_argument("--dataset", help="Materialize only this configured dataset (default: every dataset).")
+    parser.add_argument("--tier", default="pilot", help="Frozen manifest tier to materialize (default: pilot).")
     args = parser.parse_args()
     for config_path in sorted((EXPERIMENT_ROOT / "configs/datasets").glob("*.yaml")):
         config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-        manifest = EXPERIMENT_ROOT / "manifests" / config["name"] / "pilot/sample_manifest.parquet"
+        if args.dataset and config["name"] != args.dataset:
+            continue
+        manifest = EXPERIMENT_ROOT / "manifests" / config["name"] / args.tier / "sample_manifest.parquet"
+        if not manifest.is_file():
+            raise FileNotFoundError(f"Frozen manifest tier does not exist: {manifest}")
         status_path = materialize_selected_images(config_path, manifest, args.artifact_root.resolve())
         print(json.dumps(json.loads(status_path.read_text(encoding="utf-8")), ensure_ascii=False))
 

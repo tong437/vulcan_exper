@@ -186,6 +186,8 @@ The acquisition commands are intentionally separate so image materialization can
 python research/neuron_typing_generalization/pipelines/fetch_dataset_metadata.py
 python research/neuron_typing_generalization/pipelines/build_manifests.py
 python research/neuron_typing_generalization/pipelines/materialize_selected_images.py
+# Incrementally add a non-default frozen tier without downloading the full archive:
+python research/neuron_typing_generalization/pipelines/materialize_selected_images.py --dataset clevr --tier audited_v1
 python research/neuron_typing_generalization/pipelines/audit_cpu_ready.py
 python research/neuron_typing_generalization/pipelines/audit_clevr_pairs.py
 python research/neuron_typing_generalization/pipelines/audit_data_quality.py

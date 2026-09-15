@@ -40,3 +40,26 @@ def test_controlled_pair_bootstrap_uses_pair_edges_and_ratio_of_sums():
     assert result["overall"]["estimate"] == pytest.approx(9 / 30)
     assert len(result["per_layer"]) == 2
     assert result["precision_scenarios_normal_approximation"]["half_width_0.010"]["estimated_required_pairs"] > 2
+
+
+def test_bootstrap_clusters_reused_pair_edges_by_manifest_group():
+    changes = pd.DataFrame(
+        {
+            "run_id": ["run"] * 4,
+            "left_sample_id": ["a", "a", "d", "d"],
+            "right_sample_id": ["b", "c", "e", "f"],
+            "pair_scope": ["controlled"] * 4,
+            "layer": [None] * 4,
+            "changed_neurons": [1, 2, 7, 8],
+            "valid_neurons": [10] * 4,
+            "change_rate": [0.1, 0.2, 0.7, 0.8],
+        }
+    )
+    manifest = changes[["left_sample_id", "right_sample_id"]].copy()
+    manifest["pair_group_id"] = ["image-1", "image-1", "image-2", "image-2"]
+    result = summarize_controlled_pairs(changes, manifest, bootstrap_replicates=100, bootstrap_seed=3)
+
+    assert result["pair_count"] == 4
+    assert result["bootstrap_unit"] == "pair_group_id"
+    assert result["bootstrap_unit_count"] == 2
+    assert result["overall"]["estimate"] == pytest.approx(18 / 40)

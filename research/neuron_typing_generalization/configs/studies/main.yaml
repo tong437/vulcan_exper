@@ -23,6 +23,11 @@ sampling:
   require_pair_manifest: true
   materialize_selected_images_only: true
   manifest_tier: pilot
+  manifest_tiers:
+    vqav2: pilot
+    gqa_balanced: pilot
+    clevr: audited_v1
+    vizwiz_vqa: pilot
 
 classification:
   method: uniform_importance_share

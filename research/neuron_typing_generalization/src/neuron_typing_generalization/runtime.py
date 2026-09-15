@@ -101,7 +101,7 @@ def initialize_run(spec: ExperimentSpec) -> RunContext:
 
     sampling = spec.study_values.get("sampling", {})
     if sampling.get("require_frozen_manifest"):
-        tier = str(sampling.get("manifest_tier", "pilot"))
+        tier = str(sampling.get("manifest_tiers", {}).get(spec.dataset.name, sampling.get("manifest_tier", "pilot")))
         source_dir = EXPERIMENT_ROOT / "manifests" / spec.dataset.name / tier
         for filename in ("sample_manifest.parquet", "pair_manifest.parquet"):
             source = source_dir / filename

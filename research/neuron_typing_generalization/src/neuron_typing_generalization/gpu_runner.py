@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Configuration-driven, resumable GPU activation collection for frozen VQAv2 runs."""
+"""Configuration-driven, resumable GPU activation collection for frozen VLM runs."""
 
 from __future__ import annotations
 
@@ -54,16 +54,16 @@ def _validate_environment(spec: ExperimentSpec) -> None:
         raise RuntimeError(f"Installed Transformers does not expose {architecture}.")
 
 
-def _select_spec(study_path: Path, model_name: str) -> ExperimentSpec:
+def _select_spec(study_path: Path, model_name: str, dataset_name: str) -> ExperimentSpec:
     specs = expand_study(load_study(study_path))
-    matches = [spec for spec in specs if spec.model.name == model_name]
+    matches = [spec for spec in specs if spec.model.name == model_name and spec.dataset.name == dataset_name]
     if len(matches) != 1:
-        available = sorted({spec.model.name for spec in specs})
-        raise ValueError(f"Expected one run for model={model_name}; available={available}, matches={len(matches)}.")
-    spec = matches[0]
-    if spec.dataset.name != "vqav2":
-        raise ValueError("The first real-model runner is intentionally restricted to frozen VQAv2 manifests.")
-    return spec
+        available = sorted({(spec.model.name, spec.dataset.name) for spec in specs})
+        raise ValueError(
+            f"Expected one run for model={model_name}, dataset={dataset_name}; "
+            f"available={available}, matches={len(matches)}."
+        )
+    return matches[0]
 
 
 def _model_input_device(model: torch.nn.Module) -> torch.device:
@@ -85,13 +85,14 @@ def _move_model_inputs(values: Mapping[str, Any], device: torch.device, dtype: t
     return moved
 
 
-def _load_image_index(artifact_root: Path) -> dict[str, Path]:
-    manifest_path = artifact_root / "images/vqav2/image_manifest.parquet"
+def _load_image_index(artifact_root: Path, dataset_name: str) -> dict[str, Path]:
+    manifest_path = artifact_root / "images" / dataset_name / "image_manifest.parquet"
     frame = pd.read_parquet(manifest_path)
-    index = {str(row.image_id): artifact_root / "images/vqav2" / str(row.relative_path) for row in frame.itertuples()}
+    image_root = artifact_root / "images" / dataset_name
+    index = {str(row.image_id): image_root / str(row.relative_path) for row in frame.itertuples()}
     missing = [str(path) for path in index.values() if not path.is_file()]
     if missing:
-        raise FileNotFoundError(f"Materialized VQAv2 images are incomplete; first missing file: {missing[0]}")
+        raise FileNotFoundError(f"Materialized {dataset_name} images are incomplete; first missing file: {missing[0]}")
     return index
 
 
@@ -104,16 +105,17 @@ def _move_roles(roles: TokenRoleMasks, device: torch.device) -> TokenRoleMasks:
     )
 
 
-def run_vqav2_gpu_collection(
+def run_gpu_collection(
     study_path: Path,
     model_name: str,
+    dataset_name: str,
     max_samples: int | None = None,
     *,
     validate_streaming: bool = False,
     validation_only: bool = False,
 ) -> dict[str, Any]:
     """Load one configured VLM and collect compact reduced activations with resume support."""
-    spec = _select_spec(study_path.resolve(), model_name)
+    spec = _select_spec(study_path.resolve(), model_name, dataset_name)
     _validate_environment(spec)
     context = initialize_run(spec)
     samples = pd.read_parquet(context.run_dir / "samples/sample_manifest.parquet")
@@ -148,13 +150,13 @@ def run_vqav2_gpu_collection(
     model.eval()
     device = _model_input_device(model)
     processor_adapter = load_local_processor_adapter(spec.model.values, use_fast=False)
-    image_index = _load_image_index(resolve_artifact_root(spec))
+    image_index = _load_image_index(resolve_artifact_root(spec), spec.dataset.name)
 
     def prepare(sample: Mapping[str, Any]) -> PreparedInputs:
         image_id = str(sample["image_id"])
         image_path = image_index.get(image_id)
         if image_path is None:
-            raise FileNotFoundError(f"No materialized VQAv2 image for image_id={image_id}.")
+            raise FileNotFoundError(f"No materialized {spec.dataset.name} image for image_id={image_id}.")
         with Image.open(image_path) as image:
             prepared = processor_adapter.prepare_inputs(
                 {"question": str(sample["question"]), "image": image.convert("RGB")}
@@ -235,3 +237,22 @@ def run_vqav2_gpu_collection(
         "runtime": runtime,
         "validation": validation_report,
     }
+
+
+def run_vqav2_gpu_collection(
+    study_path: Path,
+    model_name: str,
+    max_samples: int | None = None,
+    *,
+    validate_streaming: bool = False,
+    validation_only: bool = False,
+) -> dict[str, Any]:
+    """Backward-compatible wrapper for the original VQAv2-only command."""
+    return run_gpu_collection(
+        study_path,
+        model_name,
+        "vqav2",
+        max_samples,
+        validate_streaming=validate_streaming,
+        validation_only=validation_only,
+    )

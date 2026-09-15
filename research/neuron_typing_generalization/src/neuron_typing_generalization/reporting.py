@@ -74,6 +74,7 @@ def _controlled_arrays(changes: pd.DataFrame) -> tuple[list[int], np.ndarray, np
 
 def summarize_controlled_pairs(
     changes: pd.DataFrame,
+    pair_manifest: pd.DataFrame | None = None,
     *,
     bootstrap_replicates: int = 10_000,
     bootstrap_seed: int = 42,
@@ -82,11 +83,30 @@ def summarize_controlled_pairs(
 ) -> dict[str, Any]:
     """Compute ratio-of-sums point estimates, pair bootstrap CIs, and precision scenarios."""
     layers, changed, valid, overall = _controlled_arrays(changes)
-    if len(overall) < 2:
+    bootstrap_unit = "manifest_pair"
+    if pair_manifest is not None and "pair_group_id" in pair_manifest and len(overall):
+        keys = ["left_sample_id", "right_sample_id"]
+        mapping = pair_manifest[keys + ["pair_group_id"]].copy()
+        mapping[keys] = mapping[keys].astype(str)
+        edge_keys = overall[keys].astype(str)
+        merged = edge_keys.merge(mapping, on=keys, how="left", validate="one_to_one")
+        if merged["pair_group_id"].isna().any():
+            raise ValueError("Pairwise changes cannot be matched to pair-manifest bootstrap groups.")
+        group_values = merged["pair_group_id"].astype(str).to_numpy()
+        unique_groups = sorted(set(group_values))
+        if len(unique_groups) < len(group_values):
+            bootstrap_unit = "pair_group_id"
+        grouped_changed = np.stack([changed[group_values == group].sum(axis=0) for group in unique_groups])
+        grouped_valid = np.stack([valid[group_values == group].sum(axis=0) for group in unique_groups])
+    else:
+        unique_groups = list(range(len(overall)))
+        grouped_changed = changed
+        grouped_valid = valid
+    if len(unique_groups) < 2:
         return {"status": "insufficient_pairs", "pair_count": len(overall), "per_layer": []}
     bootstrap = pair_level_bootstrap_ratio(
-        changed,
-        valid,
+        grouped_changed,
+        grouped_valid,
         replicates=bootstrap_replicates,
         confidence_level=confidence_level,
         seed=bootstrap_seed,
@@ -103,7 +123,7 @@ def summarize_controlled_pairs(
             "valid_neurons": int(valid[:, index].sum()),
         }
 
-    pair_rates = overall["change_rate"].to_numpy(dtype=np.float64)
+    pair_rates = grouped_changed[:, 0] / grouped_valid[:, 0]
     precision = {
         f"half_width_{width:.3f}": {
             "target_half_width": width,
@@ -113,8 +133,10 @@ def summarize_controlled_pairs(
     }
     return {
         "status": "complete",
-        "method": "manifest-pair cluster percentile bootstrap of the ratio of summed changed to valid neurons",
+        "method": "manifest-cluster percentile bootstrap of the ratio of summed changed to valid neurons",
         "pair_count": len(overall),
+        "bootstrap_unit": bootstrap_unit,
+        "bootstrap_unit_count": len(unique_groups),
         "bootstrap_replicates": bootstrap.replicates,
         "bootstrap_seed": bootstrap.seed,
         "confidence_level": bootstrap.confidence_level,
@@ -279,11 +301,13 @@ def evaluate_pilot_run(
     """Create complete statistics, provenance, and real figures for one analyzed run."""
     summary = json.loads((run_dir / "distributions/analysis_summary.json").read_text(encoding="utf-8"))
     changes = pd.read_parquet(run_dir / "distributions/pairwise_changes.parquet")
+    pair_manifest = pd.read_parquet(run_dir / "samples/pair_manifest.parquet")
     profiles = pd.read_parquet(run_dir / "distributions/neuron_profiles.parquet")
     with np.load(run_dir / "distributions/transition_matrices.npz", allow_pickle=False) as stored:
         symmetrized = stored["symmetrized"]
     controlled = summarize_controlled_pairs(
         changes,
+        pair_manifest,
         bootstrap_replicates=bootstrap_replicates,
         bootstrap_seed=bootstrap_seed,
         confidence_level=confidence_level,

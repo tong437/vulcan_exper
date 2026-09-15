@@ -59,21 +59,21 @@ def audit_dataset(
             raise RuntimeError(f"Metadata integrity check failed: {path}")
 
     tiers = []
+    expected_images: set[str] = set()
     for tier_dir in sorted((manifest_root / name).iterdir()):
         sample_path = tier_dir / "sample_manifest.parquet"
         pair_path = tier_dir / "pair_manifest.parquet"
         verify_frozen_manifest(sample_path, SAMPLE_COLUMNS)
         verify_frozen_manifest(pair_path, PAIR_COLUMNS)
         samples = pd.read_parquet(sample_path)
+        expected_images.update(str(value) for value in samples["image_id"])
         pairs = pd.read_parquet(pair_path)
         if len(pairs) and (pairs["left_sample_id"] == pairs["right_sample_id"]).any():
             raise RuntimeError(f"Controlled manifest contains self-pairs: {pair_path}")
         tiers.append({"tier": tier_dir.name, "samples": len(samples), "pairs": len(pairs)})
 
-    pilot = pd.read_parquet(manifest_root / name / "pilot/sample_manifest.parquet")
     status = json.loads((image_root / name / "materialization_status.json").read_text(encoding="utf-8"))
     images = pd.read_parquet(image_root / name / "image_manifest.parquet")
-    expected_images = {str(value) for value in pilot["image_id"]}
     actual_images = {str(value) for value in images["image_id"]}
     if status["status"] != "complete" or status["full_download"] is not False or actual_images != expected_images:
         raise RuntimeError(f"Selected image materialization is incomplete for {name}.")

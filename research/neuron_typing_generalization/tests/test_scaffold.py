@@ -14,6 +14,7 @@
 
 from pathlib import Path
 
+import pandas as pd
 import yaml
 from neuron_typing_generalization.config import expand_study, load_study
 from neuron_typing_generalization.registry import ComponentRegistry
@@ -40,6 +41,23 @@ def test_vqav2_gpu_studies_expand_to_the_same_three_models():
         assert {spec.model.name for spec in specs} == expected
         assert {spec.dataset.name for spec in specs} == {"vqav2"}
         assert {spec.study_values["sampling"]["manifest_tier"] for spec in specs} == {tier}
+
+
+def test_remaining_dataset_study_uses_audited_clevr_tier(tmp_path, monkeypatch):
+    study = load_study(EXPERIMENT_ROOT / "configs/studies/remaining_three_dataset_pilot.yaml")
+    specs = expand_study(study)
+    assert len(specs) == 9
+    clevr = next(spec for spec in specs if spec.model.name == "qwen3_5_2b" and spec.dataset.name == "clevr")
+    monkeypatch.setenv("NEURON_TYPING_ARTIFACT_ROOT", str(tmp_path))
+
+    context = initialize_run(clevr)
+    samples = pd.read_parquet(context.run_dir / "samples/sample_manifest.parquet")
+    pairs = pd.read_parquet(context.run_dir / "samples/pair_manifest.parquet")
+
+    assert set(samples["tier"]) == {"audited_v1"}
+    assert set(pairs["tier"]) == {"audited_v1"}
+    assert len(samples) == 128
+    assert len(pairs) == 64
 
 
 def test_initialize_run_writes_resolved_config_and_layout(tmp_path, monkeypatch):

@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import pandas as pd
-from neuron_typing_generalization.tables import analyze_class_table, classify_score_table
+from neuron_typing_generalization.tables import analyze_class_table, classify_score_table, cohort_summary_tensor
 
 
 def _score_rows() -> pd.DataFrame:
@@ -64,3 +65,17 @@ def test_score_to_class_to_analysis_cpu_end_to_end():
     assert profiles["profile"].tolist() == ["dynamic_t_m", "dynamic_with_weak"]
     assert transitions["directed"].sum() == 2
     assert transitions["symmetrized"].sum() == 4
+
+
+def test_natural_cohort_summary_is_descriptive_and_layer_explicit():
+    tensor = np.array([[[0, 1]], [[2, 3]], [[0, 3]]], dtype=np.int8)
+    samples = pd.DataFrame({"sample_id": ["a", "b", "c"], "stratum": ["answerable", "unanswerable", "answerable"]})
+    result = cohort_summary_tensor(tensor, samples, "run")
+
+    assert set(result["cohort"]) == {"answerable", "unanswerable"}
+    overall = result[(result["cohort"] == "answerable") & result["layer"].isna()].iloc[0]
+    assert overall["sample_count"] == 2
+    assert overall["valid_observations"] == 4
+    assert overall["count_W"] == 2
+    assert overall["count_V"] == 1
+    assert overall["count_M"] == 1

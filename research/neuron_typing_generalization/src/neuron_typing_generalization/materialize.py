@@ -233,7 +233,7 @@ def _read_zip_member_range(archive_url: str, info: zipfile.ZipInfo) -> bytes:
 
 
 def materialize_selected_images(config_path: Path, manifest_path: Path, artifact_root: Path) -> Path:
-    """Materialize one dataset using only frozen-manifest image references."""
+    """Incrementally materialize one dataset's frozen-manifest image references."""
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     name = str(config["name"])
     frame = pd.read_parquet(manifest_path)
@@ -248,15 +248,27 @@ def materialize_selected_images(config_path: Path, manifest_path: Path, artifact
         records = _materialize_remote_zip(frame, config, destination)
     else:
         raise KeyError(f"No selected-image materializer for {name}.")
+    manifest_index_path = destination / "image_manifest.parquet"
+    if manifest_index_path.is_file():
+        existing = pd.read_parquet(manifest_index_path).to_dict(orient="records")
+        records_by_id = {str(record["image_id"]): record for record in existing}
+        records_by_id.update({str(record["image_id"]): record for record in records})
+        records = [records_by_id[image_id] for image_id in sorted(records_by_id)]
     total_bytes = sum(record["size"] for record in records)
     byte_limit = int(config["images"]["max_materialized_bytes"])
     if total_bytes > byte_limit:
         raise RuntimeError(f"Materialized images exceed dataset byte limit: {total_bytes} > {byte_limit}")
-    pd.DataFrame(records).to_parquet(destination / "image_manifest.parquet", index=False)
+    pd.DataFrame(records).to_parquet(manifest_index_path, index=False)
+    previous_manifests: list[str] = []
+    if status_path.is_file():
+        previous_status = json.loads(status_path.read_text(encoding="utf-8"))
+        previous_manifests = previous_status.get("manifests", [previous_status.get("manifest")])
+    manifests = sorted({str(manifest_path), *(value for value in previous_manifests if value)})
     status = {
         "dataset": name,
         "status": "complete",
         "manifest": str(manifest_path),
+        "manifests": manifests,
         "unique_images": len(records),
         "total_bytes": total_bytes,
         "full_download": False,

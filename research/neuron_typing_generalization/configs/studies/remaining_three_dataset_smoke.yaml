@@ -1,0 +1,44 @@
+name: remaining_three_dataset_smoke
+artifact_root: artifacts/neuron_typing_generalization
+
+models:
+  - ../models/qwen3_5_2b.yaml
+  - ../models/llava_1_5_7b.yaml
+  - ../models/gemma_4_e2b_it.yaml
+
+datasets:
+  - ../datasets/gqa_balanced.yaml
+  - ../datasets/clevr.yaml
+  - ../datasets/vizwiz_vqa.yaml
+
+metrics:
+  - ../metrics/down_projection_weighted_rms.yaml
+
+seeds: [42]
+
+sampling:
+  require_frozen_manifest: true
+  require_pair_manifest: true
+  materialize_selected_images_only: true
+  manifest_tier: cpu_fixture
+  manifest_tiers:
+    gqa_balanced: cpu_fixture
+    clevr: audited_v1
+    vizwiz_vqa: cpu_fixture
+
+inference:
+  batch_size: 1
+  dtype: bfloat16
+  inference_mode: true
+  generate: false
+  use_cache: false
+  capture_all_decoder_layers: true
+  compact_partitioned_statistics: true
+  resume_completed_samples: true
+
+acceptance:
+  require_configured_decoder_layout: true
+  require_nonempty_visual_mask: true
+  require_nonempty_text_mask: true
+  reject_nonfinite_statistics: true
+

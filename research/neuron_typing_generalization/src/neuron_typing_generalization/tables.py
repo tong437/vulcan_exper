@@ -247,6 +247,53 @@ def controlled_pair_change_tensor(
     return pd.DataFrame(rows, columns=columns)
 
 
+def cohort_summary_tensor(
+    tensor: np.ndarray,
+    sample_manifest: pd.DataFrame,
+    run_id: str,
+    cohort_column: str = "stratum",
+) -> pd.DataFrame:
+    """Summarize descriptive response-state occupancy within natural sample cohorts."""
+    columns = [
+        "run_id",
+        "cohort_field",
+        "cohort",
+        "layer",
+        "sample_count",
+        "valid_observations",
+        *[f"count_{label}" for label in CLASS_LABELS],
+        *[f"proportion_{label}" for label in CLASS_LABELS],
+    ]
+    if cohort_column not in sample_manifest or not sample_manifest[cohort_column].notna().any():
+        return pd.DataFrame(columns=columns)
+    if tensor.ndim != 3 or tensor.shape[0] != len(sample_manifest):
+        raise ValueError("Cohort tensor must align with the sample manifest.")
+    rows = []
+    cohort_values = sample_manifest[cohort_column].astype("string")
+    for cohort in sorted(str(value) for value in cohort_values.dropna().unique()):
+        sample_indices = np.flatnonzero(cohort_values.eq(cohort).fillna(False).to_numpy())
+        for layer in [None, *range(tensor.shape[1])]:
+            values = tensor[sample_indices] if layer is None else tensor[sample_indices, layer]
+            counts = [int(np.count_nonzero(values == class_id)) for class_id in range(len(CLASS_LABELS))]
+            valid = sum(counts)
+            rows.append(
+                {
+                    "run_id": run_id,
+                    "cohort_field": cohort_column,
+                    "cohort": cohort,
+                    "layer": layer,
+                    "sample_count": len(sample_indices),
+                    "valid_observations": valid,
+                    **{f"count_{label}": counts[index] for index, label in enumerate(CLASS_LABELS)},
+                    **{
+                        f"proportion_{label}": counts[index] / valid if valid else None
+                        for index, label in enumerate(CLASS_LABELS)
+                    },
+                }
+            )
+    return pd.DataFrame(rows, columns=columns)
+
+
 def analyze_class_table(
     classes: pd.DataFrame,
     sample_manifest: pd.DataFrame,
