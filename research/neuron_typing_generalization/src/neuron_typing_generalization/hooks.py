@@ -29,26 +29,33 @@ from .importance import ModalityImportance, compute_modality_importance, validat
 from .interfaces import FFNBinding, PreparedInputs, TokenRoleMasks
 
 
-_LAYER_PATTERN = re.compile(r"(?:^|\.)(?:layers|h)\.(\d+)\.mlp\.down_proj$")
+_LAYER_PATTERN = re.compile(r"^(?P<prefix>.*?)(?:layers|h)\.(?P<layer>\d+)\.mlp\.down_proj$")
 
 
 def discover_decoder_ffns(model: nn.Module) -> tuple[FFNBinding, ...]:
     """Discover language-decoder ``mlp.down_proj`` modules without family conditionals."""
-    bindings = []
+    grouped: dict[str, list[FFNBinding]] = {}
     for name, module in model.named_modules():
-        match = _LAYER_PATTERN.search(name)
+        match = _LAYER_PATTERN.match(name)
         weight = getattr(module, "weight", None)
         if match is None or not isinstance(weight, Tensor) or weight.ndim != 2:
             continue
         d_model, d_ff = weight.shape
-        bindings.append(FFNBinding(int(match.group(1)), module, int(d_model), int(d_ff)))
-    bindings.sort(key=lambda binding: binding.layer)
-    if not bindings:
+        grouped.setdefault(match.group("prefix"), []).append(
+            FFNBinding(int(match.group("layer")), module, int(d_model), int(d_ff))
+        )
+    candidates = []
+    for prefix, bindings in grouped.items():
+        bindings.sort(key=lambda binding: binding.layer)
+        if [binding.layer for binding in bindings] == list(range(len(bindings))):
+            candidates.append((prefix, tuple(bindings)))
+    if not candidates:
         raise ValueError("No decoder MLP down projections matched '*.layers.<index>.mlp.down_proj'.")
-    layers = [binding.layer for binding in bindings]
-    if layers != list(range(len(layers))):
-        raise ValueError(f"Decoder layer discovery is non-contiguous: {layers}")
-    return tuple(bindings)
+    maximum_layers = max(len(bindings) for _, bindings in candidates)
+    longest = [(prefix, bindings) for prefix, bindings in candidates if len(bindings) == maximum_layers]
+    if len(longest) != 1:
+        raise ValueError(f"Decoder discovery is ambiguous across module roots: {[prefix for prefix, _ in longest]}")
+    return longest[0][1]
 
 
 class DownProjectionCapture(AbstractContextManager["DownProjectionCapture"]):
@@ -94,16 +101,22 @@ class LayerImportance:
 class StreamingImportanceCollector:
     """Immediately reduce captured activations instead of retaining token-by-neuron tensors."""
 
-    def __init__(self, token_roles: TokenRoleMasks) -> None:
+    def __init__(self, token_roles: TokenRoleMasks, down_projection_norms: Mapping[int, Tensor] | None = None) -> None:
         validate_token_masks(token_roles.visual, token_roles.text, token_roles.control, token_roles.padding)
         self._token_roles = token_roles
+        self._down_projection_norms = down_projection_norms or {}
         self._layers: dict[int, LayerImportance] = {}
 
     def update(self, layer: int, activations: Tensor, down_projection_weight: Tensor) -> None:
         if layer in self._layers:
             raise RuntimeError(f"Layer {layer} was captured more than once in one collector.")
-        visual = compute_modality_importance(activations, down_projection_weight, self._token_roles.visual)
-        text = compute_modality_importance(activations, down_projection_weight, self._token_roles.text)
+        down_norm = self._down_projection_norms.get(layer)
+        visual = compute_modality_importance(
+            activations, down_projection_weight, self._token_roles.visual, down_projection_norm=down_norm
+        )
+        text = compute_modality_importance(
+            activations, down_projection_weight, self._token_roles.text, down_projection_norm=down_norm
+        )
         self._layers[layer] = LayerImportance(visual=visual, text=text)
 
     def finalize(self) -> Mapping[int, LayerImportance]:

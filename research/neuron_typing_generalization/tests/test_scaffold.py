@@ -33,6 +33,15 @@ def test_main_study_expands_without_recollecting_per_metric():
     assert len({build_run_id(spec) for spec in specs}) == 12
 
 
+def test_vqav2_gpu_studies_expand_to_the_same_three_models():
+    expected = {"qwen3_5_2b", "llava_1_5_7b", "gemma_4_e2b_it"}
+    for name, tier in (("vqav2_three_model_smoke.yaml", "gpu_smoke"), ("vqav2_three_model_pilot.yaml", "pilot")):
+        specs = expand_study(load_study(EXPERIMENT_ROOT / "configs/studies" / name))
+        assert {spec.model.name for spec in specs} == expected
+        assert {spec.dataset.name for spec in specs} == {"vqav2"}
+        assert {spec.study_values["sampling"]["manifest_tier"] for spec in specs} == {tier}
+
+
 def test_initialize_run_writes_resolved_config_and_layout(tmp_path, monkeypatch):
     study = load_study(EXPERIMENT_ROOT / "configs/studies/main.yaml")
     spec = expand_study(study)[0]

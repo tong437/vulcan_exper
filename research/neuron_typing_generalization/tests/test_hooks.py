@@ -52,6 +52,12 @@ class FakeModel(torch.nn.Module):
         return value
 
 
+class FakeAuxiliaryDecoder(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.layers = torch.nn.ModuleList([FakeLayer()])
+
+
 def test_discovery_capture_streaming_and_hook_removal():
     model = FakeModel()
     bindings = discover_decoder_ffns(model)
@@ -78,3 +84,10 @@ def test_span_masks_leave_template_positions_as_control_and_padding():
     assert roles.text.tolist() == [False, False, True, True, False]
     assert roles.control.tolist() == [True, False, False, False, False]
     assert roles.padding.tolist() == [False, False, False, False, True]
+
+
+def test_discovery_ignores_short_auxiliary_decoder_root():
+    model = FakeModel()
+    model.mtp = FakeAuxiliaryDecoder()
+    bindings = discover_decoder_ffns(model)
+    assert [binding.layer for binding in bindings] == [0, 1]

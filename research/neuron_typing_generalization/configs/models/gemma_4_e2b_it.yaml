@@ -14,6 +14,9 @@ decoder:
   auto_discover_ffn: true
   expected_layers: 35
   expected_d_ff: 6144
+  expected_d_ff_by_layer:
+    - {start: 0, stop: 15, d_ff: 6144}
+    - {start: 15, stop: 35, d_ff: 12288}
 hooks:
   module_pattern: "*.layers.<index>.mlp.down_proj"
   capture: forward_pre_input

@@ -24,12 +24,13 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import torch
 from torch import Tensor
 
 from .hooks import DownProjectionCapture, InjectedModelAdapter, StreamingImportanceCollector
-from .schema_validation import validate_document, validate_frame
+from .schema_validation import validate_document
 
 
 ACTIVATION_COLUMNS = [
@@ -53,6 +54,42 @@ def _write_parquet_atomic(frame: pd.DataFrame, destination: Path) -> None:
         temporary_path = Path(temporary.name)
     try:
         frame.to_parquet(temporary_path, index=False)
+        os.replace(temporary_path, destination)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _write_npz_atomic(destination: Path, **arrays: np.ndarray) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=destination.parent, suffix=".npz", delete=False) as temporary:
+        temporary_path = Path(temporary.name)
+    try:
+        np.savez(temporary_path, **arrays)
+        os.replace(temporary_path, destination)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _write_npy_atomic(destination: Path, values: np.ndarray) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=destination.parent, suffix=".npy", delete=False) as temporary:
+        temporary_path = Path(temporary.name)
+    try:
+        np.save(temporary_path, values, allow_pickle=False)
+        os.replace(temporary_path, destination)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _write_json_atomic(destination: Path, value: Mapping[str, Any]) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        dir=destination.parent, suffix=".json", mode="w", encoding="utf-8", delete=False
+    ) as temporary:
+        temporary_path = Path(temporary.name)
+        json.dump(value, temporary, ensure_ascii=False, indent=2)
+        temporary.write("\n")
+    try:
         os.replace(temporary_path, destination)
     finally:
         temporary_path.unlink(missing_ok=True)
@@ -82,63 +119,114 @@ def collect_reduced_activations(
     model_name: str,
     dataset_name: str,
 ) -> dict[str, Any]:
-    """Run one injected model and persist only reduced RMS/weight statistics."""
+    """Run one injected model into resumable compact per-sample partitions."""
     if samples.empty or "sample_id" not in samples:
         raise ValueError("A nonempty sample manifest with sample_id is required.")
     bindings = tuple(adapter.iter_ffn_bindings())
-    d_ff_values = {binding.d_ff for binding in bindings}
-    if len(d_ff_values) != 1:
-        raise ValueError("This score schema requires a constant d_ff across decoder layers.")
-    rows = []
-    for sample in samples.to_dict(orient="records"):
+    layers = len(bindings)
+    d_ff_by_layer = tuple(binding.d_ff for binding in bindings)
+    d_ff = max(d_ff_by_layer)
+    activation_dir = run_dir / "activations"
+    part_dir = activation_dir / "sample_parts"
+    part_dir.mkdir(parents=True, exist_ok=True)
+
+    down_norm_tensors = {
+        binding.layer: torch.linalg.vector_norm(
+            binding.down_projection.weight.detach().to(torch.float32), ord=2, dim=0
+        )
+        for binding in bindings
+    }
+    down_norms = np.zeros((layers, d_ff), dtype=np.float32)
+    for layer, width in enumerate(d_ff_by_layer):
+        down_norms[layer, :width] = down_norm_tensors[layer].cpu().numpy()
+    if not np.isfinite(down_norms).all():
+        raise RuntimeError("Down-projection norms contain non-finite values.")
+    weight_path = activation_dir / "down_projection_norms.npy"
+    if weight_path.exists():
+        existing = np.load(weight_path, allow_pickle=False)
+        if existing.shape != down_norms.shape or not np.array_equal(existing, down_norms):
+            raise RuntimeError("Existing down-projection norms do not match the injected model.")
+    else:
+        _write_npy_atomic(weight_path, down_norms)
+
+    parts = []
+    resumed_samples = 0
+    for sample_index, sample in enumerate(samples.to_dict(orient="records")):
+        sample_id = str(sample["sample_id"])
+        output = part_dir / f"{sample_index:06d}.npz"
+        if output.exists():
+            with np.load(output, allow_pickle=False) as existing:
+                existing_id = str(existing["sample_id"].item())
+                if existing_id != sample_id or existing["activation_rms"].shape != (layers, 2, d_ff):
+                    raise RuntimeError(f"Existing activation partition conflicts with sample {sample_index}: {output}")
+            resumed_samples += 1
+            parts.append(
+                {"sample_index": sample_index, "sample_id": sample_id, "file": str(output.relative_to(run_dir))}
+            )
+            continue
         prepared = adapter.prepare_inputs(sample)
-        collector = StreamingImportanceCollector(prepared.token_roles)
+        collector = StreamingImportanceCollector(prepared.token_roles, down_norm_tensors)
         with torch.inference_mode(), DownProjectionCapture(bindings, collector.update):
             adapter.model(**prepared.model_inputs)
         captured = collector.finalize()
         if tuple(captured) != tuple(binding.layer for binding in bindings):
             raise RuntimeError("Not every discovered decoder layer was captured exactly once.")
+        activation_rms = np.zeros((layers, 2, d_ff), dtype=np.float32)
+        token_count = np.empty((layers, 2), dtype=np.int32)
+        valid = np.empty((layers, 2), dtype=np.bool_)
         for layer, statistics in captured.items():
-            for modality, values in (("visual", statistics.visual), ("text", statistics.text)):
+            for modality_index, values in enumerate((statistics.visual, statistics.text)):
                 rms = _single_sample_vector(values.activation_rms, "activation_rms").to(torch.float32).cpu()
-                norm = values.down_projection_norm.to(torch.float32).cpu()
                 valid_tensor = values.valid
-                valid = bool(valid_tensor.item()) if valid_tensor.ndim == 0 else bool(valid_tensor[0].item())
+                is_valid = bool(valid_tensor.item()) if valid_tensor.ndim == 0 else bool(valid_tensor[0].item())
                 count_tensor = values.token_count
-                token_count = int(count_tensor.item()) if count_tensor.ndim == 0 else int(count_tensor[0].item())
-                for neuron in range(len(rms)):
-                    rows.append(
-                        {
-                            "run_id": run_id,
-                            "sample_id": str(sample["sample_id"]),
-                            "model": model_name,
-                            "dataset": dataset_name,
-                            "layer": layer,
-                            "neuron": neuron,
-                            "modality": modality,
-                            "token_count": token_count,
-                            "activation_rms": float(rms[neuron]) if valid else None,
-                            "down_projection_norm": float(norm[neuron]),
-                            "valid": valid,
-                        }
-                    )
-    frame = pd.DataFrame(rows, columns=ACTIVATION_COLUMNS)
-    validate_frame(frame, "activation_stats.schema.json")
-    output = run_dir / "activations/neuron_activation_stats.parquet"
-    _write_parquet_atomic(frame, output)
+                count = int(count_tensor.item()) if count_tensor.ndim == 0 else int(count_tensor[0].item())
+                width = d_ff_by_layer[layer]
+                activation_rms[layer, modality_index, :width] = rms.numpy()
+                token_count[layer, modality_index] = count
+                valid[layer, modality_index] = is_valid
+        for layer, width in enumerate(d_ff_by_layer):
+            if valid[layer].any() and not np.isfinite(activation_rms[layer, valid[layer], :width]).all():
+                raise RuntimeError(f"Valid activation RMS statistics are non-finite for sample_id={sample_id}.")
+        _write_npz_atomic(
+            output,
+            sample_id=np.asarray(sample_id),
+            activation_rms=activation_rms,
+            token_count=token_count,
+            valid=valid,
+        )
+        parts.append({"sample_index": sample_index, "sample_id": sample_id, "file": str(output.relative_to(run_dir))})
+        _write_json_atomic(
+            activation_dir / "progress.json",
+            {"run_id": run_id, "completed_samples": sample_index + 1, "total_samples": len(samples)},
+        )
+
+    part_digest = hashlib.sha256()
+    for part in parts:
+        path = run_dir / part["file"]
+        digest = _sha256(path)
+        part["sha256"] = digest
+        part_digest.update(f"{part['sample_index']}:{part['sample_id']}:{digest}\n".encode())
+    rows = len(samples) * sum(d_ff_by_layer) * 2
     manifest = {
         "run_id": run_id,
         "samples": len(samples),
-        "layers": len(bindings),
-        "d_ff": next(iter(d_ff_values)),
-        "rows": len(frame),
-        "statistics_file": str(output.relative_to(run_dir)),
-        "statistics_sha256": _sha256(output),
+        "layers": layers,
+        "d_ff": d_ff,
+        "d_ff_by_layer": list(d_ff_by_layer),
+        "rows": rows,
+        "storage_format": "partitioned_npz_v1",
+        "statistics_directory": str(part_dir.relative_to(run_dir)),
+        "parts": parts,
+        "parts_sha256": part_digest.hexdigest(),
+        "down_projection_norms_file": str(weight_path.relative_to(run_dir)),
+        "down_projection_norms_sha256": _sha256(weight_path),
+        "resumed_samples": resumed_samples,
         "raw_token_activations_retained": False,
     }
     validate_document(manifest, "activation_manifest.schema.json")
     manifest_path = run_dir / "activations/manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    _write_json_atomic(manifest_path, manifest)
     return manifest
 
 

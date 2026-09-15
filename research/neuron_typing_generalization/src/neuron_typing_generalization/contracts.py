@@ -36,19 +36,19 @@ STAGE_ORDER = (
 STAGE_CONTRACTS = {
     "collect_activations": StageContract(
         requires=("samples/sample_manifest.parquet", "samples/pair_manifest.parquet"),
-        produces=("activations/neuron_activation_stats.parquet", "activations/manifest.json"),
+        produces=("activations/sample_parts", "activations/down_projection_norms.npy", "activations/manifest.json"),
     ),
     "compute_importance": StageContract(
-        requires=("activations/neuron_activation_stats.parquet", "activations/manifest.json"),
-        produces=("scores/neuron_scores.parquet",),
+        requires=("activations/manifest.json",),
+        produces=("scores/sample_parts", "scores/manifest.json"),
     ),
     "classify_neurons": StageContract(
-        requires=("scores/neuron_scores.parquet",),
-        produces=("classifications/neuron_classes.parquet",),
+        requires=("scores/manifest.json",),
+        produces=("classifications/sample_parts", "classifications/manifest.json"),
     ),
     "compare_distributions": StageContract(
         requires=(
-            "classifications/neuron_classes.parquet",
+            "classifications/manifest.json",
             "samples/sample_manifest.parquet",
             "samples/pair_manifest.parquet",
         ),

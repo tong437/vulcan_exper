@@ -92,6 +92,7 @@ def compute_modality_importance(
     activations: Tensor,
     down_projection_weight: Tensor,
     token_mask: Tensor,
+    down_projection_norm: Tensor | None = None,
 ) -> ModalityImportance:
     """Compute down-projection-weighted activation RMS for one modality.
 
@@ -99,6 +100,7 @@ def compute_modality_importance(
         activations: Post-gating MLP activations with final dimension ``d_ff``.
         down_projection_weight: Weight with shape ``[d_model, d_ff]``.
         token_mask: Boolean selection over the activation token dimensions.
+        down_projection_norm: Optional precomputed per-neuron norm with shape ``[d_ff]``.
     """
     activations, token_mask, was_unbatched = _batched_activations(activations, token_mask)
     if down_projection_weight.ndim != 2 or down_projection_weight.shape[1] != activations.shape[-1]:
@@ -112,7 +114,12 @@ def compute_modality_importance(
     valid = counts > 0
     rms = torch.where(valid.unsqueeze(-1), rms, torch.full_like(rms, torch.nan))
 
-    down_norm = torch.linalg.vector_norm(down_projection_weight.to(torch.float32), ord=2, dim=0)
+    down_norm = down_projection_norm
+    if down_norm is None:
+        down_norm = torch.linalg.vector_norm(down_projection_weight.to(torch.float32), ord=2, dim=0)
+    elif down_norm.ndim != 1 or down_norm.shape[0] != activations.shape[-1]:
+        raise ValueError("down_projection_norm must have shape [d_ff].")
+    down_norm = down_norm.to(device=activations.device, dtype=torch.float32)
     importance = rms * down_norm.unsqueeze(0)
     if was_unbatched:
         return ModalityImportance(rms[0], down_norm, importance[0], counts[0], valid[0])

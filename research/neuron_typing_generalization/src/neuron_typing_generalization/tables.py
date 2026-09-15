@@ -113,19 +113,23 @@ def class_tensor_from_table(
     return tensor, layers, neurons
 
 
-def analyze_class_table(
-    classes: pd.DataFrame,
-    sample_manifest: pd.DataFrame,
+def analyze_class_tensor(
+    tensor: np.ndarray,
+    sample_ids: list[str],
+    run_id: str,
     pair_manifest: pd.DataFrame,
     chunk_size: int = 64,
 ) -> tuple[dict, pd.DataFrame, np.ndarray]:
-    """Produce run summary, neuron profiles, and controlled transition matrices."""
-    sample_ids = [str(value) for value in sample_manifest["sample_id"]]
-    tensor, layers, neurons = class_tensor_from_table(classes, sample_ids)
+    """Analyze a compact [sample, layer, neuron] class tensor."""
+    if tensor.ndim != 3 or tensor.shape[0] != len(sample_ids):
+        raise ValueError("Compact classes must have shape [sample, layer, neuron].")
+    if len(sample_ids) != len(set(sample_ids)):
+        raise ValueError("sample_ids must be unique and ordered by the frozen manifest.")
+    layers = list(range(tensor.shape[1]))
+    neurons = list(range(tensor.shape[2]))
     rates = change_rates_from_counts(tensor)
     maximum = maximum_change_pair(tensor, chunk_size=chunk_size)
     stability = neuron_stability(tensor)
-    run_id = str(classes["run_id"].iloc[0])
     summary = {
         "run_id": run_id,
         "sample_count": len(sample_ids),
@@ -142,7 +146,7 @@ def analyze_class_table(
         "overall_changed_distinct_ordered_comparisons": rates.distinct_pairs_changed,
         "overall_valid_distinct_ordered_comparisons": rates.distinct_pair_comparisons,
         "per_layer_changed_ordered_comparisons": rates.per_layer_including_self_changed.tolist(),
-        "per_layer_valid_ordered_comparisons_including_self": (rates.per_layer_including_self_comparisons.tolist()),
+        "per_layer_valid_ordered_comparisons_including_self": rates.per_layer_including_self_comparisons.tolist(),
         "per_layer_changed_distinct_ordered_comparisons": rates.per_layer_distinct_pairs_changed.tolist(),
         "per_layer_valid_distinct_ordered_comparisons": rates.per_layer_distinct_pair_comparisons.tolist(),
         "maximum_pair": {
@@ -189,12 +193,13 @@ def analyze_class_table(
     return summary, pd.DataFrame(profile_rows), transitions
 
 
-def controlled_pair_change_table(
-    classes: pd.DataFrame,
-    sample_manifest: pd.DataFrame,
+def controlled_pair_change_tensor(
+    tensor: np.ndarray,
+    sample_ids: list[str],
+    run_id: str,
     pair_manifest: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Compute overall and per-layer rates only for explicit controlled pair edges."""
+    """Compute controlled-pair changes directly from compact classes."""
     columns = [
         "run_id",
         "left_sample_id",
@@ -207,17 +212,14 @@ def controlled_pair_change_table(
     ]
     if not len(pair_manifest):
         return pd.DataFrame(columns=columns)
-    sample_ids = [str(value) for value in sample_manifest["sample_id"]]
-    tensor, layers, _ = class_tensor_from_table(classes, sample_ids)
     sample_index = {sample_id: index for index, sample_id in enumerate(sample_ids)}
-    run_id = str(classes["run_id"].iloc[0])
     rows = []
     for pair in pair_manifest.itertuples():
         left_id = str(pair.left_sample_id)
         right_id = str(pair.right_sample_id)
         left = tensor[sample_index[left_id]]
         right = tensor[sample_index[right_id]]
-        for layer in [None, *layers]:
+        for layer in [None, *range(tensor.shape[1])]:
             left_values = left if layer is None else left[layer]
             right_values = right if layer is None else right[layer]
             rate, valid_neurons = pair_change_rate(left_values, right_values)
@@ -239,3 +241,28 @@ def controlled_pair_change_table(
                 }
             )
     return pd.DataFrame(rows, columns=columns)
+
+
+def analyze_class_table(
+    classes: pd.DataFrame,
+    sample_manifest: pd.DataFrame,
+    pair_manifest: pd.DataFrame,
+    chunk_size: int = 64,
+) -> tuple[dict, pd.DataFrame, np.ndarray]:
+    """Produce run summary, neuron profiles, and controlled transition matrices."""
+    sample_ids = [str(value) for value in sample_manifest["sample_id"]]
+    tensor, _, _ = class_tensor_from_table(classes, sample_ids)
+    run_id = str(classes["run_id"].iloc[0])
+    return analyze_class_tensor(tensor, sample_ids, run_id, pair_manifest, chunk_size=chunk_size)
+
+
+def controlled_pair_change_table(
+    classes: pd.DataFrame,
+    sample_manifest: pd.DataFrame,
+    pair_manifest: pd.DataFrame,
+) -> pd.DataFrame:
+    """Compute overall and per-layer rates only for explicit controlled pair edges."""
+    sample_ids = [str(value) for value in sample_manifest["sample_id"]]
+    tensor, _, _ = class_tensor_from_table(classes, sample_ids)
+    run_id = str(classes["run_id"].iloc[0])
+    return controlled_pair_change_tensor(tensor, sample_ids, run_id, pair_manifest)

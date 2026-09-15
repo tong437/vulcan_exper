@@ -42,6 +42,7 @@ class ModelLayout:
     d_ff: int
     image_token_id: int
     visual_tokens_per_image: int | None
+    d_ff_by_layer: tuple[int, ...] | None = None
 
 
 def load_model_layout(model_values: dict[str, Any]) -> ModelLayout:
@@ -69,10 +70,17 @@ def load_model_layout(model_values: dict[str, Any]) -> ModelLayout:
     if raw_d_ff is not None and int(raw_d_ff) != expected_d_ff:
         raise ValueError(f"d_ff mismatch: config={raw_d_ff}, expected={expected_d_ff}.")
 
+    expected_widths = [expected_d_ff] * expected_layers
+    for block in decoder.get("expected_d_ff_by_layer", []):
+        start, stop, width = int(block["start"]), int(block["stop"]), int(block["d_ff"])
+        if not 0 <= start < stop <= expected_layers:
+            raise ValueError(f"Invalid layer-width block [{start}, {stop}).")
+        expected_widths[start:stop] = [width] * (stop - start)
+
     image_token_id = raw.get("image_token_id", raw.get("image_token_index"))
     if image_token_id is None:
         raise ValueError(f"Image token ID is absent from {config_path}.")
-    visual_tokens = raw.get("vision_soft_tokens_per_image")
+    visual_tokens = None
     if family == "llava":
         vision = raw["vision_config"]
         visual_tokens = (int(vision["image_size"]) // int(vision["patch_size"])) ** 2
@@ -84,6 +92,7 @@ def load_model_layout(model_values: dict[str, Any]) -> ModelLayout:
         d_ff=expected_d_ff,
         image_token_id=int(image_token_id),
         visual_tokens_per_image=int(visual_tokens) if visual_tokens is not None else None,
+        d_ff_by_layer=tuple(expected_widths),
     )
 
 
@@ -100,6 +109,37 @@ def find_unique_token_span(input_ids: Tensor, question_token_ids: Tensor) -> tup
     if len(matches) != 1:
         raise ValueError(f"Question token sequence must occur exactly once; found {len(matches)} matches.")
     return matches[0], matches[0] + width
+
+
+def find_question_token_span(input_ids: Tensor, tokenizer: Any, question: str) -> tuple[int, int]:
+    """Locate question tokens while preserving tokenizer context at chat-template boundaries.
+
+    SentencePiece tokenizers can encode the first question token differently after a
+    newline than in an isolated string.  Matching a small, explicit template prefix
+    and then excluding its tokens keeps the mask on question content only.
+    """
+    candidates: list[tuple[Tensor, int]] = []
+    for prefix in ("", "\n", " ", "\n\n"):
+        candidate = tokenizer(prefix + question, add_special_tokens=False, return_tensors="pt")["input_ids"][0]
+        prefix_ids = tokenizer(prefix, add_special_tokens=False, return_tensors="pt")["input_ids"][0]
+        candidates.append((candidate, len(prefix_ids)))
+
+    matches: list[tuple[int, tuple[int, int]]] = []
+    for candidate, prefix_width in candidates:
+        if len(candidate) <= prefix_width:
+            continue
+        question_ids = candidate[prefix_width:]
+        width = len(question_ids)
+        for start in range(len(input_ids) - width + 1):
+            if torch.equal(input_ids[start : start + width], question_ids):
+                matches.append((width, (start, start + width)))
+    if not matches:
+        raise ValueError("Question token span must resolve exactly once; found 0 matches.")
+    maximum_width = max(width for width, _ in matches)
+    longest = {span for width, span in matches if width == maximum_width}
+    if len(longest) != 1:
+        raise ValueError(f"Question token span must resolve exactly once; found {len(longest)} longest matches.")
+    return next(iter(longest))
 
 
 def resolve_expanded_roles(
@@ -120,6 +160,29 @@ def resolve_expanded_roles(
             f"{layout.visual_tokens_per_image} for {layout.family}."
         )
     question_span = find_unique_token_span(input_ids, question_token_ids)
+    visual_spans = [(int(position), int(position) + 1) for position in visual_positions.tolist()]
+    return masks_from_spans(attention_mask, visual_spans, [question_span])
+
+
+def resolve_processor_roles(
+    layout: ModelLayout,
+    input_ids: Tensor,
+    attention_mask: Tensor,
+    tokenizer: Any,
+    question: str,
+) -> TokenRoleMasks:
+    """Resolve processor-expanded visual positions and context-aware question positions."""
+    if input_ids.ndim != 1 or attention_mask.ndim != 1 or input_ids.shape != attention_mask.shape:
+        raise ValueError("Single-sample input_ids and attention_mask must be aligned one-dimensional tensors.")
+    visual_positions = torch.nonzero(input_ids == layout.image_token_id, as_tuple=False).flatten()
+    if not len(visual_positions):
+        raise ValueError(f"No image tokens ({layout.image_token_id}) were found for {layout.family}.")
+    if layout.visual_tokens_per_image is not None and len(visual_positions) < layout.visual_tokens_per_image:
+        raise ValueError(
+            f"Processor output has {len(visual_positions)} visual positions; expected at least "
+            f"{layout.visual_tokens_per_image} for {layout.family}."
+        )
+    question_span = find_question_token_span(input_ids, tokenizer, question)
     visual_spans = [(int(position), int(position) + 1) for position in visual_positions.tolist()]
     return masks_from_spans(attention_mask, visual_spans, [question_span])
 
@@ -154,19 +217,26 @@ class ProcessorInputAdapter:
         attention_mask = prepared["attention_mask"]
         if input_ids.ndim != 2 or input_ids.shape[0] != 1:
             raise ValueError("The preparation adapter accepts exactly one sample at a time.")
-        question_ids = self.processor.tokenizer(question, add_special_tokens=False, return_tensors="pt")["input_ids"][
-            0
-        ]
-        roles = resolve_expanded_roles(self.layout, input_ids[0], attention_mask[0], question_ids)
+        roles = resolve_processor_roles(
+            self.layout, input_ids[0], attention_mask[0], self.processor.tokenizer, question
+        )
         return PreparedInputs(model_inputs=prepared, token_roles=roles)
 
 
 def load_local_processor_adapter(model_values: dict[str, Any], use_fast: bool = False) -> ProcessorInputAdapter:
     """Load processor/tokenizer assets locally while never constructing a model."""
+    import transformers
+    from packaging.version import Version
     from transformers import AutoProcessor
 
     layout = load_model_layout(model_values)
-    processor = AutoProcessor.from_pretrained(layout.model_path, local_files_only=True, use_fast=use_fast)
+    backend = {True: "torchvision", False: "pil"}[use_fast]
+    backend_options = (
+        {"backend": backend}
+        if layout.family == "llava" and Version(transformers.__version__) >= Version("5.6.0")
+        else {"use_fast": use_fast}
+    )
+    processor = AutoProcessor.from_pretrained(layout.model_path, local_files_only=True, **backend_options)
     if not hasattr(processor, "apply_chat_template") or not hasattr(processor, "tokenizer"):
         raise RuntimeError(
             f"Installed Transformers cannot construct the multimodal processor for {layout.family}; "

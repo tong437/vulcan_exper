@@ -133,3 +133,114 @@ def run_qwen_smoke_preflight(study_path: Path, experiment_root: Path, artifact_r
         },
         "deferred_to_gpu": ["model_forward", "hook_layer_count", "streaming_vs_direct_activation_statistics"],
     }
+
+
+def run_vqav2_three_model_preflight(study_path: Path, experiment_root: Path, artifact_root: Path) -> dict[str, Any]:
+    """Run processor, manifest, version, and storage checks for every VQAv2 smoke model."""
+    import transformers
+    from accelerate import init_empty_weights
+    from transformers import AutoConfig
+
+    from .hooks import discover_decoder_ffns
+
+    specs = expand_study(load_study(study_path))
+    if not specs or any(spec.dataset.name != "vqav2" for spec in specs):
+        raise ValueError("Three-model smoke preflight accepts only VQAv2 runs.")
+    tiers = {str(spec.study_values["sampling"]["manifest_tier"]) for spec in specs}
+    if len(tiers) != 1:
+        raise ValueError("All smoke models must use the same frozen manifest tier.")
+    tier = tiers.pop()
+    manifest_dir = experiment_root / "manifests/vqav2" / tier
+    sample_path = manifest_dir / "sample_manifest.parquet"
+    pair_path = manifest_dir / "pair_manifest.parquet"
+    sample_digest = verify_frozen_manifest(sample_path, SAMPLE_COLUMNS)
+    pair_digest = verify_frozen_manifest(pair_path, PAIR_COLUMNS)
+    samples = pd.read_parquet(sample_path)
+    pairs = pd.read_parquet(pair_path)
+    image_manifest = pd.read_parquet(artifact_root / "images/vqav2/image_manifest.parquet")
+    image_by_id = {
+        str(row.image_id): artifact_root / "images/vqav2" / row.relative_path for row in image_manifest.itertuples()
+    }
+
+    model_reports = []
+    for spec in specs:
+        report: dict[str, Any] = {"name": spec.model.name, "status": "failed", "model_weights_loaded": False}
+        try:
+            layout = load_model_layout(spec.model.values)
+            minimum = spec.model.values.get("minimum_transformers_version")
+            if minimum:
+                from packaging.version import Version
+
+                if Version(transformers.__version__) < Version(str(minimum)):
+                    raise RuntimeError(f"Transformers {transformers.__version__} is below required version {minimum}.")
+            if not hasattr(transformers, layout.architecture):
+                raise RuntimeError(f"Transformers {transformers.__version__} does not expose {layout.architecture}.")
+            model_config = AutoConfig.from_pretrained(layout.model_path, local_files_only=True)
+            with init_empty_weights():
+                empty_model = getattr(transformers, layout.architecture)(model_config)
+            bindings = discover_decoder_ffns(empty_model)
+            observed_widths = tuple(binding.d_ff for binding in bindings)
+            expected_widths = layout.d_ff_by_layer or (layout.d_ff,) * layout.decoder_layers
+            if len(bindings) != layout.decoder_layers or observed_widths != expected_widths:
+                raise RuntimeError("Constructed decoder FFN layout disagrees with the frozen model configuration.")
+            del empty_model
+            weight_files = sorted(layout.model_path.glob("*.safetensors"))
+            if not weight_files:
+                raise FileNotFoundError(f"No safetensors weights under {layout.model_path}.")
+            processor_adapter = load_local_processor_adapter(spec.model.values, use_fast=False)
+            token_audit = []
+            for sample in samples.itertuples():
+                image_path = image_by_id.get(str(sample.image_id))
+                if image_path is None or not image_path.is_file():
+                    raise FileNotFoundError(f"Materialized image is missing for image_id={sample.image_id}.")
+                with Image.open(image_path) as image:
+                    prepared = processor_adapter.prepare_inputs(
+                        {"question": str(sample.question), "image": image.convert("RGB")}
+                    )
+                roles = prepared.token_roles
+                if not bool(roles.visual.any()) or not bool(roles.text.any()):
+                    raise ValueError(f"Empty visual/text token mask for sample_id={sample.sample_id}.")
+                token_audit.append(
+                    {
+                        "sample_id": str(sample.sample_id),
+                        "sequence_tokens": int(roles.visual.numel()),
+                        "visual_tokens": int(roles.visual.sum()),
+                        "question_tokens": int(roles.text.sum()),
+                    }
+                )
+            compact_bytes = len(samples) * sum(expected_widths) * 2 * 4
+            report.update(
+                {
+                    "status": "passed",
+                    "architecture": layout.architecture,
+                    "decoder_layers": layout.decoder_layers,
+                    "d_ff": layout.d_ff,
+                    "maximum_d_ff": max(expected_widths),
+                    "d_ff_by_layer": list(expected_widths),
+                    "processor_class": type(processor_adapter.processor).__name__,
+                    "weight_files": len(weight_files),
+                    "weight_bytes": sum(path.stat().st_size for path in weight_files),
+                    "minimum_sequence_tokens": min(row["sequence_tokens"] for row in token_audit),
+                    "maximum_sequence_tokens": max(row["sequence_tokens"] for row in token_audit),
+                    "minimum_visual_tokens": min(row["visual_tokens"] for row in token_audit),
+                    "minimum_question_tokens": min(row["question_tokens"] for row in token_audit),
+                    "compact_activation_bytes": compact_bytes,
+                    "logical_long_form_rows": len(samples) * sum(expected_widths) * 2,
+                }
+            )
+        except Exception as error:
+            report["error"] = f"{type(error).__name__}: {error}"
+        model_reports.append(report)
+    return {
+        "status": "passed" if all(report["status"] == "passed" for report in model_reports) else "failed",
+        "transformers": transformers.__version__,
+        "manifest": {
+            "tier": tier,
+            "samples": len(samples),
+            "pairs": len(pairs),
+            "sample_sha256": sample_digest,
+            "pair_sha256": pair_digest,
+        },
+        "models": model_reports,
+        "deferred_to_gpu": ["model_forward", "hook_layer_count", "peak_vram", "streaming_vs_direct_statistics"],
+    }

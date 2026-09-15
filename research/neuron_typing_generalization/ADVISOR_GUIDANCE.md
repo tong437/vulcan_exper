@@ -52,7 +52,9 @@ Compute visual and user-question importance separately. Normalize within each sa
 q(l, j; x, S) = I(l, j; x, S) / sum_k I(l, k; x, S)
 ```
 
-A response is strong only when `q > 1 / d_ff`; equality is not strong. Encode the visual/text strong bits as
+A response is strong only when `q > 1 / d_ff(l)`, using the actual FFN width of layer `l`; equality is not strong.
+This layer-specific notation matters for architectures such as Gemma-4 whose later decoder layers use double-wide
+MLPs. Encode the visual/text strong bits as
 `W=0`, `V=1`, `T=2`, and `M=3`.
 
 Visual, user-question, control, and padding token masks must be mutually exclusive. Empty modality token sets,
@@ -116,8 +118,9 @@ captured activations should be reduced immediately rather than retained as full 
 
 The first GPU check is the minimal Qwen3.5-2B x VQAv2 smoke test. It uses the frozen smoke manifest, batch size one,
 BF16 inference, no generation, all 24 decoder layers, expected `d_ff=6144`, nonempty visual/text masks, and a direct
-versus streaming-statistics equality check. Passing this smoke test is a prerequisite for expanding the model/dataset
-matrix; it is not itself a scientific result.
+versus streaming-statistics equality check. Passing this smoke test is a prerequisite for the corresponding 16-sample
+Gemma-4 and LLaVA VQAv2 smoke runs, and all three smoke runs must pass before the 500-sample VQAv2 pilot. These checks
+are not themselves scientific results.
 
 ## 8. Reporting rules
 

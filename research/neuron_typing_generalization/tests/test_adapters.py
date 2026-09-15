@@ -16,7 +16,12 @@ from pathlib import Path
 
 import pytest
 import torch
-from neuron_typing_generalization.adapters import ModelLayout, find_unique_token_span, resolve_expanded_roles
+from neuron_typing_generalization.adapters import (
+    ModelLayout,
+    find_question_token_span,
+    find_unique_token_span,
+    resolve_expanded_roles,
+)
 
 
 @pytest.mark.parametrize(
@@ -45,3 +50,24 @@ def test_visual_count_contract_rejects_unexpanded_placeholder():
     layout = ModelLayout("llava", "Fake", Path("/unused"), 2, 4, 90, 4)
     with pytest.raises(ValueError, match="expected at least 4"):
         resolve_expanded_roles(layout, torch.tensor([90, 10]), torch.ones(2), torch.tensor([10]))
+
+
+class _ContextSensitiveTokenizer:
+    def __call__(self, value, add_special_tokens=False, return_tensors="pt"):
+        del add_special_tokens, return_tensors
+        values = {
+            "": [],
+            "question": [10, 11],
+            "\n": [7],
+            "\nquestion": [7, 12, 11],
+            " ": [8],
+            " question": [8, 10, 11],
+            "\n\n": [7, 7],
+            "\n\nquestion": [7, 7, 12, 11],
+        }
+        return {"input_ids": torch.tensor([values[value]])}
+
+
+def test_question_span_uses_chat_boundary_context_without_masking_prefix():
+    span = find_question_token_span(torch.tensor([1, 7, 12, 11, 2]), _ContextSensitiveTokenizer(), "question")
+    assert span == (2, 4)

@@ -16,7 +16,8 @@ For post-gating activation `z` and a visual or user-question token set `S`, neur
 I(layer, j; x, S) = ||W_down[:, j]||_2 * sqrt(mean(z[layer, token, j]^2 for token in S))
 ```
 
-Within each sample, layer, and modality, `q = I / sum_j(I)`. A response is strong only when `q > 1 / d_ff`.
+Within each sample, layer, and modality, `q = I / sum_j(I)`. A response is strong only when
+`q > 1 / d_ff(layer)`.
 The visual/text strong bits encode `W=0`, `V=1`, `T=2`, and `M=3`. Equality is not strong. Empty token sets and
 zero layer importance are invalid rather than silently assigned to W.
 
@@ -92,7 +93,8 @@ token-by-neuron tensors.
 Schema contracts live under `schemas/`. Initializing a run automatically copies the selected immutable manifest tier
 into the run directory, and refuses a conflicting pre-existing copy.
 
-After a GPU collector writes `scores/neuron_scores.parquet`, the implemented CPU stages can be executed directly:
+After the GPU collector writes `activations/manifest.json` and its compact sample partitions, the implemented CPU
+stages can be executed directly:
 
 ```bash
 python research/neuron_typing_generalization/pipelines/classify_neurons.py --run-dir /absolute/run/directory
@@ -123,11 +125,37 @@ python research/neuron_typing_generalization/pipelines/run_matrix.py \
   --study research/neuron_typing_generalization/configs/studies/main.yaml
 ```
 
-## GPU smoke test (not run yet)
+## Three-model VQAv2 GPU launch
 
-`configs/studies/qwen3_5_2b_vqav2_smoke.yaml` pins Qwen3.5-2B to eight VQAv2 matched groups (16 samples), batch size
-one, bf16 inference, no generation, and all 24 decoder layers. Acceptance requires `d_ff=6144`, nonempty visual/text
-masks, and equality between streaming and direct statistics. No real model forward pass is performed during CPU work.
+The GPU collector writes one compact NPZ partition per sample and stores down-projection norms once per model. A
+completed partition is validated and skipped on restart, so an interrupted 500-sample run resumes without repeating
+model forwards. Logical long-form row counts remain in the manifests, but the hundreds of millions of redundant rows
+are never materialized.
+
+Transformers 5.6.0 is required for the pinned Gemma-4 checkpoint and is within the repository dependency range. Run
+the three-model, no-weight processor preflight before allocating a GPU:
+
+```bash
+python research/neuron_typing_generalization/pipelines/preflight_vqav2_three_models.py
+```
+
+After a GPU is visible, run one sample from each model first:
+
+```bash
+SMOKE=research/neuron_typing_generalization/configs/studies/vqav2_three_model_smoke.yaml
+python research/neuron_typing_generalization/pipelines/run_vqav2_gpu.py \
+  --study "$SMOKE" --model qwen3_5_2b --max-samples 1
+python research/neuron_typing_generalization/pipelines/run_vqav2_gpu.py \
+  --study "$SMOKE" --model gemma_4_e2b_it --max-samples 1
+python research/neuron_typing_generalization/pipelines/run_vqav2_gpu.py \
+  --study "$SMOKE" --model llava_1_5_7b --max-samples 1
+```
+
+Remove `--max-samples 1` to resume those same run directories through all 16 smoke samples. Only after all three
+smokes pass should `SMOKE` be replaced with
+`research/neuron_typing_generalization/configs/studies/vqav2_three_model_pilot.yaml` for the frozen 500-sample pilot.
+Run models sequentially on a single GPU. Each command prints its absolute run directory; pass that directory to
+`compute_importance.py`, `classify_neurons.py`, `compare_distributions.py`, and `evaluate.py` in that order.
 
 ## Reproduction commands
 

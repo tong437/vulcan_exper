@@ -1,0 +1,39 @@
+name: vqav2_three_model_smoke
+artifact_root: artifacts/neuron_typing_generalization
+
+models:
+  - ../models/qwen3_5_2b.yaml
+  - ../models/llava_1_5_7b.yaml
+  - ../models/gemma_4_e2b_it.yaml
+
+datasets:
+  - ../datasets/vqav2.yaml
+
+metrics:
+  - ../metrics/down_projection_weighted_rms.yaml
+
+seeds: [42]
+
+sampling:
+  require_frozen_manifest: true
+  require_pair_manifest: true
+  materialize_selected_images_only: true
+  manifest_tier: gpu_smoke
+  expected_samples: 16
+  expected_pairs: 8
+
+inference:
+  batch_size: 1
+  dtype: bfloat16
+  inference_mode: true
+  generate: false
+  use_cache: false
+  capture_all_decoder_layers: true
+  compact_partitioned_statistics: true
+  resume_completed_samples: true
+
+acceptance:
+  require_configured_decoder_layout: true
+  require_nonempty_visual_mask: true
+  require_nonempty_text_mask: true
+  reject_nonfinite_statistics: true

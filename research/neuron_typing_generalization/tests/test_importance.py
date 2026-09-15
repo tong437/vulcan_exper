@@ -47,6 +47,16 @@ def test_batched_masks_and_empty_modality_are_explicitly_invalid():
     assert result.valid.tolist() == [True, False]
 
 
+def test_precomputed_down_projection_norm_matches_direct_computation():
+    activations = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+    weight = torch.tensor([[3.0, 0.0], [4.0, 2.0]])
+    mask = torch.tensor([True, True])
+    direct = compute_modality_importance(activations, weight, mask)
+    cached = compute_modality_importance(activations, weight, mask, direct.down_projection_norm)
+    torch.testing.assert_close(cached.importance, direct.importance)
+    torch.testing.assert_close(cached.activation_rms, direct.activation_rms)
+
+
 def test_normalization_and_strict_uniform_share_four_way_classes():
     visual = normalize_importance(torch.tensor([[2.0, 1.0, 1.0, 0.0]])).values
     text = normalize_importance(torch.tensor([[1.0, 2.0, 1.0, 0.0]])).values
