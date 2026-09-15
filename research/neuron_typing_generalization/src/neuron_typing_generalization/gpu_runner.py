@@ -29,7 +29,7 @@ from PIL import Image
 from .adapters import load_local_processor_adapter, load_model_layout
 from .collection import collect_reduced_activations
 from .config import ExperimentSpec, expand_study, load_study
-from .hooks import InjectedModelAdapter
+from .hooks import InjectedModelAdapter, validate_direct_vs_streaming
 from .interfaces import PreparedInputs, TokenRoleMasks
 from .runtime import initialize_run, resolve_artifact_root
 
@@ -104,7 +104,14 @@ def _move_roles(roles: TokenRoleMasks, device: torch.device) -> TokenRoleMasks:
     )
 
 
-def run_vqav2_gpu_collection(study_path: Path, model_name: str, max_samples: int | None = None) -> dict[str, Any]:
+def run_vqav2_gpu_collection(
+    study_path: Path,
+    model_name: str,
+    max_samples: int | None = None,
+    *,
+    validate_streaming: bool = False,
+    validation_only: bool = False,
+) -> dict[str, Any]:
     """Load one configured VLM and collect compact reduced activations with resume support."""
     spec = _select_spec(study_path.resolve(), model_name)
     _validate_environment(spec)
@@ -165,6 +172,45 @@ def run_vqav2_gpu_collection(study_path: Path, model_name: str, max_samples: int
         raise RuntimeError(
             f"Discovered FFN layout disagrees with config: layers={len(discovered)}, d_ff={observed_widths}."
         )
+    validation_report = None
+    if validate_streaming or validation_only:
+        validation_sample = samples.iloc[0].to_dict()
+        validation_prepared = prepare(validation_sample)
+        down_norms = {
+            binding.layer: torch.linalg.vector_norm(
+                binding.down_projection.weight.detach().to(torch.float32), ord=2, dim=0
+            )
+            for binding in discovered
+        }
+        validation_report = validate_direct_vs_streaming(
+            model, discovered, validation_prepared, down_norms, absolute_tolerance=1e-6, relative_tolerance=1e-5
+        )
+        validation_report.update(
+            {
+                "run_id": context.run_id,
+                "model": spec.model.name,
+                "model_revision": str(spec.model.values["revision"]),
+                "dataset": spec.dataset.name,
+                "dataset_revision": str(spec.dataset.values["revision"]),
+                "sample_id": str(validation_sample["sample_id"]),
+                "device": str(device),
+                "dtype": dtype_name,
+                "torch": torch.__version__,
+                "transformers": transformers.__version__,
+            }
+        )
+        validation_path = context.run_dir / "logs/direct_vs_streaming_validation.json"
+        validation_path.write_text(
+            json.dumps(validation_report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        if validation_report["status"] != "passed":
+            raise RuntimeError(f"Direct-vs-streaming validation failed; see {validation_path}.")
+        if validation_only:
+            return {
+                "run_dir": str(context.run_dir),
+                "validation": validation_report,
+                "validation_report": str(validation_path),
+            }
     torch.cuda.reset_peak_memory_stats()
     manifest = collect_reduced_activations(
         adapter, samples, context.run_dir, context.run_id, spec.model.name, spec.dataset.name
@@ -183,4 +229,9 @@ def run_vqav2_gpu_collection(study_path: Path, model_name: str, max_samples: int
     (context.run_dir / "logs/gpu_collection_summary.json").write_text(
         json.dumps(runtime, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    return {"run_dir": str(context.run_dir), "activation_manifest": manifest, "runtime": runtime}
+    return {
+        "run_dir": str(context.run_dir),
+        "activation_manifest": manifest,
+        "runtime": runtime,
+        "validation": validation_report,
+    }

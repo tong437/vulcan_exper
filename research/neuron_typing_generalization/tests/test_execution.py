@@ -15,6 +15,7 @@
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from neuron_typing_generalization.execution import classify_run, compare_run, evaluate_run
 
@@ -59,8 +60,19 @@ def test_cpu_postprocessing_stages_write_contract_outputs(tmp_path: Path):
     assert (tmp_path / "classifications/neuron_classes.parquet").is_file()
     assert (tmp_path / "distributions/pairwise_changes.parquet").is_file()
     assert (tmp_path / "distributions/neuron_profiles.parquet").is_file()
-    assert (tmp_path / "distributions/transition_matrices.npy").is_file()
+    transition_path = tmp_path / "distributions/transition_matrices.npz"
+    assert transition_path.is_file()
+    with np.load(transition_path, allow_pickle=False) as transitions:
+        assert transitions["directed"].sum() == 2
+        assert transitions["symmetrized"].sum() == 4
+        assert transitions["class_labels"].tolist() == ["W", "V", "T", "M"]
+    assert (tmp_path / "distributions/transition_manifest.json").is_file()
     summary = json.loads((tmp_path / "metrics/summary.json").read_text())
     assert summary["overall_change_rate_distinct_pairs"] == 1.0
     assert summary["overall_changed_ordered_comparisons"] == 4
     assert summary["overall_valid_ordered_comparisons_including_self"] == 8
+    figures = json.loads((tmp_path / "figures/manifest.json").read_text())
+    assert figures["status"] == "complete"
+    assert len(figures["figures"]) >= 3
+    assert (tmp_path / "metrics/pilot_statistics.json").is_file()
+    assert (tmp_path / "metrics/reproducibility.json").is_file()

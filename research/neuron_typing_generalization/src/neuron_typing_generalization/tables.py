@@ -119,7 +119,7 @@ def analyze_class_tensor(
     run_id: str,
     pair_manifest: pd.DataFrame,
     chunk_size: int = 64,
-) -> tuple[dict, pd.DataFrame, np.ndarray]:
+) -> tuple[dict, pd.DataFrame, dict[str, np.ndarray]]:
     """Analyze a compact [sample, layer, neuron] class tensor."""
     if tensor.ndim != 3 or tensor.shape[0] != len(sample_ids):
         raise ValueError("Compact classes must have shape [sample, layer, neuron].")
@@ -187,9 +187,13 @@ def analyze_class_tensor(
             ],
             dtype=np.int64,
         )
-        transitions = transition_matrix(tensor, pair_indices, symmetric=not bool(pair_manifest["directional"].any()))
+        transitions = {
+            "directed": transition_matrix(tensor, pair_indices, symmetric=False),
+            "symmetrized": transition_matrix(tensor, pair_indices, symmetric=True),
+        }
     else:
-        transitions = np.zeros((len(layers), len(CLASS_LABELS), len(CLASS_LABELS)), dtype=np.int64)
+        empty = np.zeros((len(layers), len(CLASS_LABELS), len(CLASS_LABELS)), dtype=np.int64)
+        transitions = {"directed": empty, "symmetrized": empty.copy()}
     return summary, pd.DataFrame(profile_rows), transitions
 
 
@@ -248,7 +252,7 @@ def analyze_class_table(
     sample_manifest: pd.DataFrame,
     pair_manifest: pd.DataFrame,
     chunk_size: int = 64,
-) -> tuple[dict, pd.DataFrame, np.ndarray]:
+) -> tuple[dict, pd.DataFrame, dict[str, np.ndarray]]:
     """Produce run summary, neuron profiles, and controlled transition matrices."""
     sample_ids = [str(value) for value in sample_manifest["sample_id"]]
     tensor, _, _ = class_tensor_from_table(classes, sample_ids)

@@ -125,6 +125,129 @@ class StreamingImportanceCollector:
         return dict(sorted(self._layers.items()))
 
 
+class DirectActivationCollector:
+    """Retain one smoke sample's raw post-gating activations for an independent RMS check."""
+
+    def __init__(self) -> None:
+        self._layers: dict[int, Tensor] = {}
+
+    def update(self, layer: int, activations: Tensor, _down_projection_weight: Tensor) -> None:
+        if layer in self._layers:
+            raise RuntimeError(f"Layer {layer} was captured more than once in one direct collector.")
+        self._layers[layer] = activations.detach().to(device="cpu", dtype=torch.float32)
+
+    def finalize(self) -> Mapping[int, Tensor]:
+        if not self._layers:
+            raise RuntimeError("No decoder layers were captured for the direct check.")
+        return dict(sorted(self._layers.items()))
+
+
+def _direct_masked_rms(activations: Tensor, mask: Tensor) -> tuple[Tensor, Tensor, Tensor]:
+    """Compute RMS by direct boolean indexing, independently of the streaming reduction implementation."""
+    if activations.ndim == 2:
+        activations = activations.unsqueeze(0)
+    if mask.ndim == 1:
+        mask = mask.unsqueeze(0)
+    mask = mask.to(device="cpu", dtype=torch.bool)
+    if activations.ndim != 3 or tuple(mask.shape) != tuple(activations.shape[:2]):
+        raise ValueError("Direct-check mask must match activation batch and token dimensions.")
+    counts = mask.sum(dim=1)
+    rows = []
+    for batch_index in range(activations.shape[0]):
+        selected = activations[batch_index, mask[batch_index]]
+        if selected.shape[0]:
+            rows.append(torch.sqrt(selected.square().mean(dim=0)))
+        else:
+            rows.append(torch.full((activations.shape[-1],), torch.nan, dtype=torch.float32))
+    return torch.stack(rows), counts, counts > 0
+
+
+def validate_direct_vs_streaming(
+    model: nn.Module,
+    bindings: Iterable[FFNBinding],
+    prepared: PreparedInputs,
+    down_projection_norms: Mapping[int, Tensor],
+    *,
+    absolute_tolerance: float = 1e-6,
+    relative_tolerance: float = 1e-5,
+) -> dict[str, Any]:
+    """Compare one real forward's retained activations with immediately reduced streaming statistics."""
+    binding_tuple = tuple(bindings)
+    streaming = StreamingImportanceCollector(prepared.token_roles, down_projection_norms)
+    direct = DirectActivationCollector()
+
+    def capture(layer: int, activations: Tensor, weight: Tensor) -> None:
+        streaming.update(layer, activations, weight)
+        direct.update(layer, activations, weight)
+
+    with torch.inference_mode(), DownProjectionCapture(binding_tuple, capture):
+        model(**prepared.model_inputs)
+    streamed = streaming.finalize()
+    retained = direct.finalize()
+    expected_layers = tuple(binding.layer for binding in binding_tuple)
+    if tuple(streamed) != expected_layers or tuple(retained) != expected_layers:
+        raise RuntimeError("Direct/streaming smoke check did not capture every decoder layer exactly once.")
+
+    role_masks = {"visual": prepared.token_roles.visual, "text": prepared.token_roles.text}
+    layer_reports = []
+    passed = True
+    maximum_absolute_error = 0.0
+    maximum_relative_error = 0.0
+    for layer in expected_layers:
+        modality_reports = {}
+        for modality, mask in role_masks.items():
+            direct_rms, direct_count, direct_valid = _direct_masked_rms(retained[layer], mask)
+            streamed_values = getattr(streamed[layer], modality)
+            streamed_rms = streamed_values.activation_rms.detach().to(device="cpu", dtype=torch.float32)
+            if streamed_rms.ndim == 1:
+                streamed_rms = streamed_rms.unsqueeze(0)
+            streamed_count = streamed_values.token_count.detach().to(device="cpu").reshape(-1)
+            streamed_valid = streamed_values.valid.detach().to(device="cpu").reshape(-1)
+            norm = down_projection_norms[layer].detach().to(device="cpu", dtype=torch.float32).reshape(1, -1)
+            direct_importance = direct_rms * norm
+            streamed_importance = streamed_values.importance.detach().to(device="cpu", dtype=torch.float32)
+            if streamed_importance.ndim == 1:
+                streamed_importance = streamed_importance.unsqueeze(0)
+            finite = torch.isfinite(direct_rms) & torch.isfinite(streamed_rms)
+            absolute = torch.abs(direct_rms - streamed_rms)
+            relative = absolute / torch.clamp(torch.abs(direct_rms), min=torch.finfo(torch.float32).eps)
+            max_absolute = float(absolute[finite].max().item()) if bool(finite.any()) else 0.0
+            max_relative = float(relative[finite].max().item()) if bool(finite.any()) else 0.0
+            rms_close = torch.allclose(
+                direct_rms, streamed_rms, atol=absolute_tolerance, rtol=relative_tolerance, equal_nan=True
+            )
+            importance_close = torch.allclose(
+                direct_importance,
+                streamed_importance,
+                atol=absolute_tolerance,
+                rtol=relative_tolerance,
+                equal_nan=True,
+            )
+            counts_equal = torch.equal(direct_count, streamed_count)
+            validity_equal = torch.equal(direct_valid, streamed_valid)
+            modality_passed = rms_close and importance_close and counts_equal and validity_equal
+            passed &= modality_passed
+            maximum_absolute_error = max(maximum_absolute_error, max_absolute)
+            maximum_relative_error = max(maximum_relative_error, max_relative)
+            modality_reports[modality] = {
+                "passed": modality_passed,
+                "token_count": direct_count.tolist(),
+                "maximum_rms_absolute_error": max_absolute,
+                "maximum_rms_relative_error": max_relative,
+            }
+        layer_reports.append({"layer": layer, "modalities": modality_reports})
+    return {
+        "status": "passed" if passed else "failed",
+        "layers_checked": len(layer_reports),
+        "absolute_tolerance": absolute_tolerance,
+        "relative_tolerance": relative_tolerance,
+        "maximum_rms_absolute_error": maximum_absolute_error,
+        "maximum_rms_relative_error": maximum_relative_error,
+        "raw_activations_retained_after_check": False,
+        "layers": layer_reports,
+    }
+
+
 class InjectedModelAdapter:
     """CPU-testable adapter around an already constructed model and input preparation callback."""
 

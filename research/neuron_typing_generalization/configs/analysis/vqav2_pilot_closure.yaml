@@ -1,0 +1,22 @@
+name: vqav2_pilot_closure
+artifact_root: artifacts/neuron_typing_generalization
+collection_study: vqav2_three_model_pilot
+smoke_study: vqav2_three_model_smoke
+collection_code_commit: 54f885c6db1182d31b7f6ba10a9f6315cc5ed5b8
+pilot_run_ids:
+  - qwen3_5_2b__vqav2__seed42__9bb6c23586
+  - gemma_4_e2b_it__vqav2__seed42__4f7b06d26c
+  - llava_1_5_7b__vqav2__seed42__fe8402de03
+smoke_run_ids:
+  - qwen3_5_2b__vqav2__seed42__eaa4e9eed8
+  - gemma_4_e2b_it__vqav2__seed42__626b330c2e
+  - llava_1_5_7b__vqav2__seed42__570788a3c6
+bootstrap:
+  unit: frozen_manifest_pair
+  replicates: 10000
+  seed: 42
+  confidence_level: 0.95
+precision:
+  primary_ci_half_width: 0.01
+  scenarios: [0.005, 0.01, 0.02]
+

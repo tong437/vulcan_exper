@@ -67,6 +67,84 @@ class StabilitySummary:
     profiles: NDArray[np.object_]
 
 
+@dataclass(frozen=True)
+class BootstrapRatioSummary:
+    """Pair-cluster bootstrap uncertainty for one or more changed/valid ratios."""
+
+    estimate: NDArray[np.float64]
+    standard_error: NDArray[np.float64]
+    lower: NDArray[np.float64]
+    upper: NDArray[np.float64]
+    replicates: int
+    confidence_level: float
+    seed: int
+
+
+def pair_level_bootstrap_ratio(
+    changed: NDArray[np.integer],
+    valid: NDArray[np.integer],
+    *,
+    replicates: int = 10_000,
+    confidence_level: float = 0.95,
+    seed: int = 42,
+    batch_size: int = 512,
+) -> BootstrapRatioSummary:
+    """Bootstrap manifest pair edges and recompute ratio-of-sums change estimands."""
+    changed_values = np.asarray(changed, dtype=np.int64)
+    valid_values = np.asarray(valid, dtype=np.int64)
+    if changed_values.ndim == 1:
+        changed_values = changed_values[:, None]
+    if valid_values.ndim == 1:
+        valid_values = valid_values[:, None]
+    if changed_values.shape != valid_values.shape or changed_values.ndim != 2 or changed_values.shape[0] < 2:
+        raise ValueError("changed and valid must have matching [pairs, metrics] shapes with at least two pairs.")
+    if np.any(changed_values < 0) or np.any(valid_values < changed_values):
+        raise ValueError("Pair counts require 0 <= changed <= valid.")
+    if replicates < 2 or batch_size < 1:
+        raise ValueError("replicates must be at least two and batch_size must be positive.")
+    if not 0 < confidence_level < 1:
+        raise ValueError("confidence_level must lie strictly between zero and one.")
+    totals = valid_values.sum(axis=0)
+    if np.any(totals == 0):
+        raise ValueError("Every bootstrapped metric must have a positive valid denominator.")
+
+    generator = np.random.default_rng(seed)
+    samples = np.empty((replicates, changed_values.shape[1]), dtype=np.float64)
+    pair_count = changed_values.shape[0]
+    for start in range(0, replicates, batch_size):
+        stop = min(start + batch_size, replicates)
+        indices = generator.integers(0, pair_count, size=(stop - start, pair_count))
+        numerators = changed_values[indices].sum(axis=1, dtype=np.int64)
+        denominators = valid_values[indices].sum(axis=1, dtype=np.int64)
+        samples[start:stop] = np.divide(
+            numerators,
+            denominators,
+            out=np.full(numerators.shape, np.nan, dtype=np.float64),
+            where=denominators > 0,
+        )
+    alpha = (1.0 - confidence_level) / 2.0
+    return BootstrapRatioSummary(
+        estimate=changed_values.sum(axis=0) / totals,
+        standard_error=np.nanstd(samples, axis=0, ddof=1),
+        lower=np.nanquantile(samples, alpha, axis=0),
+        upper=np.nanquantile(samples, 1.0 - alpha, axis=0),
+        replicates=replicates,
+        confidence_level=confidence_level,
+        seed=seed,
+    )
+
+
+def normal_precision_pair_count(
+    pair_rates: NDArray[np.floating], half_width: float, confidence_z: float = 1.96
+) -> int:
+    """Estimate pair count needed for a target normal-approximation confidence half-width."""
+    values = np.asarray(pair_rates, dtype=np.float64)
+    values = values[np.isfinite(values)]
+    if values.size < 2 or half_width <= 0 or confidence_z <= 0:
+        raise ValueError("At least two finite pair rates and positive precision inputs are required.")
+    return max(2, int(np.ceil((confidence_z * values.std(ddof=1) / half_width) ** 2)))
+
+
 def _validate_classes(classes: ClassArray) -> NDArray[np.int64]:
     values = np.asarray(classes, dtype=np.int64)
     if values.ndim != 3:

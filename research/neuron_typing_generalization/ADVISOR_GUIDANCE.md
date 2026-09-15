@@ -84,6 +84,11 @@ For every `(layer, neuron)`, report valid-sample counts, class counts and propor
 dominant class, and an auditable stability/profile label. Transition matrices use only explicit edges from the frozen
 pair manifest. Directed and symmetrized transitions must remain distinguishable.
 
+Uncertainty for a controlled-pair aggregate is estimated by resampling frozen manifest edges, not neurons. Every
+bootstrap replicate recomputes the ratio of summed changed-neuron counts to summed valid-neuron counts. Record the
+bootstrap seed, replicate count, confidence level, and empirical pair-rate variance. A precision-based sample-size
+decision may create a new named manifest tier, but must never overwrite the pilot tier.
+
 ## 5. Dataset-specific comparison policy
 
 The global all-sample statistic and dataset-specific controlled comparisons are separate analyses.
@@ -121,6 +126,10 @@ BF16 inference, no generation, all 24 decoder layers, expected `d_ff=6144`, none
 versus streaming-statistics equality check. Passing this smoke test is a prerequisite for the corresponding 16-sample
 Gemma-4 and LLaVA VQAv2 smoke runs, and all three smoke runs must pass before the 500-sample VQAv2 pilot. These checks
 are not themselves scientific results.
+
+The direct-versus-streaming check must use the same real-model forward: one path retains the one-sample post-gating
+activation long enough to recompute masked RMS by direct indexing, while the production path immediately reduces it.
+Record per-layer/per-modality token counts and numerical tolerances, then release the retained activation.
 
 ## 8. Reporting rules
 

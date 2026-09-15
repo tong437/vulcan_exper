@@ -54,6 +54,8 @@ def test_manifest_to_hook_to_importance_to_analysis_cpu_fixture(tmp_path):
     summary = json.loads((tmp_path / "metrics/summary.json").read_text())
     assert summary["overall_valid_ordered_comparisons_including_self"] == 2 * 4 * 2**2
     assert summary["overall_valid_distinct_ordered_comparisons"] == 2 * 4 * 2
+    with np.load(tmp_path / "distributions/transition_matrices.npz", allow_pickle=False) as transitions:
+        assert transitions["symmetrized"].sum() == 2 * transitions["directed"].sum()
 
 
 def test_compute_importance_rejects_tampered_activation_artifact(tmp_path):

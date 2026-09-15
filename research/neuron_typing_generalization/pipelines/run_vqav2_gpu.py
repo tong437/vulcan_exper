@@ -25,8 +25,22 @@ def main() -> None:
     parser.add_argument("--study", type=Path, required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--max-samples", type=int)
+    parser.add_argument("--validate-direct-streaming", action="store_true")
+    parser.add_argument(
+        "--validation-only",
+        action="store_true",
+        help="Run one direct-vs-streaming forward without changing activation partitions or manifests.",
+    )
     args = parser.parse_args()
-    result = run_vqav2_gpu_collection(args.study, args.model, args.max_samples)
+    if args.validation_only and not args.validate_direct_streaming:
+        parser.error("--validation-only requires --validate-direct-streaming")
+    result = run_vqav2_gpu_collection(
+        args.study,
+        args.model,
+        args.max_samples,
+        validate_streaming=args.validate_direct_streaming,
+        validation_only=args.validation_only,
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 

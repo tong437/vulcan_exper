@@ -55,7 +55,8 @@ STAGE_CONTRACTS = {
         produces=(
             "distributions/pairwise_changes.parquet",
             "distributions/neuron_profiles.parquet",
-            "distributions/transition_matrices.npy",
+            "distributions/transition_matrices.npz",
+            "distributions/transition_manifest.json",
             "distributions/analysis_summary.json",
         ),
     ),
@@ -63,9 +64,15 @@ STAGE_CONTRACTS = {
         requires=(
             "distributions/pairwise_changes.parquet",
             "distributions/neuron_profiles.parquet",
-            "distributions/transition_matrices.npy",
+            "distributions/transition_matrices.npz",
+            "distributions/transition_manifest.json",
             "distributions/analysis_summary.json",
         ),
-        produces=("metrics/summary.json", "figures/manifest.json"),
+        produces=(
+            "metrics/summary.json",
+            "metrics/pilot_statistics.json",
+            "metrics/reproducibility.json",
+            "figures/manifest.json",
+        ),
     ),
 }

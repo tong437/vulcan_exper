@@ -324,7 +324,26 @@ def compare_run(run_dir: Path, chunk_size: int = 64) -> dict[str, int | str]:
     validate_document(summary, "summary_metrics.schema.json")
     _write_parquet_atomic(changes, run_dir / "distributions/pairwise_changes.parquet")
     _write_parquet_atomic(profiles, run_dir / "distributions/neuron_profiles.parquet")
-    np.save(run_dir / "distributions/transition_matrices.npy", transitions, allow_pickle=False)
+    _write_npz_atomic(
+        run_dir / "distributions/transition_matrices.npz",
+        directed=transitions["directed"],
+        symmetrized=transitions["symmetrized"],
+        class_labels=np.asarray(("W", "V", "T", "M")),
+    )
+    _write_json_atomic(
+        run_dir / "distributions/transition_manifest.json",
+        {
+            "run_id": str(manifest["run_id"]) if compact_manifest_path.is_file() else str(classes["run_id"].iloc[0]),
+            "file": "distributions/transition_matrices.npz",
+            "class_axis_order": ["W", "V", "T", "M"],
+            "arrays": {
+                "directed": "Counts along left_sample_id -> right_sample_id manifest edges.",
+                "symmetrized": "Directed counts plus the reverse of every manifest edge.",
+            },
+            "pair_edges": len(pairs),
+            "contains_both_orientations": True,
+        },
+    )
     (run_dir / "distributions/analysis_summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -341,7 +360,8 @@ def evaluate_run(run_dir: Path) -> dict[str, str]:
     required = (
         run_dir / "distributions/pairwise_changes.parquet",
         run_dir / "distributions/neuron_profiles.parquet",
-        run_dir / "distributions/transition_matrices.npy",
+        run_dir / "distributions/transition_matrices.npz",
+        run_dir / "distributions/transition_manifest.json",
         run_dir / "distributions/analysis_summary.json",
     )
     missing = [str(path) for path in required if not path.is_file()]
@@ -351,9 +371,8 @@ def evaluate_run(run_dir: Path) -> dict[str, str]:
     validate_document(summary, "summary_metrics.schema.json")
     summary_path = run_dir / "metrics/summary.json"
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    from .reporting import evaluate_pilot_run
+
+    evaluate_pilot_run(run_dir)
     figure_path = run_dir / "figures/manifest.json"
-    figure_path.write_text(
-        json.dumps({"run_id": summary["run_id"], "figures": [], "status": "pending_gpu_results"}, indent=2) + "\n",
-        encoding="utf-8",
-    )
     return {"stage": "evaluate", "summary": str(summary_path), "figures": str(figure_path)}

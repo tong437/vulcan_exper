@@ -62,4 +62,5 @@ def test_score_to_class_to_analysis_cpu_end_to_end():
     assert summary["overall_change_rate_distinct_pairs"] == 1.0
     assert summary["maximum_pair"]["change_rate"] == 1.0
     assert profiles["profile"].tolist() == ["dynamic_t_m", "dynamic_with_weak"]
-    assert transitions.sum() == 4
+    assert transitions["directed"].sum() == 2
+    assert transitions["symmetrized"].sum() == 4

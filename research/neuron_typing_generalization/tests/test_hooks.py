@@ -18,7 +18,9 @@ from neuron_typing_generalization.hooks import (
     StreamingImportanceCollector,
     discover_decoder_ffns,
     masks_from_spans,
+    validate_direct_vs_streaming,
 )
+from neuron_typing_generalization.interfaces import PreparedInputs
 
 
 class FakeMLP(torch.nn.Module):
@@ -91,3 +93,24 @@ def test_discovery_ignores_short_auxiliary_decoder_root():
     model.mtp = FakeAuxiliaryDecoder()
     bindings = discover_decoder_ffns(model)
     assert [binding.layer for binding in bindings] == [0, 1]
+
+
+def test_direct_and_streaming_statistics_match_on_same_forward():
+    model = FakeModel()
+    bindings = discover_decoder_ffns(model)
+    roles = masks_from_spans(torch.ones(3), visual_spans=[(0, 1)], text_spans=[(1, 3)])
+    norms = {
+        binding.layer: torch.linalg.vector_norm(binding.down_projection.weight.float(), ord=2, dim=0)
+        for binding in bindings
+    }
+    report = validate_direct_vs_streaming(
+        model,
+        bindings,
+        PreparedInputs({"value": torch.arange(9, dtype=torch.float32).reshape(3, 3)}, roles),
+        norms,
+    )
+
+    assert report["status"] == "passed"
+    assert report["layers_checked"] == 2
+    assert report["maximum_rms_absolute_error"] <= 1e-6
+    assert report["raw_activations_retained_after_check"] is False

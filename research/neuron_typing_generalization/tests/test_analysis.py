@@ -20,7 +20,9 @@ from neuron_typing_generalization.analysis import (
     change_rates_from_counts,
     maximum_change_pair,
     neuron_stability,
+    normal_precision_pair_count,
     pair_change_rate,
+    pair_level_bootstrap_ratio,
     transition_matrix,
 )
 
@@ -109,3 +111,21 @@ def test_transition_matrix_uses_explicit_direction_and_optional_symmetry():
     assert directed[0, 2, 3] == 1
     assert symmetric[0, 2, 1] == 1
     assert symmetric[0, 3, 2] == 1
+
+
+def test_pair_level_bootstrap_is_deterministic_and_uses_ratio_of_sums():
+    changed = np.array([[1, 2], [2, 1], [8, 4]])
+    valid = np.array([[10, 4], [10, 4], [20, 8]])
+    first = pair_level_bootstrap_ratio(changed, valid, replicates=200, seed=7, batch_size=31)
+    second = pair_level_bootstrap_ratio(changed, valid, replicates=200, seed=7, batch_size=31)
+
+    np.testing.assert_allclose(first.estimate, [11 / 40, 7 / 16])
+    np.testing.assert_array_equal(first.lower, second.lower)
+    np.testing.assert_array_equal(first.upper, second.upper)
+    assert np.all(first.lower <= first.estimate)
+    assert np.all(first.upper >= first.estimate)
+
+
+def test_precision_pair_count_decreases_with_wider_target():
+    rates = np.array([0.1, 0.2, 0.3, 0.4])
+    assert normal_precision_pair_count(rates, 0.01) > normal_precision_pair_count(rates, 0.02)

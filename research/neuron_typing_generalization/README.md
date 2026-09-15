@@ -88,7 +88,8 @@ token-by-neuron tensors.
 2. `compute_importance`: verifies the activation digest and writes normalized sample/layer/neuron/modality scores.
 3. `classify_neurons`: derives V/T/M/W from visual/text q values.
 4. `compare_distributions`: computes controlled pair changes and cross-sample neuron profiles.
-5. `evaluate`: writes overall/per-layer rates, maximum pair, transitions, and figure manifests.
+5. `evaluate`: writes overall/per-layer rates, pair-bootstrap uncertainty, both transition orientations, provenance,
+   and real figures.
 
 Schema contracts live under `schemas/`. Initializing a run automatically copies the selected immutable manifest tier
 into the run directory, and refuses a conflicting pre-existing copy.
@@ -156,6 +157,26 @@ smokes pass should `SMOKE` be replaced with
 `research/neuron_typing_generalization/configs/studies/vqav2_three_model_pilot.yaml` for the frozen 500-sample pilot.
 Run models sequentially on a single GPU. Each command prints its absolute run directory; pass that directory to
 `compute_importance.py`, `classify_neurons.py`, `compare_distributions.py`, and `evaluate.py` in that order.
+
+Run the retained-activation versus streaming-reduction check without modifying existing activation partitions:
+
+```bash
+python research/neuron_typing_generalization/pipelines/run_vqav2_gpu.py \
+  --study research/neuron_typing_generalization/configs/studies/vqav2_three_model_smoke.yaml \
+  --model qwen3_5_2b --max-samples 1 --validate-direct-streaming --validation-only
+```
+
+Repeat for `gemma_4_e2b_it` and `llava_1_5_7b`. Then regenerate the frozen-pilot statistics, publication figures,
+precision decision, unified Markdown/JSON report, and compact validation report:
+
+```bash
+python research/neuron_typing_generalization/pipelines/report_vqav2_pilot.py \
+  --config research/neuron_typing_generalization/configs/analysis/vqav2_pilot_closure.yaml
+```
+
+Controlled confidence intervals resample the 250 frozen pair edges and recompute the ratio of summed changed counts to
+summed valid counts. Transition output is an NPZ containing explicit `directed` and `symmetrized` arrays with axis order
+`W,V,T,M`; it is accompanied by a JSON interpretation manifest.
 
 ## Reproduction commands
 
