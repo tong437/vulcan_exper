@@ -63,6 +63,45 @@
           "status": "passed"
         },
         {
+          "tier": "audited_v2_111",
+          "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
+          "samples": 222,
+          "columns": 15,
+          "pairs": 111,
+          "unique_sample_ids": 222,
+          "duplicate_sample_ids": 0,
+          "exact_duplicate_rows": 0,
+          "required_null_counts": {
+            "sample_id": 0,
+            "image_id": 0,
+            "question": 0,
+            "image_locator": 0,
+            "dataset_revision": 0
+          },
+          "unique_images": 111,
+          "image_reuse_rate": 0.5,
+          "unique_normalized_questions": 219,
+          "normalized_question_collision_rows": 6,
+          "top_answer_counts": {
+            "no": 52,
+            "yes": 27,
+            "1": 18,
+            "0": 16,
+            "2": 14,
+            "small": 13,
+            "large": 13,
+            "metal": 13,
+            "rubber": 8,
+            "3": 8
+          },
+          "stratum_counts": {
+            "program_edit_distance=1|same_scene=true": 222
+          },
+          "pairing_violation_count": 0,
+          "pairing_violations": [],
+          "status": "passed"
+        },
+        {
           "tier": "cpu_fixture",
           "grain": "one row per selected question/sample_id; explicit pair edges in pair_manifest",
           "samples": 16,

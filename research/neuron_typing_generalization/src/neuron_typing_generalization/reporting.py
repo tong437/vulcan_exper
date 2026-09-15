@@ -518,8 +518,8 @@ def build_unified_multidataset_report(
         "tier_decisions": {
             "gqa_balanced": "No larger tier required for a controlled-mean 95% CI half-width of 0.005.",
             "clevr": (
-                "Create a new 128-disjoint-pair audited tier for a 0.010 target; do not overwrite audited_v1. "
-                "The worst-model normal approximation estimates 106 pairs."
+                "Use the new maximum-feasible audited_v2_111 tier for a 0.010 target; do not overwrite audited_v1. "
+                "The worst-model normal approximation estimates 106 pairs, while the strict contract admits 111."
             ),
             "vizwiz_vqa": "Retain the 500-sample descriptive cohort tier; no controlled-pair precision claim.",
         },

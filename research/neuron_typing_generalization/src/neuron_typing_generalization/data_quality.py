@@ -229,7 +229,8 @@ def render_quality_report(report: dict[str, Any]) -> str:
             "",
             "Manifest grain, required-field completeness, sample-key uniqueness, pair referential integrity, and each "
             "dataset's frozen pairing rule were checked. Pending CLEVR tiers remain candidate evidence only; "
-            "`audited_v1` is the controlled-analysis tier. VizWiz remains descriptive cohort data.",
+            "`audited_v1` and its precision extension `audited_v2_111` are controlled-analysis tiers. VizWiz remains "
+            "descriptive cohort data.",
             "",
         ]
     )

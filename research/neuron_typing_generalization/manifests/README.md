@@ -19,9 +19,10 @@ Current tiers:
 |---|---:|---:|---:|---|
 | VQAv2 | 16 / 8 pairs | 16 / 8 pairs | 500 / 250 pairs | passed |
 | GQA Balanced | 40 / 80 pairs | — | 500 / 1,000 pairs | passed |
-| CLEVR | 16 / 8 pairs | — | 128 / 64 candidate pairs | `audited_v1`: 128 / 64 passed pairs |
+| CLEVR | 16 / 8 pairs | — | 128 / 64 candidate pairs | `audited_v1`: 128 / 64; `audited_v2_111`: 222 / 111 passed pairs |
 | VizWiz-VQA | 16 / 0 pairs | — | 500 / 0 pairs | stratified cohort only |
 
-The CLEVR `pilot` tier is retained as immutable audit-failure evidence. `audited_v1` holds the scene fixed and admits
-only disjoint pairs whose functional-program token sequence has Levenshtein distance exactly one. Only `audited_v1`
-is eligible for controlled maximum-pair analysis.
+The CLEVR `pilot` tier is retained as immutable audit-failure evidence. `audited_v1` and its precision-driven extension
+`audited_v2_111` hold the scene fixed and admit only disjoint pairs whose functional-program token sequence has
+Levenshtein distance exactly one. The v2 tier uses all 111 pairs feasible under that strict contract and does not
+replace v1.

@@ -11,6 +11,7 @@ Source revision match: `True`; integrity failures: `0`.
 | Tier | Samples | Pairs | Unique images | Duplicate IDs | Pair violations | Status |
 |---|---:|---:|---:|---:|---:|---|
 | audited_v1 | 128 | 64 | 64 | 0 | 0 | passed |
+| audited_v2_111 | 222 | 111 | 111 | 0 | 0 | passed |
 | cpu_fixture | 16 | 8 | 16 | 0 | 0 | passed |
 | pilot | 128 | 64 | 128 | 0 | 0 | passed |
 
@@ -44,4 +45,4 @@ Source revision match: `True`; integrity failures: `0`.
 
 ## Interpretation
 
-Manifest grain, required-field completeness, sample-key uniqueness, pair referential integrity, and each dataset's frozen pairing rule were checked. Pending CLEVR tiers remain candidate evidence only; `audited_v1` is the controlled-analysis tier. VizWiz remains descriptive cohort data.
+Manifest grain, required-field completeness, sample-key uniqueness, pair referential integrity, and each dataset's frozen pairing rule were checked. Pending CLEVR tiers remain candidate evidence only; `audited_v1` and its precision extension `audited_v2_111` are controlled-analysis tiers. VizWiz remains descriptive cohort data.

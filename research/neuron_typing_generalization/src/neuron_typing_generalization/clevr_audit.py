@@ -213,22 +213,25 @@ def build_and_freeze_clevr_audit(
     experiment_root: Path,
     artifact_root: Path,
     pair_count: int = 64,
+    tier: str = "audited_v1",
 ) -> dict[str, Any]:
     """Audit the pending pilot and freeze a separately named passing tier."""
+    if not tier.startswith("audited_v"):
+        raise ValueError("CLEVR audit tiers must use a new audited_v* name.")
     config = yaml.safe_load((experiment_root / "configs/datasets/clevr.yaml").read_text(encoding="utf-8"))
     pending = audit_pending_pairs(
         experiment_root / "manifests/clevr/pilot/sample_manifest.parquet",
         experiment_root / "manifests/clevr/pilot/pair_manifest.parquet",
     )
-    samples, pairs, replacement = build_audited_rows(config, artifact_root / "sources/clevr", pair_count)
+    samples, pairs, replacement = build_audited_rows(config, artifact_root / "sources/clevr", pair_count, tier=tier)
     validate_manifest_rows(samples, experiment_root / "schemas/sample_manifest.schema.json")
     validate_manifest_rows(pairs, experiment_root / "schemas/pair_manifest.schema.json")
-    destination = experiment_root / "manifests/clevr/audited_v1"
+    destination = experiment_root / "manifests/clevr" / tier
     sample_digest = write_frozen_manifest(samples, destination / "sample_manifest.parquet", SAMPLE_COLUMNS)
     pair_digest = write_frozen_manifest(pairs, destination / "pair_manifest.parquet", PAIR_COLUMNS)
     return {
         "pending_pilot_audit": pending,
-        "audited_v1": replacement,
+        tier: replacement,
         "sample_manifest_sha256": sample_digest,
         "pair_manifest_sha256": pair_digest,
     }

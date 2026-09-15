@@ -8,7 +8,7 @@
   ],
   "properties": {
     "dataset": {"type": "string", "minLength": 1},
-    "tier": {"enum": ["cpu_fixture", "gpu_smoke", "pilot", "audited_v1"]},
+    "tier": {"enum": ["cpu_fixture", "gpu_smoke", "pilot", "audited_v1", "audited_v2_111"]},
     "left_sample_id": {"type": "string", "minLength": 1},
     "right_sample_id": {"type": "string", "minLength": 1},
     "pair_group_id": {"type": "string", "minLength": 1},

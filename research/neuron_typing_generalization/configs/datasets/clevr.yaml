@@ -38,6 +38,14 @@ pairing:
     distance: levenshtein_over_function_value_inputs_and_relative_dependency_edges
     disjoint_samples: true
     audit_required: false
+  audited_v2_111:
+    kind: same_scene_minimal_program_edit_v1
+    group_by: image_id
+    program_distance: 1
+    distance: levenshtein_over_function_value_inputs_and_relative_dependency_edges
+    disjoint_samples: true
+    audit_required: false
+    note: Maximum feasible strict-contract tier; created from pilot precision analysis without replacing audited_v1.
 sampling:
   seed: 42
   strategy: deterministic_group_hash

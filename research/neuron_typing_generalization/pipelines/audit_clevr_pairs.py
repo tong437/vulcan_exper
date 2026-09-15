@@ -32,9 +32,13 @@ def main() -> None:
         default=REPOSITORY_ROOT / "artifacts/neuron_typing_generalization",
     )
     parser.add_argument("--pair-count", type=int, default=64)
+    parser.add_argument("--tier", default="audited_v1")
     args = parser.parse_args()
-    report = build_and_freeze_clevr_audit(EXPERIMENT_ROOT, args.artifact_root.resolve(), args.pair_count)
-    report_path = EXPERIMENT_ROOT / "reports/clevr_pair_audit.json"
+    report = build_and_freeze_clevr_audit(
+        EXPERIMENT_ROOT, args.artifact_root.resolve(), args.pair_count, tier=args.tier
+    )
+    report_name = "clevr_pair_audit.json" if args.tier == "audited_v1" else f"clevr_pair_audit_{args.tier}.json"
+    report_path = EXPERIMENT_ROOT / "reports" / report_name
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2))
 

@@ -97,7 +97,7 @@ The global all-sample statistic and dataset-specific controlled comparisons are 
 |---|---|---|
 | VQAv2 | Same normalized question, different image | Controlled image-context comparison, subject to question and sample audit |
 | GQA Balanced | Same image, different question | Controlled question-context comparison |
-| CLEVR | Same scene and functional-program edit distance 1 in `audited_v1` | Original `pilot` candidates remain excluded as failed audit evidence |
+| CLEVR | Same scene and functional-program edit distance 1 in `audited_v1`; precision extension `audited_v2_111` | Original `pilot` candidates remain excluded as failed audit evidence |
 | VizWiz-VQA | Stratified natural cohorts by answerability/answer type | Descriptive cohort comparison only; not a clean/degraded causal pair |
 
 Pair manifests enumerate dataset-specific comparison edges only. They do not enumerate the global all-ordered-pairs

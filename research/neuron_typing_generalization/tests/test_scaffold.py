@@ -60,6 +60,15 @@ def test_remaining_dataset_study_uses_audited_clevr_tier(tmp_path, monkeypatch):
     assert len(pairs) == 64
 
 
+def test_clevr_precision_extension_uses_a_new_frozen_tier():
+    study = load_study(EXPERIMENT_ROOT / "configs/studies/clevr_audited_v2_111.yaml")
+    specs = expand_study(study)
+
+    assert len(specs) == 3
+    assert {spec.dataset.name for spec in specs} == {"clevr"}
+    assert {spec.study_values["sampling"]["manifest_tier"] for spec in specs} == {"audited_v2_111"}
+
+
 def test_initialize_run_writes_resolved_config_and_layout(tmp_path, monkeypatch):
     study = load_study(EXPERIMENT_ROOT / "configs/studies/main.yaml")
     spec = expand_study(study)[0]
