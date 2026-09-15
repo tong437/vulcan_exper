@@ -124,9 +124,7 @@ def paired_model_differences(
                 "familywise_ci_lower": float(familywise_result.lower[0]),
                 "familywise_ci_upper": float(familywise_result.upper[0]),
                 "familywise_confidence_level": familywise_confidence_level,
-                "familywise_ci_excludes_zero": bool(
-                    familywise_result.lower[0] > 0 or familywise_result.upper[0] < 0
-                ),
+                "familywise_ci_excludes_zero": bool(familywise_result.lower[0] > 0 or familywise_result.upper[0] < 0),
             }
         )
     return rows
