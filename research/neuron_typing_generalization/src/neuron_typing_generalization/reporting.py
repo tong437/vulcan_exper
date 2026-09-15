@@ -611,3 +611,148 @@ pair manifest, so its rows are descriptive; per-cohort results are retained in t
 {limits}
 """
     path.write_text(text, encoding="utf-8")
+
+
+def _shared_activation_exact_match(old_run: Path, new_run: Path) -> bool:
+    """Verify that every old-tier activation partition is exactly preserved in the extension."""
+    old_manifest = json.loads((old_run / "activations/manifest.json").read_text(encoding="utf-8"))
+    new_manifest = json.loads((new_run / "activations/manifest.json").read_text(encoding="utf-8"))
+    new_parts = {str(row["sample_id"]): new_run / row["file"] for row in new_manifest["parts"]}
+    for row in old_manifest["parts"]:
+        sample_id = str(row["sample_id"])
+        if sample_id not in new_parts:
+            return False
+        with (
+            np.load(old_run / row["file"], allow_pickle=False) as old,
+            np.load(new_parts[sample_id], allow_pickle=False) as new,
+        ):
+            if not all(np.array_equal(old[key], new[key]) for key in ("activation_rms", "token_count", "valid")):
+                return False
+    return True
+
+
+def build_clevr_precision_extension_report(
+    old_run_dirs: list[Path],
+    new_run_dirs: list[Path],
+    output_dir: Path,
+    *,
+    analysis_commit: str,
+    target_half_width: float = 0.01,
+) -> dict[str, Any]:
+    """Report the nested CLEVR v1-to-v2 precision extension."""
+    old_by_model = {
+        json.loads((path / "metrics/reproducibility.json").read_text(encoding="utf-8"))["model"]: path
+        for path in old_run_dirs
+    }
+    new_by_model = {
+        json.loads((path / "metrics/reproducibility.json").read_text(encoding="utf-8"))["model"]: path
+        for path in new_run_dirs
+    }
+    if set(old_by_model) != set(new_by_model):
+        raise ValueError("CLEVR v1 and v2 model sets differ.")
+    models = []
+    for model in sorted(old_by_model):
+        old_path, new_path = old_by_model[model], new_by_model[model]
+        old_statistics = json.loads((old_path / "metrics/pilot_statistics.json").read_text(encoding="utf-8"))
+        new_statistics = json.loads((new_path / "metrics/pilot_statistics.json").read_text(encoding="utf-8"))
+        old_overall = old_statistics["controlled"]["overall"]
+        new_overall = new_statistics["controlled"]["overall"]
+        models.append(
+            {
+                "model": model,
+                "old_run_dir": str(old_path.resolve()),
+                "new_run_dir": str(new_path.resolve()),
+                "old_pair_count": old_statistics["controlled"]["pair_count"],
+                "new_pair_count": new_statistics["controlled"]["pair_count"],
+                "old_overall": old_overall,
+                "new_overall": new_overall,
+                "point_estimate_delta": new_overall["estimate"] - old_overall["estimate"],
+                "ci_half_width_ratio": new_overall["ci_half_width"] / old_overall["ci_half_width"],
+                "shared_activation_exact_match": _shared_activation_exact_match(old_path, new_path),
+                "new_reproducibility": json.loads(
+                    (new_path / "metrics/reproducibility.json").read_text(encoding="utf-8")
+                ),
+            }
+        )
+    result = {
+        "status": "complete",
+        "scope": "Nested CLEVR audited_v1 (64 pairs) to audited_v2_111 (111 pairs) precision extension",
+        "analysis_code_commit": analysis_commit,
+        "target_ci_half_width": target_half_width,
+        "target_achieved_all_models": all(row["new_overall"]["ci_half_width"] <= target_half_width for row in models),
+        "strict_contract_capacity": 111,
+        "models": models,
+        "interpretation_limits": [
+            "audited_v2_111 contains audited_v1, so old and new estimates are correlated rather than independent.",
+            "Overlapping confidence intervals do not constitute a formal test of point-estimate change.",
+            "The tier exhausts pairs feasible under the frozen same-scene, edit-distance-one, disjoint contract.",
+        ],
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)
+    _write_json(output_dir / "clevr_audited_v2_111_results.json", result)
+    _save_clevr_extension_figure(models, output_dir / "figures/clevr_audited_v2_111_ci.png")
+    _write_clevr_extension_markdown(result, output_dir / "clevr_audited_v2_111_results.md")
+    return result
+
+
+def _save_clevr_extension_figure(models: list[dict[str, Any]], path: Path) -> None:
+    plt = _load_pyplot()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    positions = np.arange(len(models))
+    figure, axis = plt.subplots(figsize=(8, 4.5))
+    for offset, key, label in (
+        (-0.08, "old_overall", "audited_v1: 64 pairs"),
+        (0.08, "new_overall", "audited_v2_111"),
+    ):
+        values = [row[key]["estimate"] for row in models]
+        lowers = [row[key]["ci_lower"] for row in models]
+        uppers = [row[key]["ci_upper"] for row in models]
+        axis.errorbar(
+            positions + offset,
+            values,
+            yerr=[np.subtract(values, lowers), np.subtract(uppers, values)],
+            fmt="o",
+            capsize=5,
+            label=label,
+        )
+    axis.set_xticks(positions, [row["model"] for row in models], rotation=15, ha="right")
+    axis.set(ylabel="Controlled CLEVR class-change rate", ylim=(0, 0.23))
+    axis.grid(axis="y", alpha=0.25)
+    axis.legend()
+    figure.tight_layout()
+    figure.savefig(path, dpi=200)
+    plt.close(figure)
+
+
+def _write_clevr_extension_markdown(result: dict[str, Any], path: Path) -> None:
+    rows = []
+    for model in result["models"]:
+        old, new = model["old_overall"], model["new_overall"]
+        rows.append(
+            f"| {model['model']} | {old['estimate']:.4f} [{old['ci_lower']:.4f}, {old['ci_upper']:.4f}] | "
+            f"{new['estimate']:.4f} [{new['ci_lower']:.4f}, {new['ci_upper']:.4f}] | "
+            f"{new['ci_half_width']:.5f} | {model['point_estimate_delta']:+.4f} | "
+            f"{model['shared_activation_exact_match']} |"
+        )
+    limits = "\n".join(f"- {item}" for item in result["interpretation_limits"])
+    text = f"""# CLEVR audited_v2_111 precision-extension report
+
+Scope: {result["scope"]}.
+
+- Analysis commit: `{result["analysis_code_commit"]}`
+- Target 95% CI half-width: <= {result["target_ci_half_width"]:.3f}
+- Target achieved for all models: `{result["target_achieved_all_models"]}`
+- Strict-contract capacity: {result["strict_contract_capacity"]} disjoint pairs
+
+| Model | v1 estimate and 95% CI | v2 estimate and 95% CI | v2 half-width | Estimate delta | Shared activations exact |
+|---|---:|---:|---:|---:|---:|
+{chr(10).join(rows)}
+
+The v2 tier preserves all 64 v1 pairs and adds 47 pairs. Bootstrap resampling uses one manifest pair as the unit and
+recomputes the ratio of summed changed-neuron counts to valid-neuron counts in every replicate.
+
+## Interpretation limits
+
+{limits}
+"""
+    path.write_text(text, encoding="utf-8")

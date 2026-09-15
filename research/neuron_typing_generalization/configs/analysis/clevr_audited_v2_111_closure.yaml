@@ -1,0 +1,12 @@
+artifact_root: artifacts/neuron_typing_generalization
+old_study: remaining_three_dataset_pilot
+new_study: clevr_audited_v2_111
+target_ci_half_width: 0.01
+old_run_ids:
+  - qwen3_5_2b__clevr__seed42__2657728124
+  - llava_1_5_7b__clevr__seed42__e7442b2632
+  - gemma_4_e2b_it__clevr__seed42__cfd3df37e6
+new_run_ids:
+  - qwen3_5_2b__clevr__seed42__c64f80dcef
+  - llava_1_5_7b__clevr__seed42__db5d729d80
+  - gemma_4_e2b_it__clevr__seed42__ad31f3a400
