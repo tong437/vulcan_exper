@@ -80,6 +80,74 @@ class BootstrapRatioSummary:
     seed: int
 
 
+@dataclass(frozen=True)
+class BootstrapDifferenceSummary:
+    """Paired-cluster bootstrap uncertainty for a difference between two ratios."""
+
+    estimate: NDArray[np.float64]
+    standard_error: NDArray[np.float64]
+    lower: NDArray[np.float64]
+    upper: NDArray[np.float64]
+    replicates: int
+    confidence_level: float
+    seed: int
+
+
+def paired_bootstrap_ratio_difference(
+    left_changed: NDArray[np.integer],
+    left_valid: NDArray[np.integer],
+    right_changed: NDArray[np.integer],
+    right_valid: NDArray[np.integer],
+    *,
+    replicates: int = 10_000,
+    confidence_level: float = 0.95,
+    seed: int = 42,
+    batch_size: int = 512,
+) -> BootstrapDifferenceSummary:
+    """Bootstrap shared pair clusters and estimate left ratio minus right ratio."""
+    arrays = [np.asarray(value, dtype=np.int64) for value in (left_changed, left_valid, right_changed, right_valid)]
+    arrays = [value[:, None] if value.ndim == 1 else value for value in arrays]
+    if any(value.ndim != 2 for value in arrays) or len({value.shape for value in arrays}) != 1:
+        raise ValueError("All paired counts must have the same [clusters, metrics] shape.")
+    if arrays[0].shape[0] < 2:
+        raise ValueError("At least two shared clusters are required.")
+    if np.any(arrays[0] < 0) or np.any(arrays[1] < arrays[0]):
+        raise ValueError("Left counts require 0 <= changed <= valid.")
+    if np.any(arrays[2] < 0) or np.any(arrays[3] < arrays[2]):
+        raise ValueError("Right counts require 0 <= changed <= valid.")
+    if replicates < 2 or batch_size < 1:
+        raise ValueError("replicates must be at least two and batch_size must be positive.")
+    if not 0 < confidence_level < 1:
+        raise ValueError("confidence_level must lie strictly between zero and one.")
+    left_total = arrays[1].sum(axis=0)
+    right_total = arrays[3].sum(axis=0)
+    if np.any(left_total == 0) or np.any(right_total == 0):
+        raise ValueError("Every paired metric must have positive denominators for both models.")
+
+    generator = np.random.default_rng(seed)
+    samples = np.empty((replicates, arrays[0].shape[1]), dtype=np.float64)
+    cluster_count = arrays[0].shape[0]
+    for start in range(0, replicates, batch_size):
+        stop = min(start + batch_size, replicates)
+        indices = generator.integers(0, cluster_count, size=(stop - start, cluster_count))
+        left_numerator = arrays[0][indices].sum(axis=1, dtype=np.int64)
+        left_denominator = arrays[1][indices].sum(axis=1, dtype=np.int64)
+        right_numerator = arrays[2][indices].sum(axis=1, dtype=np.int64)
+        right_denominator = arrays[3][indices].sum(axis=1, dtype=np.int64)
+        samples[start:stop] = left_numerator / left_denominator - right_numerator / right_denominator
+    alpha = (1.0 - confidence_level) / 2.0
+    estimate = arrays[0].sum(axis=0) / left_total - arrays[2].sum(axis=0) / right_total
+    return BootstrapDifferenceSummary(
+        estimate=estimate,
+        standard_error=np.std(samples, axis=0, ddof=1),
+        lower=np.quantile(samples, alpha, axis=0),
+        upper=np.quantile(samples, 1.0 - alpha, axis=0),
+        replicates=replicates,
+        confidence_level=confidence_level,
+        seed=seed,
+    )
+
+
 def pair_level_bootstrap_ratio(
     changed: NDArray[np.integer],
     valid: NDArray[np.integer],

@@ -23,6 +23,7 @@ from neuron_typing_generalization.analysis import (
     normal_precision_pair_count,
     pair_change_rate,
     pair_level_bootstrap_ratio,
+    paired_bootstrap_ratio_difference,
     transition_matrix,
 )
 
@@ -129,3 +130,26 @@ def test_pair_level_bootstrap_is_deterministic_and_uses_ratio_of_sums():
 def test_precision_pair_count_decreases_with_wider_target():
     rates = np.array([0.1, 0.2, 0.3, 0.4])
     assert normal_precision_pair_count(rates, 0.01) > normal_precision_pair_count(rates, 0.02)
+
+
+def test_paired_bootstrap_difference_is_deterministic_and_preserves_pairing():
+    left_changed = np.array([1, 4, 8, 3])
+    left_valid = np.array([10, 10, 20, 10])
+    right_changed = np.array([2, 2, 4, 2])
+    right_valid = np.array([10, 10, 20, 10])
+    first = paired_bootstrap_ratio_difference(
+        left_changed, left_valid, right_changed, right_valid, replicates=300, seed=9, batch_size=37
+    )
+    second = paired_bootstrap_ratio_difference(
+        left_changed, left_valid, right_changed, right_valid, replicates=300, seed=9, batch_size=37
+    )
+
+    assert first.estimate[0] == pytest.approx(16 / 50 - 10 / 50)
+    np.testing.assert_array_equal(first.lower, second.lower)
+    np.testing.assert_array_equal(first.upper, second.upper)
+    assert first.lower[0] <= first.estimate[0] <= first.upper[0]
+
+
+def test_paired_bootstrap_difference_rejects_unaligned_shapes():
+    with pytest.raises(ValueError, match="same"):
+        paired_bootstrap_ratio_difference(np.ones(3), np.ones(3), np.ones(4), np.ones(4))

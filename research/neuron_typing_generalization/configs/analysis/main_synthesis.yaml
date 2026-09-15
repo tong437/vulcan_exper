@@ -1,0 +1,33 @@
+artifact_root: artifacts/neuron_typing_generalization
+bootstrap:
+  replicates: 20000
+  seed: 42
+comparisons:
+  - [llava_1_5_7b, gemma_4_e2b_it]
+  - [qwen3_5_2b, gemma_4_e2b_it]
+  - [llava_1_5_7b, qwen3_5_2b]
+datasets:
+  vqav2:
+    study: vqav2_three_model_pilot
+    runs:
+      gemma_4_e2b_it: gemma_4_e2b_it__vqav2__seed42__4f7b06d26c
+      llava_1_5_7b: llava_1_5_7b__vqav2__seed42__fe8402de03
+      qwen3_5_2b: qwen3_5_2b__vqav2__seed42__9bb6c23586
+  gqa_balanced:
+    study: remaining_three_dataset_pilot
+    runs:
+      gemma_4_e2b_it: gemma_4_e2b_it__gqa_balanced__seed42__44c2999649
+      llava_1_5_7b: llava_1_5_7b__gqa_balanced__seed42__b9b9e15dce
+      qwen3_5_2b: qwen3_5_2b__gqa_balanced__seed42__673e2843d2
+  clevr:
+    study: clevr_audited_v2_111
+    runs:
+      gemma_4_e2b_it: gemma_4_e2b_it__clevr__seed42__ad31f3a400
+      llava_1_5_7b: llava_1_5_7b__clevr__seed42__db5d729d80
+      qwen3_5_2b: qwen3_5_2b__clevr__seed42__c64f80dcef
+  vizwiz_vqa:
+    study: remaining_three_dataset_pilot
+    runs:
+      gemma_4_e2b_it: gemma_4_e2b_it__vizwiz_vqa__seed42__331d7eaad2
+      llava_1_5_7b: llava_1_5_7b__vizwiz_vqa__seed42__e02e74856b
+      qwen3_5_2b: qwen3_5_2b__vizwiz_vqa__seed42__ef505001fc
