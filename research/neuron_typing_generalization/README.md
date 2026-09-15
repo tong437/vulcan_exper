@@ -32,7 +32,7 @@ The main study contains three models and four datasets, with one seed: 12 model/
 |---|---|---|---:|
 | VQAv2 | `validation/default` | same normalized question, different image | 500 samples / 250 pairs |
 | GQA Balanced | `testdev/testdev_balanced_*` | same image, different question | 500 samples / 1,000 pairs |
-| CLEVR | `validation/default` | same scene, functional-program edit distance 1 | 128 samples / 64 audited pairs |
+| CLEVR | `validation/default` | same scene, functional-program edit distance 1 | 222 samples / 111 audited pairs |
 | VizWiz-VQA | `val/default` | stratified natural cohorts; no causal pairs | 500 samples / 0 pairs |
 
 The original CLEVR `pilot` candidates remain marked `audit_status=pending` as failure evidence. Controlled analysis
@@ -196,6 +196,25 @@ python research/neuron_typing_generalization/pipelines/report_clevr_v2.py \
 
 All three v2 runs achieve the 0.010 target. The report also verifies that every shared v1 activation partition is
 exactly identical in v2; v2 is a nested precision extension, not an independent replication.
+
+## Four-dataset synthesis
+
+The main synthesis combines the frozen VQAv2, GQA Balanced, CLEVR `audited_v2_111`, and VizWiz runs without treating
+their different pairing interventions as interchangeable. It reports the primary rate, category proportions and
+entropy for every model/dataset run; paired model differences only within the three controlled datasets; and
+descriptive normalized-depth curves. VizWiz remains descriptive because it has no controlled-pair estimand.
+
+The nine prespecified within-dataset model contrasts use 20,000 shared-cluster bootstrap replicates. Both ordinary
+pairwise 95% intervals and Bonferroni 95% familywise intervals are retained. Generate the machine-readable results,
+CSV tables, Markdown report, and two figures with:
+
+```bash
+python research/neuron_typing_generalization/pipelines/report_main_synthesis.py \
+  --config research/neuron_typing_generalization/configs/analysis/main_synthesis.yaml
+```
+
+The committed summary is `reports/main_synthesis_results.md`. Its `analysis_code_commit` identifies the exact code
+revision used to derive the report from the ignored raw run artifacts.
 
 ## Reproduction commands
 
