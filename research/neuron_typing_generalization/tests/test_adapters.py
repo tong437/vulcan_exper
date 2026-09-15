@@ -71,3 +71,16 @@ class _ContextSensitiveTokenizer:
 def test_question_span_uses_chat_boundary_context_without_masking_prefix():
     span = find_question_token_span(torch.tensor([1, 7, 12, 11, 2]), _ContextSensitiveTokenizer(), "question")
     assert span == (2, 4)
+
+
+class _WhitespaceTrimmingTokenizer:
+    def __call__(self, value, add_special_tokens=False, return_tensors="pt"):
+        del add_special_tokens, return_tensors
+        vocabulary = {"word": 10, " ": 20, "\n": 30}
+        ids = [vocabulary.get(character, 10) for character in value]
+        return {"input_ids": torch.tensor([ids])}
+
+
+def test_question_span_accepts_chat_template_whitespace_trimming():
+    span = find_question_token_span(torch.tensor([1, 10, 10, 10, 10, 2]), _WhitespaceTrimmingTokenizer(), "word ")
+    assert span == (1, 5)

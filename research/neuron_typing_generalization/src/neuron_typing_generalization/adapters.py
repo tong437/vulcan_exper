@@ -119,10 +119,20 @@ def find_question_token_span(input_ids: Tensor, tokenizer: Any, question: str) -
     and then excluding its tokens keeps the mask on question content only.
     """
     candidates: list[tuple[Tensor, int]] = []
-    for prefix in ("", "\n", " ", "\n\n"):
-        candidate = tokenizer(prefix + question, add_special_tokens=False, return_tensors="pt")["input_ids"][0]
-        prefix_ids = tokenizer(prefix, add_special_tokens=False, return_tensors="pt")["input_ids"][0]
-        candidates.append((candidate, len(prefix_ids)))
+    # Hugging Face chat templates commonly trim surrounding whitespace from text
+    # content before tokenization.  Keep the original form first, then admit only
+    # that template-equivalent normalization as a fallback.
+    question_variants = [question]
+    stripped_question = question.strip()
+    if stripped_question != question:
+        question_variants.append(stripped_question)
+    for question_variant in question_variants:
+        for prefix in ("", "\n", " ", "\n\n"):
+            candidate = tokenizer(prefix + question_variant, add_special_tokens=False, return_tensors="pt")[
+                "input_ids"
+            ][0]
+            prefix_ids = tokenizer(prefix, add_special_tokens=False, return_tensors="pt")["input_ids"][0]
+            candidates.append((candidate, len(prefix_ids)))
 
     matches: list[tuple[int, tuple[int, int]]] = []
     for candidate, prefix_width in candidates:
