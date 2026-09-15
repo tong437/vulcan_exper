@@ -3,7 +3,7 @@
 Scope: Three models on frozen GQA Balanced, CLEVR audited_v1, and VizWiz VQA pilot tiers; seed 42.
 
 - Collection commits: `010824e2f7af8e2f68452a8e2e8dbbf28540e27a`, `ebe8ddd4ef334b16b411118d9f8ae2a8c5eaf97f`
-- Analysis commit: `cacef01e891346343d37b4f7557557fde426fb40`
+- Analysis commit: `e17c10edb75dfa3d76d1309e35326cc427f8aa58`
 
 | Model | Dataset | Global distinct-pair rate | Controlled estimate and 95% CI | Mean normalized entropy |
 |---|---|---:|---:|---:|
@@ -23,7 +23,7 @@ pair manifest, so its rows are descriptive; per-cohort results are retained in t
 ## Frozen-tier decisions
 
 - **gqa_balanced:** No larger tier required for a controlled-mean 95% CI half-width of 0.005.
-- **clevr:** Create a new 128-disjoint-pair audited tier for a 0.010 target; do not overwrite audited_v1. The worst-model normal approximation estimates 106 pairs.
+- **clevr:** Use the new maximum-feasible audited_v2_111 tier for a 0.010 target; do not overwrite audited_v1. The worst-model normal approximation estimates 106 pairs, while the strict contract admits 111.
 - **vizwiz_vqa:** Retain the 500-sample descriptive cohort tier; no controlled-pair precision claim.
 
 ## Interpretation limits

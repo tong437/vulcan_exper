@@ -5,7 +5,7 @@
     "010824e2f7af8e2f68452a8e2e8dbbf28540e27a",
     "ebe8ddd4ef334b16b411118d9f8ae2a8c5eaf97f"
   ],
-  "analysis_code_commit": "cacef01e891346343d37b4f7557557fde426fb40",
+  "analysis_code_commit": "e17c10edb75dfa3d76d1309e35326cc427f8aa58",
   "runs": [
     {
       "run_dir": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/artifacts/neuron_typing_generalization/runs/remaining_three_dataset_pilot/gemma_4_e2b_it__clevr__seed42__cfd3df37e6",
@@ -5133,7 +5133,7 @@
   ],
   "tier_decisions": {
     "gqa_balanced": "No larger tier required for a controlled-mean 95% CI half-width of 0.005.",
-    "clevr": "Create a new 128-disjoint-pair audited tier for a 0.010 target; do not overwrite audited_v1. The worst-model normal approximation estimates 106 pairs.",
+    "clevr": "Use the new maximum-feasible audited_v2_111 tier for a 0.010 target; do not overwrite audited_v1. The worst-model normal approximation estimates 106 pairs, while the strict contract admits 111.",
     "vizwiz_vqa": "Retain the 500-sample descriptive cohort tier; no controlled-pair precision claim."
   },
   "interpretation_limits": [
