@@ -169,7 +169,7 @@ def build_synthesis_report(
                 overall = controlled["overall"]
                 estimand = "controlled_pair_change_rate"
                 estimate, lower, upper = overall["estimate"], overall["ci_lower"], overall["ci_upper"]
-                units = controlled["bootstrap_unit_count"]
+                units = len(_cluster_counts(run["run_dir"]))
             else:
                 estimand = "global_distinct_pair_change_rate_descriptive"
                 estimate = statistics["global"]["overall_change_rate_distinct_pairs"]
