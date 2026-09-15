@@ -77,8 +77,12 @@ def paired_model_differences(
     *,
     replicates: int = 20_000,
     seed: int = 42,
+    familywise_comparisons: int = 1,
 ) -> list[dict[str, Any]]:
     """Estimate paired left-minus-right model differences on shared clusters."""
+    if familywise_comparisons < 1:
+        raise ValueError("familywise_comparisons must be positive.")
+    familywise_confidence_level = 1.0 - 0.05 / familywise_comparisons
     counts = {model: _cluster_counts(path) for model, path in runs.items()}
     reference_index = next(iter(counts.values())).index
     if any(not frame.index.equals(reference_index) for frame in counts.values()):
@@ -94,6 +98,15 @@ def paired_model_differences(
             replicates=replicates,
             seed=seed,
         )
+        familywise_result = paired_bootstrap_ratio_difference(
+            left["changed_neurons"].to_numpy(),
+            left["valid_neurons"].to_numpy(),
+            right["changed_neurons"].to_numpy(),
+            right["valid_neurons"].to_numpy(),
+            replicates=replicates,
+            seed=seed,
+            confidence_level=familywise_confidence_level,
+        )
         rows.append(
             {
                 "left_model": left_model,
@@ -108,6 +121,12 @@ def paired_model_differences(
                 "bootstrap_seed": result.seed,
                 "bootstrap_unit_count": len(reference_index),
                 "ci_excludes_zero": bool(result.lower[0] > 0 or result.upper[0] < 0),
+                "familywise_ci_lower": float(familywise_result.lower[0]),
+                "familywise_ci_upper": float(familywise_result.upper[0]),
+                "familywise_confidence_level": familywise_confidence_level,
+                "familywise_ci_excludes_zero": bool(
+                    familywise_result.lower[0] > 0 or familywise_result.upper[0] < 0
+                ),
             }
         )
     return rows
@@ -192,12 +211,14 @@ def build_synthesis_report(
             )
 
     contrasts = []
+    familywise_comparisons = len(comparisons) * 3
     for dataset in ("vqav2", "gqa_balanced", "clevr"):
         dataset_rows = paired_model_differences(
             {model: value["run_dir"] for model, value in loaded[dataset].items()},
             comparisons,
             replicates=bootstrap_replicates,
             seed=bootstrap_seed,
+            familywise_comparisons=familywise_comparisons,
         )
         contrasts.extend({"dataset": dataset, **row} for row in dataset_rows)
     curves = normalized_depth_curves(loaded)
@@ -209,14 +230,16 @@ def build_synthesis_report(
             "replicates": bootstrap_replicates,
             "seed": bootstrap_seed,
             "confidence_level": 0.95,
-            "multiplicity": "unadjusted exploratory pairwise confidence intervals",
+            "familywise_comparisons": familywise_comparisons,
+            "familywise_confidence_level": 1.0 - 0.05 / familywise_comparisons,
+            "multiplicity": "Bonferroni 95% familywise intervals across all nine prespecified contrasts",
         },
         "main_results": main_rows,
         "paired_model_contrasts": contrasts,
         "normalized_depth_curves": curves,
         "interpretation_limits": [
             "Paired model contrasts are valid only within a dataset because pairing interventions differ by dataset.",
-            "The pairwise 95% intervals are exploratory and are not multiplicity-adjusted.",
+            "Both unadjusted pairwise 95% intervals and Bonferroni 95% familywise intervals are reported.",
             "Normalized-depth interpolation is descriptive and does not assert layer-to-layer architectural equivalence.",
             "VizWiz has no controlled pair estimand and is excluded from model-difference inference.",
             "Response classes are input-conditional states and do not establish causal multimodal interaction.",
@@ -270,8 +293,8 @@ def _save_synthesis_figures(result: dict[str, Any], figure_dir: Path) -> None:
         for row in contrasts
     ]
     estimates = np.asarray([row["estimate"] for row in contrasts])
-    lowers = np.asarray([row["ci_lower"] for row in contrasts])
-    uppers = np.asarray([row["ci_upper"] for row in contrasts])
+    lowers = np.asarray([row["familywise_ci_lower"] for row in contrasts])
+    uppers = np.asarray([row["familywise_ci_upper"] for row in contrasts])
     positions = np.arange(len(contrasts))
     figure, axis = plt.subplots(figsize=(9, 6))
     axis.errorbar(
@@ -284,7 +307,7 @@ def _save_synthesis_figures(result: dict[str, Any], figure_dir: Path) -> None:
     )
     axis.axvline(0, color="black", linewidth=1)
     axis.set_yticks(positions, labels)
-    axis.set(xlabel="Paired controlled-rate difference (left minus right)")
+    axis.set(xlabel="Paired controlled-rate difference (Bonferroni familywise 95% CI)")
     axis.grid(axis="x", alpha=0.25)
     figure.tight_layout()
     figure.savefig(figure_dir / "paired_model_difference_forest.png", dpi=200)
@@ -304,7 +327,9 @@ def _write_synthesis_markdown(result: dict[str, Any], path: Path) -> None:
         contrast_rows.append(
             f"| {DATASET_LABELS[row['dataset']]} | {MODEL_LABELS[row['left_model']]} − "
             f"{MODEL_LABELS[row['right_model']]} | {row['estimate']:+.4f} | "
-            f"[{row['ci_lower']:+.4f}, {row['ci_upper']:+.4f}] | {row['bootstrap_unit_count']} |"
+            f"[{row['ci_lower']:+.4f}, {row['ci_upper']:+.4f}] | "
+            f"[{row['familywise_ci_lower']:+.4f}, {row['familywise_ci_upper']:+.4f}] | "
+            f"{row['bootstrap_unit_count']} |"
         )
     limits = "\n".join(f"- {item}" for item in result["interpretation_limits"])
     text = f"""# Four-dataset main synthesis
@@ -326,12 +351,12 @@ dataset-specific controlled estimand.
 
 ## Within-dataset paired model contrasts
 
-| Dataset | Contrast | Difference | Paired-bootstrap 95% CI | Units |
-|---|---|---:|---:|---:|
+| Dataset | Contrast | Difference | Pairwise 95% CI | Bonferroni familywise 95% CI | Units |
+|---|---|---:|---:|---:|---:|
 {chr(10).join(contrast_rows)}
 
-Intervals excluding zero provide exploratory evidence of a model difference on the same frozen pair units. They are
-effect-size intervals, not a cross-dataset model leaderboard.
+Familywise intervals excluding zero provide multiplicity-protected evidence of a model difference on the same frozen
+pair units. The intervals are effect-size intervals, not a cross-dataset model leaderboard.
 
 ## Interpretation limits
 

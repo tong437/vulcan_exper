@@ -48,10 +48,19 @@ def test_paired_model_difference_clusters_shared_edges(tmp_path):
     _write_pair_inputs(left, [4, 4, 2])
     _write_pair_inputs(right, [2, 2, 2])
 
-    result = paired_model_differences({"left": left, "right": right}, [("left", "right")], replicates=200, seed=3)[0]
+    result = paired_model_differences(
+        {"left": left, "right": right},
+        [("left", "right")],
+        replicates=200,
+        seed=3,
+        familywise_comparisons=9,
+    )[0]
 
     assert result["bootstrap_unit_count"] == 2
     assert result["estimate"] == pytest.approx(4 / 30)
+    assert result["familywise_confidence_level"] == pytest.approx(1 - 0.05 / 9)
+    assert result["familywise_ci_lower"] <= result["ci_lower"]
+    assert result["familywise_ci_upper"] >= result["ci_upper"]
 
 
 def test_normalized_depth_curves_use_controlled_when_available_and_global_otherwise():
