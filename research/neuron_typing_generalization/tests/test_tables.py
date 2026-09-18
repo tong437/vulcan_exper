@@ -14,7 +14,13 @@
 
 import numpy as np
 import pandas as pd
-from neuron_typing_generalization.tables import analyze_class_table, classify_score_table, cohort_summary_tensor
+import pytest
+from neuron_typing_generalization.tables import (
+    analyze_class_table,
+    analyze_class_tensor,
+    classify_score_table,
+    cohort_summary_tensor,
+)
 
 
 def _score_rows() -> pd.DataFrame:
@@ -63,8 +69,48 @@ def test_score_to_class_to_analysis_cpu_end_to_end():
     assert summary["overall_change_rate_distinct_pairs"] == 1.0
     assert summary["maximum_pair"]["change_rate"] == 1.0
     assert profiles["profile"].tolist() == ["dynamic_t_m", "dynamic_with_weak"]
+    assert profiles["change_rate_distinct_pairs"].tolist() == [1.0, 1.0]
+    assert profiles["valid_distinct_ordered_pairs"].tolist() == [2, 2]
+    assert profiles["dominant_proportion"].tolist() == [0.5, 0.5]
     assert transitions["directed"].sum() == 2
     assert transitions["symmetrized"].sum() == 4
+
+
+def test_unpaired_profile_analysis_can_skip_quadratic_maximum_pair_search():
+    tensor = np.array([[[0, 1]], [[1, 1]], [[1, 2]]], dtype=np.int8)
+
+    summary, profiles, transitions = analyze_class_tensor(
+        tensor,
+        ["a", "b", "c"],
+        "run",
+        pd.DataFrame(),
+        compute_maximum_pair=False,
+    )
+
+    assert summary["maximum_pair"] is None
+    assert profiles["change_rate_distinct_pairs"].tolist() == pytest.approx([2 / 3, 2 / 3])
+    assert transitions["directed"].sum() == 0
+
+
+def test_real_neuron_with_no_valid_observations_is_retained():
+    tensor = np.array([[[0, -1]], [[1, -1]]], dtype=np.int8)
+
+    _, profiles, _ = analyze_class_tensor(
+        tensor,
+        ["a", "b"],
+        "run",
+        pd.DataFrame(),
+        d_ff_by_layer=[2],
+        compute_maximum_pair=False,
+    )
+
+    invalid = profiles.loc[profiles["neuron"] == 1].iloc[0]
+    assert len(profiles) == 2
+    assert invalid["valid_samples"] == 0
+    assert invalid["invalid_samples"] == 2
+    assert invalid["dominant_class"] == "INVALID"
+    assert invalid["profile"] == "invalid"
+    assert np.isnan(invalid["change_rate_distinct_pairs"])
 
 
 def test_natural_cohort_summary_is_descriptive_and_layer_explicit():

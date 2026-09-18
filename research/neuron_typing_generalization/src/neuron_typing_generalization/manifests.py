@@ -119,6 +119,40 @@ def _select_groups(
     return selected
 
 
+def _select_stratified_records(
+    records: Iterable[dict[str, Any]],
+    stratum_key: Callable[[dict[str, Any]], str],
+    sample_count: int,
+    seed: int,
+) -> list[tuple[str, dict[str, Any]]]:
+    """Deterministically sample strata in proportion to their source-pool frequencies."""
+    strata: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for record in records:
+        stratum = stratum_key(record)
+        if not stratum:
+            raise ValueError("Unpaired sampling strata must be non-empty.")
+        strata[stratum].append(record)
+    for stratum, members in strata.items():
+        members.sort(key=lambda item: (_stable_rank(seed, f"{stratum}:{item['sample_id']}"), item["sample_id"]))
+    total_records = sum(len(members) for members in strata.values())
+    if total_records < sample_count:
+        raise RuntimeError(f"Only {total_records} stratified records exist; {sample_count} requested.")
+    exact = {stratum: sample_count * len(members) / total_records for stratum, members in strata.items()}
+    allocated = {stratum: int(value) for stratum, value in exact.items()}
+    remainder = sample_count - sum(allocated.values())
+    priority = sorted(
+        strata,
+        key=lambda stratum: (-(exact[stratum] - allocated[stratum]), _stable_rank(seed, stratum), stratum),
+    )
+    for stratum in priority[:remainder]:
+        allocated[stratum] += 1
+    selected = [(stratum, record) for stratum, members in strata.items() for record in members[: allocated[stratum]]]
+    return sorted(
+        selected,
+        key=lambda item: (_stable_rank(seed, f"selected:{item[1]['sample_id']}"), item[1]["sample_id"]),
+    )
+
+
 def _sample_row(
     config: Mapping[str, Any],
     tier: str,
@@ -277,6 +311,10 @@ def build_dataset_manifests(config_path: Path, source_root: Path) -> dict[str, t
     name = str(config["name"])
     source_dir = source_root / name
     seed = int(config["sampling"]["seed"])
+    unpaired_count = int(config["sampling"].get("unpaired_samples", 0))
+    unpaired_strategy = config["sampling"].get("unpaired_strategy")
+    if unpaired_count and unpaired_strategy != "deterministic_proportional_stratified_hash":
+        raise ValueError(f"Unsupported unpaired sampling strategy: {unpaired_strategy!r}")
     outputs: dict[str, tuple[list[dict], list[dict]]] = {}
 
     if name == "vqav2":
@@ -298,6 +336,22 @@ def build_dataset_manifests(config_path: Path, source_root: Path) -> dict[str, t
                 for record in members
             ]
             outputs[tier] = (rows, _pair_rows(config, tier, groups, "image"))
+        if unpaired_count:
+            selected = _select_stratified_records(
+                records,
+                lambda item: (
+                    f"question_type={item['metadata']['question_type']}|answer_type={item['metadata']['answer_type']}"
+                ),
+                unpaired_count,
+                seed,
+            )
+            outputs["unpaired_v1_1000"] = (
+                [
+                    _sample_row(config, "unpaired_v1_1000", record, None, stratum, rank)
+                    for rank, (stratum, record) in enumerate(selected)
+                ],
+                [],
+            )
     elif name == "gqa_balanced":
         records = _gqa_records(source_dir)
         pilot_groups = _select_groups(
@@ -315,6 +369,23 @@ def build_dataset_manifests(config_path: Path, source_root: Path) -> dict[str, t
                 for record in members
             ]
             outputs[tier] = (rows, _pair_rows(config, tier, groups, "question"))
+        if unpaired_count:
+            selected = _select_stratified_records(
+                records,
+                lambda item: (
+                    f"structural={item['metadata']['types'].get('structural', 'unknown')}|"
+                    f"semantic={item['metadata']['types'].get('semantic', 'unknown')}"
+                ),
+                unpaired_count,
+                seed,
+            )
+            outputs["unpaired_v1_1000"] = (
+                [
+                    _sample_row(config, "unpaired_v1_1000", record, None, stratum, rank)
+                    for rank, (stratum, record) in enumerate(selected)
+                ],
+                [],
+            )
     elif name == "clevr":
         records = _clevr_records(source_dir)
         pilot_groups = _select_groups(
@@ -333,6 +404,20 @@ def build_dataset_manifests(config_path: Path, source_root: Path) -> dict[str, t
             ]
             pairs = _pair_rows(config, tier, groups, "program_or_scene", audit_status="pending", eligible=False)
             outputs[tier] = (rows, pairs)
+        if unpaired_count:
+            selected = _select_stratified_records(
+                records,
+                lambda item: f"question_family={item['question_family']}",
+                unpaired_count,
+                seed,
+            )
+            outputs["unpaired_v1_1000"] = (
+                [
+                    _sample_row(config, "unpaired_v1_1000", record, None, stratum, rank)
+                    for rank, (stratum, record) in enumerate(selected)
+                ],
+                [],
+            )
     elif name == "vizwiz_vqa":
         records = _vizwiz_records(source_dir)
         ordered = sorted(records, key=lambda item: (_stable_rank(seed, item["sample_id"]), item["sample_id"]))
@@ -354,6 +439,15 @@ def build_dataset_manifests(config_path: Path, source_root: Path) -> dict[str, t
                 _sample_row(config, tier, record, None, record["stratum"], rank) for rank, record in enumerate(chosen)
             ]
             outputs[tier] = (rows, [])
+        if unpaired_count:
+            selected = _select_stratified_records(records, lambda item: str(item["stratum"]), unpaired_count, seed)
+            outputs["unpaired_v1_1000"] = (
+                [
+                    _sample_row(config, "unpaired_v1_1000", record, None, stratum, rank)
+                    for rank, (stratum, record) in enumerate(selected)
+                ],
+                [],
+            )
     else:
         raise KeyError(f"No manifest builder for {name}.")
     return outputs

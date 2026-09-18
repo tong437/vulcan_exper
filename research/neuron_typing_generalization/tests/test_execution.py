@@ -17,6 +17,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 from neuron_typing_generalization.execution import classify_run, compare_run, evaluate_run
 
 
@@ -60,6 +61,10 @@ def test_cpu_postprocessing_stages_write_contract_outputs(tmp_path: Path):
     assert (tmp_path / "classifications/neuron_classes.parquet").is_file()
     assert (tmp_path / "distributions/pairwise_changes.parquet").is_file()
     assert (tmp_path / "distributions/neuron_profiles.parquet").is_file()
+    profiles = pd.read_parquet(tmp_path / "distributions/neuron_profiles.parquet")
+    assert profiles["change_rate_distinct_pairs"].tolist() == [1.0, 1.0]
+    assert profiles["q_visual_mean"].tolist() == pytest.approx([0.5, 0.5])
+    assert profiles["q_text_mean"].tolist() == pytest.approx([0.75, 0.25])
     transition_path = tmp_path / "distributions/transition_matrices.npz"
     assert transition_path.is_file()
     with np.load(transition_path, allow_pickle=False) as transitions:

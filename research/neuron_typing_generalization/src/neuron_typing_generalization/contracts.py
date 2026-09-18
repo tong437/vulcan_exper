@@ -35,7 +35,7 @@ STAGE_ORDER = (
 
 STAGE_CONTRACTS = {
     "collect_activations": StageContract(
-        requires=("samples/sample_manifest.parquet", "samples/pair_manifest.parquet"),
+        requires=("samples/sample_manifest.parquet",),
         produces=("activations/sample_parts", "activations/down_projection_norms.npy", "activations/manifest.json"),
     ),
     "compute_importance": StageContract(
@@ -50,7 +50,6 @@ STAGE_CONTRACTS = {
         requires=(
             "classifications/manifest.json",
             "samples/sample_manifest.parquet",
-            "samples/pair_manifest.parquet",
         ),
         produces=(
             "distributions/pairwise_changes.parquet",

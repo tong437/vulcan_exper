@@ -137,3 +137,29 @@ Every result must identify the model revision, dataset revision and split, manif
 valid denominator, and whether a comparison is global, controlled, candidate/pending, or natural-cohort only. Avoid
 phrasing that turns response specialization, association, or paired differences into causal function without a causal
 intervention and appropriate controls.
+
+## 9. Unpaired 1,000-sample neuron-level extension
+
+The original pair-based pilots, manifests, run artifacts, and reports remain frozen historical evidence and must not be
+overwritten. The next experiment is a separate observational extension named `unpaired_v1_1000`:
+
+- deterministically freeze 1,000 natural samples from each of VQAv2, GQA Balanced, CLEVR, and VizWiz VQA;
+- do not construct controlled pair edges for this tier;
+- run all three frozen models on all four tiers, producing 12 runs and 12,000 model-sample forwards;
+- promote one-row-per-real-neuron summaries to the primary output grain;
+- retain compact per-sample q/class partitions so any model-local `(layer, neuron)` can be traced over all 1,000 inputs.
+
+For one neuron with valid class counts `n_c` and `n = sum_c n_c`, its primary all-distinct-sample change rate is
+
+```text
+R_neuron = (n^2 - sum_c n_c^2) / (n(n - 1)).
+```
+
+The per-neuron table must include validity counts, W/V/T/M counts and proportions, self-inclusive and distinct-sample
+change counts/rates, entropy, normalized entropy, dominant class and proportion, effective class count, auditable
+profile label, and continuous visual/text q summaries relative to the layer-specific `1 / d_ff` threshold.
+
+Because this tier has no matched interventions, its results characterize input dependence under each dataset's natural
+sample distribution. They must not be phrased as the causal effect of changing an image, question, program, image
+quality, or answerability. Sample order is deterministic but not temporal; a single-neuron trace is an indexed input
+response record, not a time series. Neuron indices are model-local and must never be aligned across architectures.

@@ -1,0 +1,616 @@
+{
+  "status": "passed",
+  "study": "unpaired_neuron_v1_1000",
+  "model_weights_loaded": false,
+  "transformers": "5.6.0",
+  "datasets": {
+    "vqav2": {
+      "samples": 1000,
+      "pairs": 0,
+      "unique_images": 980,
+      "strata": 83,
+      "sample_sha256": "c802b3edfcb8f397ed50086795b67db46aa7825f361926f038be3665c3c504e8",
+      "pair_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "gqa_balanced": {
+      "samples": 1000,
+      "pairs": 0,
+      "unique_images": 350,
+      "strata": 15,
+      "sample_sha256": "01353143708ba09f74c75e372e15c0f365133d2e008dc3c3acd5395a04396542",
+      "pair_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "clevr": {
+      "samples": 1000,
+      "pairs": 0,
+      "unique_images": 972,
+      "strata": 89,
+      "sample_sha256": "1216c217cebcebbcafb5fd17dc90ca26c003f85ea4672869c0f2c1092377b382",
+      "pair_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "vizwiz_vqa": {
+      "samples": 1000,
+      "pairs": 0,
+      "unique_images": 1000,
+      "strata": 4,
+      "sample_sha256": "3b5293f52947e51226fc4e0f77dcf2872cfc8b975003c1d4da3be2e629e828df",
+      "pair_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    }
+  },
+  "models": {
+    "qwen3_5_2b": {
+      "architecture": "Qwen3_5ForConditionalGeneration",
+      "decoder_layers": 24,
+      "d_ff_by_layer": [
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144
+      ],
+      "total_neurons": 147456,
+      "weight_files": 1,
+      "weight_bytes": 4548221488,
+      "model_weights_loaded": false
+    },
+    "llava_1_5_7b": {
+      "architecture": "LlavaForConditionalGeneration",
+      "decoder_layers": 32,
+      "d_ff_by_layer": [
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008,
+        11008
+      ],
+      "total_neurons": 352256,
+      "weight_files": 3,
+      "weight_bytes": 14126946048,
+      "model_weights_loaded": false
+    },
+    "gemma_4_e2b_it": {
+      "architecture": "Gemma4ForConditionalGeneration",
+      "decoder_layers": 35,
+      "d_ff_by_layer": [
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        6144,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288,
+        12288
+      ],
+      "total_neurons": 337920,
+      "weight_files": 1,
+      "weight_bytes": 10246621918,
+      "model_weights_loaded": false
+    }
+  },
+  "runs": [
+    {
+      "run_id": "qwen3_5_2b__vqav2__seed42__c64daf0cbd",
+      "model": "qwen3_5_2b",
+      "dataset": "vqav2",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "247473001",
+          "sequence_tokens": 313,
+          "visual_tokens": 300,
+          "question_tokens": 6,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "433075000",
+          "sequence_tokens": 320,
+          "visual_tokens": 300,
+          "question_tokens": 13,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "246125001",
+          "sequence_tokens": 204,
+          "visual_tokens": 192,
+          "question_tokens": 5,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 1179648000,
+        "activation_plus_score_float_bytes": 4718592000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "qwen3_5_2b__gqa_balanced__seed42__8449357625",
+      "model": "qwen3_5_2b",
+      "dataset": "gqa_balanced",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "20753391",
+          "sequence_tokens": 383,
+          "visual_tokens": 361,
+          "question_tokens": 15,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "201713529",
+          "sequence_tokens": 313,
+          "visual_tokens": 300,
+          "question_tokens": 6,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "20785809",
+          "sequence_tokens": 294,
+          "visual_tokens": 280,
+          "question_tokens": 7,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 1179648000,
+        "activation_plus_score_float_bytes": 4718592000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "qwen3_5_2b__clevr__seed42__df93af5042",
+      "model": "qwen3_5_2b",
+      "dataset": "clevr",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "58991",
+          "sequence_tokens": 187,
+          "visual_tokens": 150,
+          "question_tokens": 30,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "127345",
+          "sequence_tokens": 177,
+          "visual_tokens": 150,
+          "question_tokens": 20,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "12991",
+          "sequence_tokens": 186,
+          "visual_tokens": 150,
+          "question_tokens": 29,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 1179648000,
+        "activation_plus_score_float_bytes": 4718592000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "qwen3_5_2b__vizwiz_vqa__seed42__f6870880a3",
+      "model": "qwen3_5_2b",
+      "dataset": "vizwiz_vqa",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "VizWiz_val_00004000",
+          "sequence_tokens": 1952,
+          "visual_tokens": 1938,
+          "question_tokens": 7,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "VizWiz_val_00002974",
+          "sequence_tokens": 1950,
+          "visual_tokens": 1938,
+          "question_tokens": 5,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "VizWiz_val_00003683",
+          "sequence_tokens": 1951,
+          "visual_tokens": 1938,
+          "question_tokens": 6,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 1179648000,
+        "activation_plus_score_float_bytes": 4718592000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "llava_1_5_7b__vqav2__seed42__8307a2db44",
+      "model": "llava_1_5_7b",
+      "dataset": "vqav2",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "247473001",
+          "sequence_tokens": 591,
+          "visual_tokens": 576,
+          "question_tokens": 8,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "433075000",
+          "sequence_tokens": 596,
+          "visual_tokens": 576,
+          "question_tokens": 13,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "246125001",
+          "sequence_tokens": 588,
+          "visual_tokens": 576,
+          "question_tokens": 5,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 2818048000,
+        "activation_plus_score_float_bytes": 11272192000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "llava_1_5_7b__gqa_balanced__seed42__8867b9bc25",
+      "model": "llava_1_5_7b",
+      "dataset": "gqa_balanced",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "20753391",
+          "sequence_tokens": 600,
+          "visual_tokens": 576,
+          "question_tokens": 17,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "201713529",
+          "sequence_tokens": 589,
+          "visual_tokens": 576,
+          "question_tokens": 6,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "20785809",
+          "sequence_tokens": 591,
+          "visual_tokens": 576,
+          "question_tokens": 8,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 2818048000,
+        "activation_plus_score_float_bytes": 11272192000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "llava_1_5_7b__clevr__seed42__96d965d88e",
+      "model": "llava_1_5_7b",
+      "dataset": "clevr",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "58991",
+          "sequence_tokens": 621,
+          "visual_tokens": 576,
+          "question_tokens": 38,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "127345",
+          "sequence_tokens": 604,
+          "visual_tokens": 576,
+          "question_tokens": 21,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "12991",
+          "sequence_tokens": 616,
+          "visual_tokens": 576,
+          "question_tokens": 33,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 2818048000,
+        "activation_plus_score_float_bytes": 11272192000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "llava_1_5_7b__vizwiz_vqa__seed42__96c8202730",
+      "model": "llava_1_5_7b",
+      "dataset": "vizwiz_vqa",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "VizWiz_val_00004000",
+          "sequence_tokens": 592,
+          "visual_tokens": 576,
+          "question_tokens": 9,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "VizWiz_val_00002974",
+          "sequence_tokens": 588,
+          "visual_tokens": 576,
+          "question_tokens": 5,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "VizWiz_val_00003683",
+          "sequence_tokens": 591,
+          "visual_tokens": 576,
+          "question_tokens": 8,
+          "control_tokens": 7,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 2818048000,
+        "activation_plus_score_float_bytes": 11272192000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "gemma_4_e2b_it__vqav2__seed42__b41142f5ac",
+      "model": "gemma_4_e2b_it",
+      "dataset": "vqav2",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "247473001",
+          "sequence_tokens": 280,
+          "visual_tokens": 266,
+          "question_tokens": 6,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "433075000",
+          "sequence_tokens": 287,
+          "visual_tokens": 266,
+          "question_tokens": 13,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "246125001",
+          "sequence_tokens": 279,
+          "visual_tokens": 266,
+          "question_tokens": 5,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 2703360000,
+        "activation_plus_score_float_bytes": 10813440000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "gemma_4_e2b_it__gqa_balanced__seed42__1185cdf5ab",
+      "model": "gemma_4_e2b_it",
+      "dataset": "gqa_balanced",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "20753391",
+          "sequence_tokens": 279,
+          "visual_tokens": 256,
+          "question_tokens": 15,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "201713529",
+          "sequence_tokens": 280,
+          "visual_tokens": 266,
+          "question_tokens": 6,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "20785809",
+          "sequence_tokens": 275,
+          "visual_tokens": 260,
+          "question_tokens": 7,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 2703360000,
+        "activation_plus_score_float_bytes": 10813440000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "gemma_4_e2b_it__clevr__seed42__6d2d778801",
+      "model": "gemma_4_e2b_it",
+      "dataset": "clevr",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "58991",
+          "sequence_tokens": 298,
+          "visual_tokens": 260,
+          "question_tokens": 30,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "127345",
+          "sequence_tokens": 288,
+          "visual_tokens": 260,
+          "question_tokens": 20,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "12991",
+          "sequence_tokens": 297,
+          "visual_tokens": 260,
+          "question_tokens": 29,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 2703360000,
+        "activation_plus_score_float_bytes": 10813440000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    },
+    {
+      "run_id": "gemma_4_e2b_it__vizwiz_vqa__seed42__d22a83bd0b",
+      "model": "gemma_4_e2b_it",
+      "dataset": "vizwiz_vqa",
+      "samples": 1000,
+      "token_mask_spot_checks": [
+        {
+          "sample_id": "VizWiz_val_00004000",
+          "sequence_tokens": 281,
+          "visual_tokens": 266,
+          "question_tokens": 7,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "VizWiz_val_00002974",
+          "sequence_tokens": 279,
+          "visual_tokens": 266,
+          "question_tokens": 5,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        },
+        {
+          "sample_id": "VizWiz_val_00003683",
+          "sequence_tokens": 280,
+          "visual_tokens": 266,
+          "question_tokens": 6,
+          "control_tokens": 8,
+          "padding_tokens": 0
+        }
+      ],
+      "storage_estimate": {
+        "activation_float_bytes": 2703360000,
+        "activation_plus_score_float_bytes": 10813440000,
+        "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays."
+      }
+    }
+  ],
+  "total_activation_plus_score_float_bytes": 107216896000,
+  "deferred_to_gpu": [
+    "model_forward",
+    "runtime_hook_layout",
+    "peak_vram",
+    "full-sample_token_masks"
+  ]
+}

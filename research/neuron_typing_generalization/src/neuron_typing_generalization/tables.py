@@ -119,6 +119,8 @@ def analyze_class_tensor(
     run_id: str,
     pair_manifest: pd.DataFrame,
     chunk_size: int = 64,
+    d_ff_by_layer: list[int] | None = None,
+    compute_maximum_pair: bool = True,
 ) -> tuple[dict, pd.DataFrame, dict[str, np.ndarray]]:
     """Analyze a compact [sample, layer, neuron] class tensor."""
     if tensor.ndim != 3 or tensor.shape[0] != len(sample_ids):
@@ -127,8 +129,15 @@ def analyze_class_tensor(
         raise ValueError("sample_ids must be unique and ordered by the frozen manifest.")
     layers = list(range(tensor.shape[1]))
     neurons = list(range(tensor.shape[2]))
+    if d_ff_by_layer is None:
+        d_ff_by_layer = [tensor.shape[2]] * len(layers)
+    if len(d_ff_by_layer) != len(layers) or any(not 0 < width <= tensor.shape[2] for width in d_ff_by_layer):
+        raise ValueError("d_ff_by_layer must contain one positive width per compact tensor layer.")
+    for layer, width in enumerate(d_ff_by_layer):
+        if np.any(tensor[:, layer, width:] != INVALID_CLASS):
+            raise ValueError(f"Layer {layer} has valid classes beyond its declared d_ff={width}.")
     rates = change_rates_from_counts(tensor)
-    maximum = maximum_change_pair(tensor, chunk_size=chunk_size)
+    maximum = maximum_change_pair(tensor, chunk_size=chunk_size) if compute_maximum_pair else None
     stability = neuron_stability(tensor)
     summary = {
         "run_id": run_id,
@@ -149,31 +158,55 @@ def analyze_class_tensor(
         "per_layer_valid_ordered_comparisons_including_self": rates.per_layer_including_self_comparisons.tolist(),
         "per_layer_changed_distinct_ordered_comparisons": rates.per_layer_distinct_pairs_changed.tolist(),
         "per_layer_valid_distinct_ordered_comparisons": rates.per_layer_distinct_pair_comparisons.tolist(),
-        "maximum_pair": {
-            "left_sample_id": sample_ids[maximum.left],
-            "right_sample_id": sample_ids[maximum.right],
-            "change_rate": maximum.rate,
-            "valid_neurons": maximum.valid_neurons,
-        },
+        "maximum_pair": (
+            {
+                "left_sample_id": sample_ids[maximum.left],
+                "right_sample_id": sample_ids[maximum.right],
+                "change_rate": maximum.rate,
+                "valid_neurons": maximum.valid_neurons,
+            }
+            if maximum is not None
+            else None
+        ),
     }
 
     profile_rows = []
     for layer in layers:
-        for neuron in neurons:
+        for neuron in neurons[: d_ff_by_layer[layer]]:
             counts = stability.counts[layer, neuron]
             proportions = stability.proportions[layer, neuron]
+            valid_samples = int(counts.sum())
             dominant = int(stability.dominant_class[layer, neuron])
+            changed_pairs = int(valid_samples**2 - np.square(counts, dtype=np.int64).sum())
+            including_comparisons = valid_samples**2
+            distinct_comparisons = valid_samples * (valid_samples - 1)
+            entropy = float(stability.entropy[layer, neuron])
             profile_rows.append(
                 {
                     "run_id": run_id,
                     "layer": layer,
                     "neuron": neuron,
-                    "valid_samples": int(counts.sum()),
+                    "d_ff": int(d_ff_by_layer[layer]),
+                    "valid_samples": valid_samples,
+                    "invalid_samples": len(sample_ids) - valid_samples,
                     **{f"count_{label}": int(counts[index]) for index, label in enumerate(CLASS_LABELS)},
                     **{f"proportion_{label}": float(proportions[index]) for index, label in enumerate(CLASS_LABELS)},
-                    "entropy": float(stability.entropy[layer, neuron]),
+                    "changed_ordered_pairs": changed_pairs,
+                    "valid_ordered_pairs_including_self": including_comparisons,
+                    "change_rate_including_self": (
+                        changed_pairs / including_comparisons if including_comparisons else float("nan")
+                    ),
+                    "valid_distinct_ordered_pairs": distinct_comparisons,
+                    "change_rate_distinct_pairs": (
+                        changed_pairs / distinct_comparisons if distinct_comparisons else float("nan")
+                    ),
+                    "entropy": entropy,
                     "normalized_entropy": float(stability.normalized_entropy[layer, neuron]),
                     "dominant_class": CLASS_LABELS[dominant] if dominant != INVALID_CLASS else "INVALID",
+                    "dominant_proportion": (
+                        float(proportions[dominant]) if dominant != INVALID_CLASS else float("nan")
+                    ),
+                    "effective_class_count": float(np.exp(entropy)),
                     "profile": str(stability.profiles[layer, neuron]),
                 }
             )
@@ -299,12 +332,20 @@ def analyze_class_table(
     sample_manifest: pd.DataFrame,
     pair_manifest: pd.DataFrame,
     chunk_size: int = 64,
+    compute_maximum_pair: bool = True,
 ) -> tuple[dict, pd.DataFrame, dict[str, np.ndarray]]:
     """Produce run summary, neuron profiles, and controlled transition matrices."""
     sample_ids = [str(value) for value in sample_manifest["sample_id"]]
     tensor, _, _ = class_tensor_from_table(classes, sample_ids)
     run_id = str(classes["run_id"].iloc[0])
-    return analyze_class_tensor(tensor, sample_ids, run_id, pair_manifest, chunk_size=chunk_size)
+    return analyze_class_tensor(
+        tensor,
+        sample_ids,
+        run_id,
+        pair_manifest,
+        chunk_size=chunk_size,
+        compute_maximum_pair=compute_maximum_pair,
+    )
 
 
 def controlled_pair_change_table(

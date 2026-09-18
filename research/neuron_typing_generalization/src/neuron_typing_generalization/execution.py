@@ -24,6 +24,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import yaml
 
 from .schema_validation import validate_document, validate_frame
 from .tables import (
@@ -99,6 +100,80 @@ def _verify_parts(run_dir: Path, manifest: dict) -> list[Path]:
     if digest.hexdigest() != manifest["parts_sha256"]:
         raise RuntimeError("Compact partition-set digest does not match its manifest.")
     return paths
+
+
+def _merge_compact_q_summaries(run_dir: Path, profiles: pd.DataFrame) -> pd.DataFrame:
+    """Stream compact q partitions into one-row-per-neuron continuous summaries."""
+    manifest = json.loads((run_dir / "scores/manifest.json").read_text(encoding="utf-8"))
+    layers, maximum_width = int(manifest["layers"]), int(manifest["d_ff"])
+    shape = (2, layers, maximum_width)
+    count = np.zeros(shape, dtype=np.int32)
+    total = np.zeros(shape, dtype=np.float64)
+    squared = np.zeros(shape, dtype=np.float64)
+    minimum = np.full(shape, np.inf, dtype=np.float32)
+    maximum = np.full(shape, -np.inf, dtype=np.float32)
+    for source in _verify_parts(run_dir, manifest):
+        with np.load(source, allow_pickle=False) as arrays:
+            values = arrays["q"].astype(np.float32, copy=False).transpose(1, 0, 2)
+        finite = np.isfinite(values)
+        count += finite
+        safe = np.where(finite, values, 0.0)
+        total += safe
+        squared += np.square(safe, dtype=np.float64)
+        minimum = np.minimum(minimum, np.where(finite, values, np.inf))
+        maximum = np.maximum(maximum, np.where(finite, values, -np.inf))
+
+    layer_index = profiles["layer"].to_numpy(dtype=np.int64)
+    neuron_index = profiles["neuron"].to_numpy(dtype=np.int64)
+    d_ff = profiles["d_ff"].to_numpy(dtype=np.float64)
+    result = profiles.copy()
+    for modality_index, modality in enumerate(("visual", "text")):
+        observed = count[modality_index, layer_index, neuron_index]
+        sums = total[modality_index, layer_index, neuron_index]
+        sum_squares = squared[modality_index, layer_index, neuron_index]
+        mean = np.divide(sums, observed, out=np.full(len(result), np.nan), where=observed > 0)
+        variance_numerator = sum_squares - np.divide(
+            np.square(sums), observed, out=np.zeros(len(result)), where=observed > 0
+        )
+        standard_deviation = np.sqrt(
+            np.divide(
+                np.maximum(variance_numerator, 0.0),
+                observed - 1,
+                out=np.full(len(result), np.nan),
+                where=observed > 1,
+            )
+        )
+        result[f"q_{modality}_valid_samples"] = observed
+        result[f"q_{modality}_mean"] = mean
+        result[f"q_{modality}_std"] = standard_deviation
+        observed_minimum = minimum[modality_index, layer_index, neuron_index]
+        observed_maximum = maximum[modality_index, layer_index, neuron_index]
+        result[f"q_{modality}_min"] = np.where(observed > 0, observed_minimum, np.nan)
+        result[f"q_{modality}_max"] = np.where(observed > 0, observed_maximum, np.nan)
+        result[f"{modality}_margin_mean"] = mean - 1.0 / d_ff
+    return result
+
+
+def _merge_long_q_summaries(scores: pd.DataFrame, profiles: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate normalized long-form scores to the compact profile schema."""
+    valid = scores[scores["valid"] & scores["q"].notna()].copy()
+    grouped = valid.groupby(["layer", "neuron", "modality"], sort=False)["q"].agg(
+        ["count", "mean", "std", "min", "max"]
+    )
+    result = profiles.copy()
+    for modality in ("visual", "text"):
+        columns = {column: f"q_{modality}_{'valid_samples' if column == 'count' else column}" for column in grouped}
+        if modality in grouped.index.get_level_values("modality"):
+            values = grouped.xs(modality, level="modality").rename(columns=columns)
+        else:
+            values = pd.DataFrame(
+                columns=columns.values(), index=pd.MultiIndex.from_tuples([], names=["layer", "neuron"])
+            )
+        result = result.merge(values, left_on=["layer", "neuron"], right_index=True, how="left", validate="one_to_one")
+        count_column = f"q_{modality}_valid_samples"
+        result[count_column] = result[count_column].fillna(0).astype(np.int64)
+        result[f"{modality}_margin_mean"] = result[f"q_{modality}_mean"] - 1.0 / result["d_ff"]
+    return result
 
 
 def _compact_importance_run(run_dir: Path, manifest: dict) -> dict[str, int | str]:
@@ -298,10 +373,16 @@ def classify_run(run_dir: Path) -> dict[str, int | str]:
     }
 
 
-def compare_run(run_dir: Path, chunk_size: int = 64) -> dict[str, int | str]:
+def compare_run(run_dir: Path, chunk_size: int = 64, compute_maximum_pair: bool | None = None) -> dict[str, int | str]:
     """Write controlled pair changes, neuron profiles, transitions, and aggregate intermediates."""
+    if compute_maximum_pair is None:
+        config_path = run_dir / "config.resolved.yaml"
+        config = yaml.safe_load(config_path.read_text(encoding="utf-8")) if config_path.is_file() else {}
+        options = config.get("study_options", {}).get("sample_analysis", {})
+        compute_maximum_pair = bool(options.get("compute_maximum_pair", True))
     samples = pd.read_parquet(run_dir / "samples/sample_manifest.parquet")
-    pairs = pd.read_parquet(run_dir / "samples/pair_manifest.parquet")
+    pair_path = run_dir / "samples/pair_manifest.parquet"
+    pairs = pd.read_parquet(pair_path) if pair_path.is_file() else pd.DataFrame()
     compact_manifest_path = run_dir / "classifications/manifest.json"
     if compact_manifest_path.is_file():
         manifest = json.loads(compact_manifest_path.read_text(encoding="utf-8"))
@@ -314,13 +395,24 @@ def compare_run(run_dir: Path, chunk_size: int = 64) -> dict[str, int | str]:
                 class_arrays.append(arrays["classes"].astype(np.int8, copy=True))
         tensor = np.stack(class_arrays)
         summary, profiles, transitions = analyze_class_tensor(
-            tensor, sample_ids, str(manifest["run_id"]), pairs, chunk_size=chunk_size
+            tensor,
+            sample_ids,
+            str(manifest["run_id"]),
+            pairs,
+            chunk_size=chunk_size,
+            d_ff_by_layer=[int(value) for value in manifest["d_ff_by_layer"]],
+            compute_maximum_pair=compute_maximum_pair,
         )
+        profiles = _merge_compact_q_summaries(run_dir, profiles)
         changes = controlled_pair_change_tensor(tensor, sample_ids, str(manifest["run_id"]), pairs)
         run_id = str(manifest["run_id"])
     else:
         classes = pd.read_parquet(run_dir / "classifications/neuron_classes.parquet")
-        summary, profiles, transitions = analyze_class_table(classes, samples, pairs, chunk_size=chunk_size)
+        scores = pd.read_parquet(run_dir / "scores/neuron_scores.parquet")
+        summary, profiles, transitions = analyze_class_table(
+            classes, samples, pairs, chunk_size=chunk_size, compute_maximum_pair=compute_maximum_pair
+        )
+        profiles = _merge_long_q_summaries(scores, profiles)
         changes = controlled_pair_change_table(classes, samples, pairs)
         tensor, _, _ = class_tensor_from_table(classes, [str(value) for value in samples["sample_id"]])
         run_id = str(classes["run_id"].iloc[0])

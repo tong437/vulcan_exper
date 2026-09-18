@@ -98,11 +98,42 @@ def validate_frame(frame: pd.DataFrame, schema_name: str) -> None:
     elif schema_name == "neuron_profiles.schema.json":
         for index, row in enumerate(records):
             counts = [int(row[f"count_{label}"]) for label in ("W", "V", "T", "M")]
-            if sum(counts) != int(row["valid_samples"]):
+            valid_samples = int(row["valid_samples"])
+            if sum(counts) != valid_samples:
                 raise ValueError(f"Profile row {index} class counts do not sum to valid_samples.")
             proportions = [row[f"proportion_{label}"] for label in ("W", "V", "T", "M")]
             if sum(counts) and not math.isclose(sum(float(value) for value in proportions), 1.0, abs_tol=1e-12):
                 raise ValueError(f"Profile row {index} proportions do not sum to one.")
+            changed = valid_samples**2 - sum(count**2 for count in counts)
+            including_denominator = valid_samples**2
+            distinct_denominator = valid_samples * (valid_samples - 1)
+            if int(row["changed_ordered_pairs"]) != changed:
+                raise ValueError(f"Profile row {index} changed count disagrees with its class counts.")
+            if int(row["valid_ordered_pairs_including_self"]) != including_denominator:
+                raise ValueError(f"Profile row {index} including-self denominator disagrees with valid_samples.")
+            if int(row["valid_distinct_ordered_pairs"]) != distinct_denominator:
+                raise ValueError(f"Profile row {index} distinct-pair denominator disagrees with valid_samples.")
+            for field, denominator in (
+                ("change_rate_including_self", including_denominator),
+                ("change_rate_distinct_pairs", distinct_denominator),
+            ):
+                rate = row[field]
+                if denominator and (
+                    pd.isna(rate) or not math.isclose(float(rate), changed / denominator, abs_tol=1e-12)
+                ):
+                    raise ValueError(f"Profile row {index} {field} disagrees with its counts.")
+                if not denominator and not pd.isna(rate):
+                    raise ValueError(f"Profile row {index} {field} must be null for a zero denominator.")
+            dominant = max(proportions)
+            if valid_samples and not math.isclose(float(row["dominant_proportion"]), float(dominant), abs_tol=1e-12):
+                raise ValueError(f"Profile row {index} dominant_proportion disagrees with class proportions.")
+            if not valid_samples and not pd.isna(row["dominant_proportion"]):
+                raise ValueError(f"Profile row {index} dominant_proportion must be null without valid samples.")
+            total_samples = valid_samples + int(row["invalid_samples"])
+            for modality in ("visual", "text"):
+                q_count = int(row[f"q_{modality}_valid_samples"])
+                if q_count > total_samples:
+                    raise ValueError(f"Profile row {index} has more valid q values than total samples.")
 
 
 def validate_document(document: dict[str, Any], schema_name: str) -> None:

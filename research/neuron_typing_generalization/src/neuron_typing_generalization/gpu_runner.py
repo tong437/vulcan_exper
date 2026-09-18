@@ -119,7 +119,8 @@ def run_gpu_collection(
     _validate_environment(spec)
     context = initialize_run(spec)
     samples = pd.read_parquet(context.run_dir / "samples/sample_manifest.parquet")
-    pairs = pd.read_parquet(context.run_dir / "samples/pair_manifest.parquet")
+    pair_path = context.run_dir / "samples/pair_manifest.parquet"
+    pairs = pd.read_parquet(pair_path) if pair_path.is_file() else pd.DataFrame()
     sampling = spec.study_values.get("sampling", {})
     if "expected_samples" in sampling and len(samples) != int(sampling["expected_samples"]):
         raise ValueError("Frozen sample count disagrees with the study configuration.")

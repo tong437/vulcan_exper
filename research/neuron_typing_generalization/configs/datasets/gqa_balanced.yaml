@@ -30,5 +30,7 @@ pairing:
 sampling:
   seed: 42
   strategy: deterministic_group_hash
+  unpaired_strategy: deterministic_proportional_stratified_hash
+  unpaired_samples: 1000
   pilot_groups: 100
   samples_per_group: 5

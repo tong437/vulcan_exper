@@ -321,7 +321,8 @@ def evaluate_pilot_run(
     """Create complete statistics, provenance, and real figures for one analyzed run."""
     summary = json.loads((run_dir / "distributions/analysis_summary.json").read_text(encoding="utf-8"))
     changes = pd.read_parquet(run_dir / "distributions/pairwise_changes.parquet")
-    pair_manifest = pd.read_parquet(run_dir / "samples/pair_manifest.parquet")
+    pair_path = run_dir / "samples/pair_manifest.parquet"
+    pair_manifest = pd.read_parquet(pair_path) if pair_path.is_file() else pd.DataFrame()
     profiles = pd.read_parquet(run_dir / "distributions/neuron_profiles.parquet")
     cohorts = pd.read_parquet(run_dir / "distributions/cohort_summary.parquet")
     with np.load(run_dir / "distributions/transition_matrices.npz", allow_pickle=False) as stored:

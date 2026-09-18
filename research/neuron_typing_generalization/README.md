@@ -216,6 +216,28 @@ python research/neuron_typing_generalization/pipelines/report_main_synthesis.py 
 The committed summary is `reports/main_synthesis_results.md`. Its `analysis_code_commit` identifies the exact code
 revision used to derive the report from the ignored raw run artifacts.
 
+## Unpaired 1,000-sample neuron-level extension
+
+The pair-based pilots above remain frozen. A separate `unpaired_v1_1000` tier samples 1,000 natural examples per
+dataset without controlled edges and changes the primary output grain from one model/dataset aggregate to one row per
+real decoder MLP neuron. Its study config is `configs/studies/unpaired_neuron_v1_1000.yaml`.
+
+Each neuron profile reports class counts/proportions, entropy, dominant state, and its all-distinct-sample change rate.
+Continuous visual/text q summaries are streamed from compact score partitions. Export any one model-local neuron's
+sample-indexed q/class trace without expanding the full sample-neuron Cartesian product:
+
+```bash
+python research/neuron_typing_generalization/pipelines/export_neuron_trace.py \
+  --run-dir /absolute/run/directory --layer 10 --neuron 2317
+```
+
+The new study disables the optional maximum-sample-pair search because that operation is quadratic in samples and
+linear in all model neurons. This does not approximate or omit the primary per-neuron all-distinct-sample rate, which
+is computed exactly from each neuron's four class counts.
+
+These unpaired results are observational dataset-distribution summaries. They do not replace the old controlled-pair
+results and cannot identify the causal effect of changing one input factor.
+
 ## Reproduction commands
 
 The acquisition commands are intentionally separate so image materialization cannot precede manifest freezing:
@@ -231,6 +253,7 @@ python research/neuron_typing_generalization/pipelines/audit_clevr_pairs.py
 python research/neuron_typing_generalization/pipelines/audit_data_quality.py
 python research/neuron_typing_generalization/pipelines/benchmark_cpu_scale.py
 python research/neuron_typing_generalization/pipelines/preflight_qwen_smoke.py
+python research/neuron_typing_generalization/pipelines/preflight_unpaired_study.py
 ```
 
 Run CPU tests and scoped quality checks:

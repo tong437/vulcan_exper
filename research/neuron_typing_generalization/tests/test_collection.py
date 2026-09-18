@@ -147,3 +147,25 @@ def test_compact_pipeline_supports_layer_specific_d_ff(tmp_path):
     compare_run(tmp_path, chunk_size=1)
     summary = json.loads((tmp_path / "distributions/analysis_summary.json").read_text())
     assert summary["overall_valid_ordered_comparisons_including_self"] == (2 + 4) * 2**2
+    profiles = pd.read_parquet(tmp_path / "distributions/neuron_profiles.parquet")
+    assert len(profiles) == 6
+    assert profiles.groupby("layer")["d_ff"].first().to_dict() == {0: 2, 1: 4}
+    assert profiles["q_visual_valid_samples"].eq(2).all()
+
+
+def test_compact_pipeline_analyzes_unpaired_samples_without_pair_manifest(tmp_path):
+    for directory in ("activations", "scores", "classifications", "samples", "distributions"):
+        (tmp_path / directory).mkdir()
+    pd.DataFrame({"sample_id": ["alpha", "beta"], "dataset": ["synthetic", "synthetic"]}).to_parquet(
+        tmp_path / "samples/sample_manifest.parquet", index=False
+    )
+
+    collect_synthetic_fixture(tmp_path, layers=1, d_ff=2)
+    compute_importance_run(tmp_path)
+    classify_run(tmp_path)
+    result = compare_run(tmp_path, chunk_size=1)
+
+    assert result["controlled_pair_rows"] == 0
+    with np.load(tmp_path / "distributions/transition_matrices.npz", allow_pickle=False) as transitions:
+        assert transitions["directed"].sum() == 0
+        assert transitions["symmetrized"].sum() == 0

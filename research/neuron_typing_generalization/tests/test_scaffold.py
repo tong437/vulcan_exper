@@ -69,6 +69,17 @@ def test_clevr_precision_extension_uses_a_new_frozen_tier():
     assert {spec.study_values["sampling"]["manifest_tier"] for spec in specs} == {"audited_v2_111"}
 
 
+def test_unpaired_neuron_study_expands_to_twelve_independent_runs():
+    study = load_study(EXPERIMENT_ROOT / "configs/studies/unpaired_neuron_v1_1000.yaml")
+    specs = expand_study(study)
+
+    assert len(specs) == 12
+    assert {spec.dataset.name for spec in specs} == {"vqav2", "gqa_balanced", "clevr", "vizwiz_vqa"}
+    assert {spec.study_values["sampling"]["manifest_tier"] for spec in specs} == {"unpaired_v1_1000"}
+    assert {spec.study_values["sampling"]["expected_samples"] for spec in specs} == {1000}
+    assert {spec.study_values["sampling"]["require_pair_manifest"] for spec in specs} == {False}
+
+
 def test_initialize_run_writes_resolved_config_and_layout(tmp_path, monkeypatch):
     study = load_study(EXPERIMENT_ROOT / "configs/studies/main.yaml")
     spec = expand_study(study)[0]

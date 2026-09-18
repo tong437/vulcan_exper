@@ -29,8 +29,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Analyze sample-conditional neuron classes for one run.")
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--chunk-size", type=int, default=64)
+    parser.add_argument(
+        "--skip-maximum-pair-search",
+        action="store_true",
+        help="Skip the quadratic maximum sample-pair search; exact count-based neuron rates are unaffected.",
+    )
     args = parser.parse_args()
-    print(json.dumps(compare_run(args.run_dir.resolve(), args.chunk_size), indent=2))
+    compute_maximum_pair = False if args.skip_maximum_pair_search else None
+    print(json.dumps(compare_run(args.run_dir.resolve(), args.chunk_size, compute_maximum_pair), indent=2))
 
 
 if __name__ == "__main__":

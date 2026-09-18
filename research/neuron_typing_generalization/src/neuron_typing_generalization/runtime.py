@@ -103,7 +103,10 @@ def initialize_run(spec: ExperimentSpec) -> RunContext:
     if sampling.get("require_frozen_manifest"):
         tier = str(sampling.get("manifest_tiers", {}).get(spec.dataset.name, sampling.get("manifest_tier", "pilot")))
         source_dir = EXPERIMENT_ROOT / "manifests" / spec.dataset.name / tier
-        for filename in ("sample_manifest.parquet", "pair_manifest.parquet"):
+        filenames = ["sample_manifest.parquet"]
+        if sampling.get("require_pair_manifest", True):
+            filenames.append("pair_manifest.parquet")
+        for filename in filenames:
             source = source_dir / filename
             digest_source = source.with_suffix(source.suffix + ".sha256")
             if not source.is_file() or not digest_source.is_file():

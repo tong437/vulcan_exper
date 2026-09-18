@@ -244,3 +244,136 @@ def run_vqav2_three_model_preflight(study_path: Path, experiment_root: Path, art
         "models": model_reports,
         "deferred_to_gpu": ["model_forward", "hook_layer_count", "peak_vram", "streaming_vs_direct_statistics"],
     }
+
+
+def run_unpaired_study_preflight(study_path: Path, experiment_root: Path, artifact_root: Path) -> dict[str, Any]:
+    """Validate the 3-model x 4-dataset unpaired study without loading model weights."""
+    import transformers
+
+    specs = expand_study(load_study(study_path))
+    if len(specs) != 12:
+        raise ValueError(f"Unpaired study must expand to 12 runs, observed {len(specs)}.")
+    if {spec.study_values["sampling"]["manifest_tier"] for spec in specs} != {"unpaired_v1_1000"}:
+        raise ValueError("Unpaired preflight requires the unpaired_v1_1000 frozen tier.")
+
+    dataset_reports: dict[str, dict[str, Any]] = {}
+    sample_frames: dict[str, pd.DataFrame] = {}
+    image_indices: dict[str, dict[str, Path]] = {}
+    for spec in specs:
+        name = spec.dataset.name
+        if name in dataset_reports:
+            continue
+        manifest_dir = experiment_root / "manifests" / name / "unpaired_v1_1000"
+        sample_path = manifest_dir / "sample_manifest.parquet"
+        pair_path = manifest_dir / "pair_manifest.parquet"
+        sample_digest = verify_frozen_manifest(sample_path, SAMPLE_COLUMNS)
+        pair_digest = verify_frozen_manifest(pair_path, PAIR_COLUMNS)
+        samples = pd.read_parquet(sample_path)
+        pairs = pd.read_parquet(pair_path)
+        if len(samples) != 1000 or len(pairs) != 0 or samples["sample_id"].nunique() != 1000:
+            raise ValueError(f"{name} does not contain exactly 1,000 unique unpaired samples.")
+        image_manifest = pd.read_parquet(artifact_root / "images" / name / "image_manifest.parquet")
+        image_by_id = {
+            str(row.image_id): artifact_root / "images" / name / str(row.relative_path)
+            for row in image_manifest.itertuples()
+        }
+        missing = sorted({str(value) for value in samples["image_id"]} - set(image_by_id))
+        missing_files = [str(path) for path in image_by_id.values() if not path.is_file()]
+        if missing or missing_files:
+            raise FileNotFoundError(
+                f"{name} materialization is incomplete: missing IDs={len(missing)}, files={len(missing_files)}."
+            )
+        sample_frames[name] = samples
+        image_indices[name] = image_by_id
+        dataset_reports[name] = {
+            "samples": len(samples),
+            "pairs": len(pairs),
+            "unique_images": samples["image_id"].nunique(),
+            "strata": samples["stratum"].nunique(),
+            "sample_sha256": sample_digest,
+            "pair_sha256": pair_digest,
+        }
+
+    model_reports: dict[str, dict[str, Any]] = {}
+    processors = {}
+    for spec in specs:
+        name = spec.model.name
+        if name in model_reports:
+            continue
+        layout = load_model_layout(spec.model.values)
+        if not hasattr(transformers, layout.architecture):
+            raise RuntimeError(f"Transformers {transformers.__version__} does not expose {layout.architecture}.")
+        weight_files = sorted(layout.model_path.glob("*.safetensors"))
+        if not weight_files:
+            raise FileNotFoundError(f"No safetensors weights under {layout.model_path}.")
+        processors[name] = load_local_processor_adapter(spec.model.values, use_fast=False)
+        widths = layout.d_ff_by_layer or (layout.d_ff,) * layout.decoder_layers
+        model_reports[name] = {
+            "architecture": layout.architecture,
+            "decoder_layers": layout.decoder_layers,
+            "d_ff_by_layer": list(widths),
+            "total_neurons": sum(widths),
+            "weight_files": len(weight_files),
+            "weight_bytes": sum(path.stat().st_size for path in weight_files),
+            "model_weights_loaded": False,
+        }
+
+    run_reports = []
+    for spec in specs:
+        samples = sample_frames[spec.dataset.name]
+        image_by_id = image_indices[spec.dataset.name]
+        processor_adapter = processors[spec.model.name]
+        token_audit = []
+        for index in (0, len(samples) // 2, len(samples) - 1):
+            sample = samples.iloc[index]
+            image_path = image_by_id[str(sample["image_id"])]
+            with Image.open(image_path) as image:
+                prepared = processor_adapter.prepare_inputs(
+                    {"question": str(sample["question"]), "image": image.convert("RGB")}
+                )
+            roles = prepared.token_roles
+            if not bool(roles.visual.any()) or not bool(roles.text.any()):
+                raise ValueError(
+                    f"Empty visual/text token mask for {spec.model.name} x {spec.dataset.name}, "
+                    f"sample_id={sample['sample_id']}."
+                )
+            token_audit.append(
+                {
+                    "sample_id": str(sample["sample_id"]),
+                    "sequence_tokens": int(roles.visual.numel()),
+                    "visual_tokens": int(roles.visual.sum()),
+                    "question_tokens": int(roles.text.sum()),
+                    "control_tokens": int(roles.control.sum()),
+                    "padding_tokens": int(roles.padding.sum()),
+                }
+            )
+        neuron_count = int(model_reports[spec.model.name]["total_neurons"])
+        activation_float_bytes = len(samples) * neuron_count * 2 * 4
+        run_reports.append(
+            {
+                "run_id": build_run_id(spec),
+                "model": spec.model.name,
+                "dataset": spec.dataset.name,
+                "samples": len(samples),
+                "token_mask_spot_checks": token_audit,
+                "storage_estimate": {
+                    "activation_float_bytes": activation_float_bytes,
+                    "activation_plus_score_float_bytes": activation_float_bytes * 4,
+                    "note": "Upper planning estimate before NPZ compression; excludes small metadata and class arrays.",
+                },
+            }
+        )
+
+    return {
+        "status": "passed",
+        "study": "unpaired_neuron_v1_1000",
+        "model_weights_loaded": False,
+        "transformers": transformers.__version__,
+        "datasets": dataset_reports,
+        "models": model_reports,
+        "runs": run_reports,
+        "total_activation_plus_score_float_bytes": sum(
+            row["storage_estimate"]["activation_plus_score_float_bytes"] for row in run_reports
+        ),
+        "deferred_to_gpu": ["model_forward", "runtime_hook_layout", "peak_vram", "full-sample_token_masks"],
+    }
