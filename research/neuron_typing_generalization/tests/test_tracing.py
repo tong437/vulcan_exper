@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from neuron_typing_generalization.tracing import export_neuron_trace
+from neuron_typing_generalization.tracing import export_neuron_trace, export_neuron_traces
 
 
 def test_export_neuron_trace_aligns_sample_scores_classes_and_metadata(tmp_path: Path):
@@ -62,3 +62,10 @@ def test_export_neuron_trace_aligns_sample_scores_classes_and_metadata(tmp_path:
     assert trace["q_visual"].tolist() == pytest.approx([0.2, 0.7])
     assert Path(result["csv"]).is_file()
     assert Path(result["figure"]).is_file()
+
+    batch = export_neuron_traces(tmp_path, [(0, 0), (0, 1), (0, 1)], tmp_path / "batch")
+
+    assert [(item["layer"], item["neuron"]) for item in batch] == [(0, 0), (0, 1)]
+    first = pd.read_parquet(batch[0]["parquet"])
+    assert first["class"].tolist() == ["W", "W"]
+    assert first["q_visual"].tolist() == pytest.approx([0.1, 0.1])

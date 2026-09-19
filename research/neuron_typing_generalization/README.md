@@ -255,6 +255,7 @@ python research/neuron_typing_generalization/pipelines/benchmark_cpu_scale.py
 python research/neuron_typing_generalization/pipelines/preflight_qwen_smoke.py
 python research/neuron_typing_generalization/pipelines/preflight_unpaired_study.py
 python research/neuron_typing_generalization/pipelines/report_unpaired_neuron_v1_1000.py
+python research/neuron_typing_generalization/pipelines/export_representative_neuron_traces.py
 ```
 
 Run CPU tests and scoped quality checks:

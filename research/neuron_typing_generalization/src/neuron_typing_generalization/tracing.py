@@ -39,13 +39,24 @@ def export_neuron_trace(
     run_dir: Path, layer: int, neuron: int, output_dir: Path | None = None
 ) -> dict[str, str | int]:
     """Export q, importance, RMS, class, and sample metadata for one neuron across all samples."""
+    return export_neuron_traces(run_dir, [(layer, neuron)], output_dir)[0]
+
+
+def export_neuron_traces(
+    run_dir: Path, neurons: list[tuple[int, int]], output_dir: Path | None = None
+) -> list[dict[str, str | int]]:
+    """Export multiple neuron traces while reading each frozen sample partition only once."""
+    neuron_keys = list(dict.fromkeys(neurons))
+    if not neuron_keys:
+        return []
     score_manifest = json.loads((run_dir / "scores/manifest.json").read_text(encoding="utf-8"))
     class_manifest = json.loads((run_dir / "classifications/manifest.json").read_text(encoding="utf-8"))
     d_ff_by_layer = [int(value) for value in score_manifest["d_ff_by_layer"]]
-    if not 0 <= layer < len(d_ff_by_layer):
-        raise IndexError(f"layer={layer} is outside [0, {len(d_ff_by_layer)}).")
-    if not 0 <= neuron < d_ff_by_layer[layer]:
-        raise IndexError(f"neuron={neuron} is outside layer {layer}'s d_ff={d_ff_by_layer[layer]}.")
+    for layer, neuron in neuron_keys:
+        if not 0 <= layer < len(d_ff_by_layer):
+            raise IndexError(f"layer={layer} is outside [0, {len(d_ff_by_layer)}).")
+        if not 0 <= neuron < d_ff_by_layer[layer]:
+            raise IndexError(f"neuron={neuron} is outside layer {layer}'s d_ff={d_ff_by_layer[layer]}.")
     if score_manifest["samples"] != class_manifest["samples"]:
         raise ValueError("Score and classification manifests disagree on sample count.")
 
@@ -55,7 +66,7 @@ def export_neuron_trace(
     if len(samples) != len(score_parts) or len(score_parts) != len(class_parts):
         raise ValueError("Trace inputs do not contain one aligned partition per frozen sample.")
 
-    rows = []
+    rows: dict[tuple[int, int], list[dict[str, Any]]] = {key: [] for key in neuron_keys}
     for sample_index, (sample, score_part, class_part) in enumerate(
         zip(samples.to_dict(orient="records"), score_parts, class_parts)
     ):
@@ -64,52 +75,63 @@ def export_neuron_trace(
             raise ValueError(f"Trace partition identity mismatch at sample index {sample_index}.")
         with np.load(run_dir / score_part["file"], allow_pickle=False) as scores:
             score_id = str(scores["sample_id"].item())
-            q = scores["q"][layer, :, neuron].astype(np.float64)
-            importance = scores["importance"][layer, :, neuron].astype(np.float64)
-            rms = scores["activation_rms"][layer, :, neuron].astype(np.float64)
-            token_count = scores["token_count"][layer].astype(np.int64)
+            q_values = scores["q"]
+            importance_values = scores["importance"]
+            rms_values = scores["activation_rms"]
+            token_counts = scores["token_count"]
         with np.load(run_dir / class_part["file"], allow_pickle=False) as classes:
-            class_id = int(classes["classes"][layer, neuron])
+            class_values = classes["classes"]
         if score_id != expected_id:
             raise ValueError(f"Trace score identity mismatch at sample index {sample_index}.")
-        rows.append(
-            {
-                "sample_index": sample_index,
-                "sample_id": expected_id,
-                "image_id": str(sample["image_id"]),
-                "question": str(sample["question"]),
-                "answer": sample.get("answer"),
-                "stratum": sample.get("stratum"),
-                "q_visual": float(q[0]),
-                "q_text": float(q[1]),
-                "importance_visual": float(importance[0]),
-                "importance_text": float(importance[1]),
-                "activation_rms_visual": float(rms[0]),
-                "activation_rms_text": float(rms[1]),
-                "visual_token_count": int(token_count[0]),
-                "text_token_count": int(token_count[1]),
-                "class": CLASS_LABELS[class_id] if class_id != INVALID_CLASS else "INVALID",
-            }
-        )
+        for layer, neuron in neuron_keys:
+            q = q_values[layer, :, neuron].astype(np.float64)
+            importance = importance_values[layer, :, neuron].astype(np.float64)
+            rms = rms_values[layer, :, neuron].astype(np.float64)
+            token_count = token_counts[layer].astype(np.int64)
+            class_id = int(class_values[layer, neuron])
+            rows[(layer, neuron)].append(
+                {
+                    "sample_index": sample_index,
+                    "sample_id": expected_id,
+                    "image_id": str(sample["image_id"]),
+                    "question": str(sample["question"]),
+                    "answer": sample.get("answer"),
+                    "stratum": sample.get("stratum"),
+                    "q_visual": float(q[0]),
+                    "q_text": float(q[1]),
+                    "importance_visual": float(importance[0]),
+                    "importance_text": float(importance[1]),
+                    "activation_rms_visual": float(rms[0]),
+                    "activation_rms_text": float(rms[1]),
+                    "visual_token_count": int(token_count[0]),
+                    "text_token_count": int(token_count[1]),
+                    "class": CLASS_LABELS[class_id] if class_id != INVALID_CLASS else "INVALID",
+                }
+            )
 
-    frame = pd.DataFrame(rows)
     destination = output_dir or run_dir / "neuron_traces"
     destination.mkdir(parents=True, exist_ok=True)
-    stem = f"layer_{layer:03d}_neuron_{neuron:06d}"
-    parquet_path = destination / f"{stem}.parquet"
-    csv_path = destination / f"{stem}.csv"
-    figure_path = destination / f"{stem}.png"
-    frame.to_parquet(parquet_path, index=False)
-    frame.to_csv(csv_path, index=False)
-    _save_trace_figure(frame, 1.0 / d_ff_by_layer[layer], layer, neuron, figure_path)
-    return {
-        "layer": layer,
-        "neuron": neuron,
-        "samples": len(frame),
-        "parquet": str(parquet_path),
-        "csv": str(csv_path),
-        "figure": str(figure_path),
-    }
+    results: list[dict[str, str | int]] = []
+    for layer, neuron in neuron_keys:
+        frame = pd.DataFrame(rows[(layer, neuron)])
+        stem = f"layer_{layer:03d}_neuron_{neuron:06d}"
+        parquet_path = destination / f"{stem}.parquet"
+        csv_path = destination / f"{stem}.csv"
+        figure_path = destination / f"{stem}.png"
+        frame.to_parquet(parquet_path, index=False)
+        frame.to_csv(csv_path, index=False)
+        _save_trace_figure(frame, 1.0 / d_ff_by_layer[layer], layer, neuron, figure_path)
+        results.append(
+            {
+                "layer": layer,
+                "neuron": neuron,
+                "samples": len(frame),
+                "parquet": str(parquet_path),
+                "csv": str(csv_path),
+                "figure": str(figure_path),
+            }
+        )
+    return results
 
 
 def _save_trace_figure(frame: pd.DataFrame, threshold: float, layer: int, neuron: int, destination: Path) -> None:
@@ -128,7 +150,14 @@ def _save_trace_figure(frame: pd.DataFrame, threshold: float, layer: int, neuron
     )
     from matplotlib.colors import ListedColormap
 
-    axes[1].imshow(class_values, aspect="auto", interpolation="nearest", cmap=ListedColormap(list(colors.values())))
+    axes[1].imshow(
+        class_values,
+        aspect="auto",
+        interpolation="nearest",
+        cmap=ListedColormap(list(colors.values())),
+        vmin=0,
+        vmax=4,
+    )
     axes[1].set(yticks=[], ylabel="Class")
 
     for label, values in frame.groupby("class", sort=True):
