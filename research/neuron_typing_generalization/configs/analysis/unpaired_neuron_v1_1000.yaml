@@ -1,0 +1,19 @@
+artifact_root: artifacts/neuron_typing_generalization
+study: unpaired_neuron_v1_1000
+runs:
+  vqav2:
+    qwen3_5_2b: qwen3_5_2b__vqav2__seed42__c64daf0cbd
+    llava_1_5_7b: llava_1_5_7b__vqav2__seed42__8307a2db44
+    gemma_4_e2b_it: gemma_4_e2b_it__vqav2__seed42__b41142f5ac
+  gqa_balanced:
+    qwen3_5_2b: qwen3_5_2b__gqa_balanced__seed42__8449357625
+    llava_1_5_7b: llava_1_5_7b__gqa_balanced__seed42__8867b9bc25
+    gemma_4_e2b_it: gemma_4_e2b_it__gqa_balanced__seed42__1185cdf5ab
+  clevr:
+    qwen3_5_2b: qwen3_5_2b__clevr__seed42__df93af5042
+    llava_1_5_7b: llava_1_5_7b__clevr__seed42__96d965d88e
+    gemma_4_e2b_it: gemma_4_e2b_it__clevr__seed42__6d2d778801
+  vizwiz_vqa:
+    qwen3_5_2b: qwen3_5_2b__vizwiz_vqa__seed42__f6870880a3
+    llava_1_5_7b: llava_1_5_7b__vizwiz_vqa__seed42__96c8202730
+    gemma_4_e2b_it: gemma_4_e2b_it__vizwiz_vqa__seed42__d22a83bd0b
