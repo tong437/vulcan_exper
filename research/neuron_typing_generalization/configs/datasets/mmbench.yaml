@@ -1,0 +1,9 @@
+name: mmbench
+hub_id: lmms-lab-encoder/MMBench
+revision: 56ba1af8954932c4804bd3f522e05ed96e63b654
+config: en
+split: dev
+sample_count: 1000
+sampling: stratified_without_replacement
+stratum_field: source
+seed: 42

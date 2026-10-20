@@ -1,0 +1,57 @@
+model,model_label,dataset,dataset_label,metric,condition,state,method,runs,score_mean,score_std,drop_mean,drop_std
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,baseline,,baseline,1,0.831,0.0,0.0,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,V_random,V,random,10,0.8321,0.003665151201974259,-0.0010999999999999899,0.003665151201974259
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,T_random,T,random,10,0.8215999999999999,0.0059292120518291145,0.009400000000000075,0.0059292120518291145
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,M_random,M,random,10,0.8219,0.004201851443775183,0.009099999999999997,0.004201851443775183
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,W_random,W,random,10,0.8125,0.004352521619066827,0.01849999999999996,0.004352521619066827
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,V_max,V,max,1,0.829,0.0,0.0020000000000000018,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,T_max,T,max,1,0.51,0.0,0.32099999999999995,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,M_max,M,max,1,0.564,0.0,0.267,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,W_max,W,max,1,0.83,0.0,0.0010000000000000009,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,V_min,V,min,1,0.828,0.0,0.0030000000000000027,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,T_min,T,min,1,0.831,0.0,0.0,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,M_min,M,min,1,0.828,0.0,0.0030000000000000027,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,W_min,W,min,1,0.013,0.0,0.818,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,MME,Accuracy,global_random,,random,10,0.8201,0.005989806155275615,0.01089999999999991,0.005989806155275615
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,baseline,,baseline,1,0.838,0.0,0.0,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,V_random,V,random,10,0.8352999999999999,0.004001388647846038,0.0027000000000000357,0.004001388647846038
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,T_random,T,random,10,0.8287000000000001,0.003945461527713417,0.009299999999999864,0.003945461527713417
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,M_random,M,random,10,0.8183,0.005417051268397235,0.01969999999999994,0.005417051268397235
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,W_random,W,random,10,0.8180999999999999,0.004863697724525585,0.01990000000000003,0.004863697724525585
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,V_max,V,max,1,0.842,0.0,-0.0040000000000000036,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,T_max,T,max,1,0.672,0.0,0.16599999999999993,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,M_max,M,max,1,0.52,0.0,0.31799999999999995,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,W_max,W,max,1,0.83,0.0,0.008000000000000007,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,V_min,V,min,1,0.841,0.0,-0.0030000000000000027,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,T_min,T,min,1,0.833,0.0,0.0050000000000000044,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,M_min,M,min,1,0.839,0.0,-0.0010000000000000009,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,W_min,W,min,1,0.014,0.0,0.824,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,MMBench,Accuracy,global_random,,random,10,0.8249000000000001,0.007062420107709364,0.01309999999999989,0.007062420107709364
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,baseline,,baseline,1,0.797,0.0,0.0,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,V_random,V,random,10,0.79018,0.0036233195338590245,0.006820000000000048,0.0036233195338590245
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,T_random,T,random,10,0.78582,0.004116578946433803,0.011180000000000079,0.004116578946433803
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,M_random,M,random,10,0.7723199999999999,0.004375385697284281,0.024680000000000146,0.004375385697284281
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,W_random,W,random,10,0.7797700000000001,0.0034273572585561914,0.017229999999999968,0.0034273572585561914
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,V_max,V,max,1,0.7427,0.0,0.054300000000000015,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,T_max,T,max,1,0.647,0.0,0.15000000000000002,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,M_max,M,max,1,0.2071,0.0,0.5899000000000001,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,W_max,W,max,1,0.792,0.0,0.0050000000000000044,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,V_min,V,min,1,0.7908,0.0,0.006200000000000094,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,T_min,T,min,1,0.7931,0.0,0.0039000000000000146,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,M_min,M,min,1,0.7955,0.0,0.0015000000000000568,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,W_min,W,min,1,0.015099999999999999,0.0,0.7819,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,TextVQA,Soft accuracy,global_random,,random,10,0.78391,0.005052930942642222,0.013090000000000046,0.005052930942642222
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,baseline,,baseline,1,0.721,0.0,0.0,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,V_random,V,random,10,0.6990999999999999,0.005466056876558991,0.02190000000000003,0.005466056876558991
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,T_random,T,random,10,0.7031999999999998,0.005116422361159977,0.01780000000000015,0.005116422361159977
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,M_random,M,random,10,0.6852,0.005769652406244973,0.03579999999999994,0.005769652406244973
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,W_random,W,random,10,0.701,0.0046666666666666705,0.020000000000000018,0.0046666666666666705
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,V_max,V,max,1,0.581,0.0,0.14,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,T_max,T,max,1,0.538,0.0,0.18299999999999994,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,M_max,M,max,1,0.058,0.0,0.6629999999999999,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,W_max,W,max,1,0.707,0.0,0.014000000000000012,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,V_min,V,min,1,0.713,0.0,0.008000000000000007,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,T_min,T,min,1,0.718,0.0,0.0030000000000000027,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,M_min,M,min,1,0.706,0.0,0.015000000000000013,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,W_min,W,min,1,0.008,0.0,0.713,0.0
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,ChartQA,Relaxed accuracy,global_random,,random,10,0.6987,0.004164666186436132,0.022299999999999986,0.004164666186436132

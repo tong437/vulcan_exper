@@ -10,7 +10,7 @@
     "dataset": {"type": "string", "minLength": 1},
     "dataset_revision": {"type": "string", "minLength": 7},
     "split": {"type": "string", "minLength": 1},
-    "tier": {"enum": ["cpu_fixture", "gpu_smoke", "pilot", "audited_v1", "audited_v2_111", "unpaired_v1_1000"]},
+    "tier": {"enum": ["cpu_fixture", "gpu_smoke", "pilot", "audited_v1", "audited_v2_111", "unpaired_v1_1000", "advisor_2026_09"]},
     "sample_id": {"type": "string", "minLength": 1},
     "image_id": {"type": "string", "minLength": 1},
     "question": {"type": "string", "minLength": 1},

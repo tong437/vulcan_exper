@@ -1,0 +1,11 @@
+name: mme
+hub_id: lmms-lab-encoder/MME
+revision: d6c9023f017b564f7b3ccccf5348166bce8fdbcd
+config: default
+split: test
+sample_count: 1000
+sampling: stratified_strict_pairs
+stratum_field: category
+pair_key: [category, question_id]
+pair_count: 500
+seed: 42

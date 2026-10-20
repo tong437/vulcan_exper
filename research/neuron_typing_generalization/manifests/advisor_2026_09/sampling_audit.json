@@ -1,0 +1,4094 @@
+{
+  "datasets": {
+    "chartqa": {
+      "candidate_groups": 1612,
+      "candidate_rows": 2500,
+      "config": "default",
+      "excluded_non_pair_groups": 803,
+      "group_size_distribution": {
+        "1": 765,
+        "2": 809,
+        "3": 36,
+        "4": 1,
+        "5": 1
+      },
+      "hub_id": "lmms-lab-encoder/ChartQA",
+      "manifest": "chartqa_1000.jsonl",
+      "manifest_sha256": "bfedb442d55a6aab60f44a2262014be3afdc40c07251629757a41b9c42abdca1",
+      "revision": "9e63b7df1592a1c2158e735cc1725454aef0d6d9",
+      "selected_groups": 500,
+      "selected_rows": 1000,
+      "split": "test",
+      "stratum_pair_capacities": {
+        "augmented_test": 184,
+        "human_test": 625
+      },
+      "stratum_pair_quotas": {
+        "augmented_test": 114,
+        "human_test": 386
+      },
+      "strict_two_question_groups": 809
+    },
+    "mmbench": {
+      "candidate_rows": 4329,
+      "config": "en",
+      "hub_id": "lmms-lab-encoder/MMBench",
+      "manifest": "mmbench_1000.jsonl",
+      "manifest_sha256": "8872dd47a1a63147de2849c798b43f99d9cae4d9d430e03a965d3fb10d0789e3",
+      "quota_histogram": {
+        "0": 68,
+        "1": 464,
+        "2": 6,
+        "3": 5,
+        "4": 3,
+        "7": 2,
+        "8": 4,
+        "9": 1,
+        "10": 1,
+        "11": 1,
+        "13": 1,
+        "20": 1,
+        "22": 1,
+        "29": 3,
+        "35": 1,
+        "42": 1,
+        "49": 1,
+        "57": 1,
+        "96": 1
+      },
+      "revision": "56ba1af8954932c4804bd3f522e05ed96e63b654",
+      "rows_in_source_strata_over_200_characters": 420,
+      "selected_rows": 1000,
+      "source_strata": 566,
+      "source_strata_over_200_characters": 109,
+      "split": "dev",
+      "stratum_audit": [
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st.depositphotos.com/1180699/5095/i/600/depositphotos_50952065-stock-photo-coastal-city.jpg",
+          "stratum_sha256": "008b5475e3b85e9d7f7a35dbe1b97af0ad7b76a90bff10f4ed99b4ffdb91b489"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1022128022/photo/gap-inequality-concept.jpg?s=612x612&w=0&k=20&c=2oC1_AE-pwvfVN5CUosrFQMdOJ9cQ14EsIiOv8OmyD8=",
+          "stratum_sha256": "0160c3b67b621a093fe37040a9883f44b1860aeb573054e5d5206d3d1907aed5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2019/08/15/14/23/girl-4408152_1280.jpg",
+          "stratum_sha256": "01ba06a59a309e7ba8fa056b11cff99dd4964ebdd3b0c2ce524e6e724a09df76"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm4.staticflickr.com/3329/3449691640_488e4f6315_z.jpg",
+          "stratum_sha256": "01ba2eef026d298c3b345be9d7d99a36b130653c99590ec181c196c4a9f512c0"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTeKFjsOvL3Px0B6cHAO0wCn4a5OvNW_DyfTg&usqp=CAU",
+          "stratum_sha256": "02211773fa4607f1e7bccfffc44e42ba5ae96c57bcbf5b5a918dd17645e54da0"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011074600_0147783170.jpg",
+          "stratum_sha256": "023af654ebf2f3d6c956a746da6c03c095130b4a01f0e02d333be41819b29143"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.5280.com/2022/05/Mountain-E-Bike--960x641.jpg",
+          "stratum_sha256": "025debe4a04be5450ee2809c69a39848dd999abef774076273ed98755a689282"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQgRTQa1SAL04f2M89POl3-C7aq-4B0GAUVg&usqp=CAU",
+          "stratum_sha256": "0288baa06a6c45f40af15c6e757795aaf7887dbeb07b7cb32bca5b3924a4a484"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fcbu01.alicdn.com%2Fimg%2Fibank%2F2020%2F487%2F879%2F18090978784_2082016289.jpg&refer=http%3A%2F%2Fcbu01...",
+          "stratum_sha256": "036fac86c8194272d12924827894eadccc769e3eaba6173f3b708c73db6b3e5b"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "http://k.sinaimg.cn/n/sinakd10110/113/w576h337/20200813/0f50-ixreehp4093729.jpg/w700d1q75cms.jpg",
+          "stratum_sha256": "042198b3b28a8826ef3762ed1ca9824285fc4376ad8eec5330b8e1393cd78b22"
+        },
+        {
+          "capacity": 96,
+          "ideal_quota": 22.176022176022176,
+          "quota": 22,
+          "stratum_preview": "Google",
+          "stratum_sha256": "043550bf5abf1a629e31fe7b669966830e5bd89c1fb604943c3877cf4a237f68"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm6.staticflickr.com/5224/5700257727_e4fb7a0721_z.jpg",
+          "stratum_sha256": "04c1fb19b946598f1c8c5a8c04278c045fc46742940f949a1910e8107493398e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRen8j7eNMsWB1b8syLd2qgjAaI-DDnqZGK7A&usqp=CAU",
+          "stratum_sha256": "0534f393b322de7c92f6085f03aec79e98fee6097fa8e1f078249523fe12778c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1147430262/zh/%E7%85%A7%E7%89%87/%E9%9D%9E%E6%B4%B2%E5%A5%B3%E5%95%86%E4%BA%BA%E5%92%8C%E5%A5%B9%E7%9A%84%E9%AB%98%E5%8A%A0%...",
+          "stratum_sha256": "05532dc599a1aba08c27c3d2eaa6f3e5a6f3e2a9bb35c75a907af6803feeb06e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://previews.123rf.com/images/poznyakov/poznyakov1711/poznyakov171100054/89141824-dance-party-with-group-people-dancing-women-and-men-have-fun-in-night-c...",
+          "stratum_sha256": "058037bf0109a95b23a34cdf34b1247eb78b540d166fd764e58e010e5a47d0fd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2016/07/07/05/19/people-1501905_1280.jpg",
+          "stratum_sha256": "05946d22efa1183c8afd5fdb9b229d902a2583f911ee83cf0f1f7bbe581e0d82"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-YK7mUIdadmwEqod_xkppGX-EGMNGw9O5uMAGPoSCEJhew60w35t6TKPMqyiwtXkYJX4&usqp=CAU",
+          "stratum_sha256": "0658899faca2e35df6d002af2f3262de498f8e92c0fdddd030695da495c93ec6"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://ihearthorses.com/wp-content/uploads/2016/10/Canva-Woman-riding-on-grey-horse-in-the-field-3-scaled.jpg",
+          "stratum_sha256": "066245fe6836792c4b11a96a5f3b06f68bb81f5e8a1c58acafa04ba7b52a349c"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010393888_018238731.jpg",
+          "stratum_sha256": "06b364dfd56b9744a6f370ead1268562b747883e8b2d7fd6e3b031a0ca61b069"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/python/trypython.asp?filename=demo_indentation2",
+          "stratum_sha256": "06b855832d2c3cf2cf51d56bc4b2d5703948083b25808caf9f7d44d2de41cfdf"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://zhuanlan.zhihu.com/p/374461055",
+          "stratum_sha256": "06e20f31da2d2ed9f4adaca9fe5c770d0d1ae3ee4bced75c1aae48138b19d167"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Policeman.png",
+          "stratum_sha256": "0768b34fc2f3984ff2ac9220746cbd87fa9652550b067004175cb8b3a1f54045"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm8.staticflickr.com/7254/6972480312_8ba87747fd_z.jpg",
+          "stratum_sha256": "076c67453a7510d7937e25b19d984242e2592f1a735b297440d34edb1a955ff1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=Ye%2b%2bKDFT&id=4A9AB55A0EA88DC88FFEC2471AF6B1C84358995D&thid=OIP.Ye--KDFTHA5gnOCg_jP2PwHaE5&mediaurl=h...",
+          "stratum_sha256": "079febb606594a49085147c8d589f6ed65acf0ef7e531a487fb46b14c9ba0188"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=KufavFs7&id=9F81FA020B6D3C446B7FAAD966704CF8F2D0924C&thid=OIP.KufavFs7iYWLZqpBif9FhgHaF-&mediaurl=https...",
+          "stratum_sha256": "08fa8353bed1b1575253bacdf17ac0efd828ce5b74b284455925959e960bcc3c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=9u7%2bRhF2&id=3C3E7AF0FCEC29647C847CF19F54AE4FB2EEAF21&thid=OIP.9u7-RhF2tbbxJQ3ubBlFzgHaGV&mediaurl=htt...",
+          "stratum_sha256": "09bb7042cc88133d74e23cc419302b405684b53bd78dff8523d794130d6614a2"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011230705_0563363297.jpg",
+          "stratum_sha256": "0a890377cb154488024d0bf3bf046c6d0704dbb4b600e460eafa823956ed9042"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://artincontext.org/wp-content/uploads/2022/07/What-Is-Digital-Art-848x530.jpg",
+          "stratum_sha256": "0a8a379248d27bbf21210ca18d6f2192e8b925e07fb2e7a20c15b0cb3636db6f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static01.nyt.com/images/2019/02/05/world/05egg/15xp-egg-promo-superJumbo-v2.jpg",
+          "stratum_sha256": "0b029eeff960616f0c0c05d3d1294ade05443a90ed4160478c1d8aed970e6243"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st2.depositphotos.com/1445720/8495/i/600/depositphotos_84957758-stock-photo-rainy-night-in-old-european.jpg",
+          "stratum_sha256": "0b29ad82a9f17b496c8989291b0d31ef657e39ec81d8ca2ecfd19cec4f8aacb6"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://img0.baidu.com/it/u=1069165377,1159167237&fm=253&fmt=auto&app=138&f=JPEG?w=750&h=500",
+          "stratum_sha256": "0b550f6e708faf5d01a0cd2030308fcd5f1c05b10be2cabbdd216dfe25e968a6"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st2.depositphotos.com/3326513/5957/v/600/depositphotos_59577217-stock-illustration-pixel-art-atomic-explosion-with.jpg",
+          "stratum_sha256": "0bfc952dd0b2683369dbce747ae8dcf100d0baa39e77a94e126732532a429112"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://achillesportfolio.files.wordpress.com/2020/09/kin_house_penandink-1.jpg",
+          "stratum_sha256": "0cbe4dd9b940f872a14572433ef1ec8ca71d1e0c8b08ab8a8cea21c63025d369"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://previews.123rf.com/images/moodboard/moodboard1703/moodboard170305200/75512266-girl-applying-makeup-in-front-of-mirror-at-home.jpg",
+          "stratum_sha256": "0d908b0448af07ee538be99c225322f7d75818bae8f23a6de54baa7545ef2464"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm3.staticflickr.com/2779/4122858624_46b9459f39_z.jpg",
+          "stratum_sha256": "0e2bca44170b0ed5533a56a3f1d826f91b895768fe467b2a1d874327a5af22b4"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGJbdrZS2MiJFmGIPLG6IYX-TGdkg4VGmUCQ&usqp=CAU",
+          "stratum_sha256": "0e666506972e27aa225605c82c3564f1f5c4c00aadbc6ad7ad193fc99748fe24"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011092520_0286576891.jpg",
+          "stratum_sha256": "0e6f271dfc7c8de3263260c07a8cd2bfd3534060a4190201143f74c26753738f"
+        },
+        {
+          "capacity": 16,
+          "ideal_quota": 3.696003696003696,
+          "quota": 4,
+          "stratum_preview": "https://www.runoob.com/python/python-variable-types.html",
+          "stratum_sha256": "0e7ffad009070736efad5ce2569d2b33e70bcdc60cceaf17ad721fed0bcdf245"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.entoin.com/images/shah14.jpg",
+          "stratum_sha256": "0e9e7dc461acc66a3ca23444e3e9cf811cf08a10d756436ae0015e2c1fdd573d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st2.depositphotos.com/3767467/7440/i/600/depositphotos_74400337-stock-photo-the-century-avenue-of-street.jpg",
+          "stratum_sha256": "0fc54e8ea75a730456946eadeedee5e511cd8f99a1a269944ebd2008a501c73a"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.mxhaitao.com/mingxuan/image/20221104/20221104125519_795.jpg",
+          "stratum_sha256": "0fcabde935689529f5a5d29d6989928034f31a75f0a6b02e86116c5240e1052b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i.guim.co.uk/img/media/905f10fade649db4a60aaa79829e8b018510c600/0_249_3500_2099/master/3500.jpg?width=1200&height=900&quality=85&auto=format&fit=crop...",
+          "stratum_sha256": "103fa7f88d8c3dbacda0fec3cac24ee394380d1cb8e3e0395ea0e54c5e0d6cda"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=G7ibfiNv&id=2D6BFB9C13113C3B7EA1791684C398B642B21227&thid=OIP.G7ibfiNvU8ZVHl8JP6asrAHaHa&mediaurl=https...",
+          "stratum_sha256": "11037a89de64171b475233e64fef2739572bce76f6c9316acbd71e57c918369c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://developer.mozilla.org/en-US/docs/Learn/HTML/Tables/Basics/numbers-table.png",
+          "stratum_sha256": "1112a824b5e91643c38b0ee4ee6794e6d0f56640a0b88e91e0db76eae41318ee"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs22",
+          "stratum_sha256": "1177c444a3a8726654a098da2c2aa143ccbba3e06c272b7c295f17070650c367"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st3.depositphotos.com/13194036/18563/i/600/depositphotos_185638618-stock-photo-young-couple-sitting-couch-cups.jpg",
+          "stratum_sha256": "11c944ba266722f470639990d7df4e46eb67ef0f61e3a586367c4146259c75a7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.runoob.com/python/python-if-statement.html",
+          "stratum_sha256": "120e1ae4953cfbd9420390ab69733e98a97a34d5832f3e87582629ae848c530f"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSvofG7dWwqLycDOJe5k_T9ClhIvMssjjelpg&usqp=CAU",
+          "stratum_sha256": "128924f8d995a0d011cc73c73294652e2b1cf02bf44ede767a42f7cabb012a60"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=ByoAurKs&id=BAB669D9E589260DC9B39D6DFD2E2E1848DF86C2&thid=OIP.ByoAurKsdOCbetZ2hoPkyQHaHa&mediaurl=https...",
+          "stratum_sha256": "12ee808dbb26026f6983cb225aa0708a01a5474d3dc17cbd5838ed6225713c82"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Immortal_in_Splashed_Ink.jpg/220px-Immortal_in_Splashed_Ink.jpg",
+          "stratum_sha256": "132b9edd73094c20eba92a922ff289a52e1a7247da551bc97eba9d28d8647263"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011360128_04698931028.jpg",
+          "stratum_sha256": "1397bfadd3a3ea87e8ff4542e5ecee5170a112a7182b0d6dadcdad0c25b71f54"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm4.staticflickr.com/3047/2937173927_895d4167d1_z.jpg",
+          "stratum_sha256": "13c08fac2981c2cb8dde0d195998079ef40fed2e7b17e1dadf7968dd33dd3f53"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=A%2BsFFjRM&id=A792097ACBF1860598926EA11AD8FE64CAB3F61D&thid=OIP.A-sFFjRMu2vXJK4_pHPMTwHaHa&mediaurl=htt...",
+          "stratum_sha256": "13c5319f45d0f772bd5d97724cc2dc7282a5165cca0e86f21351bc8eacc24afb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=vj71s4pd&id=C3F0F5CA44238695DA63FE9A388E12758360DED4&thid=OIP.vj71s4pdaAOYqQ0b9I5YawHaHa&mediaurl=https...",
+          "stratum_sha256": "13e03314ebf112e913d8ee308fb61b3168c6fe1750a76e2d8d4c86bcb5ff0b2a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "http://t14.baidu.com/it/u=1667352466,3373777912&fm=224&app=112&f=JPEG?w=500&h=346",
+          "stratum_sha256": "13f37c1bd36fee6ec6c82b238c4e0cd814dc1e9cf711c5e81d0561ce511e2703"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.towerdental.com.au/uploads/170/46/Untitled-design-49.png",
+          "stratum_sha256": "152008ab5e45cf50fa0099689ed567586e9bfcd3b55c5f7ff57674885ca72b54"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Waiter.png.webp",
+          "stratum_sha256": "154bc8bc731c17f377e6956db6ccf3dc000e15be129c8d7cf181ae75839e8d05"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=tCTjLEY3&id=0B7DEA3B98D019419C631D36506572113A6EC7CE&thid=OIP.tCTjLEY35uoFRtXD-3M-IQAAAA&mediaurl=https...",
+          "stratum_sha256": "15e5d73586f83a20103a6f02ef9ded9bff79012f2455c6b7a96995edd1b54ba8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Plumber.png",
+          "stratum_sha256": "1697eba55bbaab8459a5471fa01be88f0ef716937ff09e7933af664dca449813"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://img01.baimao.com/M00/7A/27/wKgAFFSCdDuADZWZAAQ6iot7mLk007.jpg",
+          "stratum_sha256": "171ea9abae196a1df186bf9366b2246c5ff6e544f2605992c7e2427829c9bcb0"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.entoin.com/images/shah24.jpg",
+          "stratum_sha256": "17bbc1130cef4a856f7c8bdb64da2c364f0aff23aee18591ad05d22dbb80c852"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://bkimg.cdn.bcebos.com/pic/c8177f3e6709c93d70cf69e8cc76efdcd100baa1fed3",
+          "stratum_sha256": "17d575c960a501dd5042c9b651c39ae11b4a69c5d9958a9047f41e8398a4e5ae"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st4.depositphotos.com/13349494/22263/i/600/depositphotos_222632412-stock-photo-aerial-view-beautiful-hazy-mountains.jpg",
+          "stratum_sha256": "17daa170ceadbd3eda9756675efcefcdd31054ff5eb2227bfe21132db9e0a950"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=406353686,381926990&fm=253&fmt=auto&app=138&f=JPEG?w=750&h=500",
+          "stratum_sha256": "18198fccf843b9a0ffb6297ba6c402bbf4d8c673b0cd68b368b07c23fd98358e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAoHCBESFRgREhUZGRgYGBkcGBoYGBgYGRoYGhgaGRgaGRwcIS4lHB4tHxkaJjgmKzAxNTU1GiU7QDszPy40NTEBDAwMEA8QGhISHz...",
+          "stratum_sha256": "1924f522925be649a069e2cdefef92be5c8117464d85ffe9ebf5f379a276c8e7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRvPu3rp8hL9NVM-ZvMUUUduv0i4oVwsTn_Ew&usqp=CAU",
+          "stratum_sha256": "19271844584dea4a8bddaa66bee990043f1ef76e226ad3d9934b56e71f2a0c90"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://tmbidigitalassetsazure.blob.core.windows.net/rms3-prod/attachments/37/1200x1200/Four-Fruit-Compote_exps1005_BB2406671D07_20_6bC_RMS.jpg",
+          "stratum_sha256": "197c887870b18ffb9992f3cb7baac3b43052d0fd16a9f71859cfde97cddf8630"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.rDqQyETkd5Gii-NucHLtYAHaE2?w=292&h=190&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "19d925feb767dba8ddab68b5a1de34d1a1dc3530ccbf6bdb4011fe030d486ab9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img0.baidu.com/it/u=3201893461,3488246461&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=334",
+          "stratum_sha256": "1a66d0c043206cbca128da02ba3a7cd156c2454ab7a79bc012fcf38b7ec55dfb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=527737708,1227210218&fm=253&fmt=auto&app=138&f=JPEG?w=750&h=500",
+          "stratum_sha256": "1ae2f8a52476ec481995af7bfdd06d97c7cd9f045a9d229bcde92e459e7186f3"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://static3.depositphotos.com/1008525/244/i/600/depositphotos_2444604-stock-photo-very-sad-little-boy.jpg",
+          "stratum_sha256": "1b6e9bc3971cdb627a17e20de83c02f553d8de2ebdbe2ebe055843c323d997db"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Paul_C%C3%A9zanne_151.jpg/330px-Paul_C%C3%A9zanne_151.jpg",
+          "stratum_sha256": "1c1ce1bf6a1a878079a8949d6df0a95676babe77561c724313980551a31b39b8"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=Z09Xhc8c&id=460890B11CA27841E911383B544B574F6E677021&thid=OIP.Z09Xhc8c8YpoNU9S8rZdOQHaEo&mediaurl=https...",
+          "stratum_sha256": "1c396ff56e52524c7ece4461ce5b5034d02a83976c94d887457cd274e7fa722a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://flxt.tmsimg.com/assets/269411_v9_bd.jpg",
+          "stratum_sha256": "1e956a4659b983b8ddf186633c1c204132df976b3b2c80b1e48396eaabf4cbbc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/js/tryit.asp?filename=tryjs_objects_create_2",
+          "stratum_sha256": "1f52f4ecb892a9826018adc66928028fd1e9623ee10dd622814d26908b91a1cb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=32YzcWjq&id=C2EAF7A6EA25628799C0CD40FEAB81CFC708F692&thid=OIP.32YzcWjqdRmhuwE6c-QzfwHaHa&mediaurl=https...",
+          "stratum_sha256": "1f7274f3609c9fe17f74fc6d7fe9786fde96dd8194685aaf4570b04a3f71f08c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2020/02/05/16/33/sunsets-4821698_1280.jpg",
+          "stratum_sha256": "1f799603a27a62174cebb568b5b0e6678554926841b7e79482460ff12b509e2a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1202957911/zh/%E7%85%A7%E7%89%87/%E4%B8%80%E7%BE%A4%E7%95%99%E5%AD%B8%E7%94%9F%E5%9C%A8%E5%AD%B8%E7%BF%92%E5%BE%8C%E7%8E%A9%...",
+          "stratum_sha256": "1fbb4def226da99c105a08334d14f592920887a7ce9e0f6120236052f9c8e3c9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm8.staticflickr.com/7339/9697727434_caa16a7d7e_z.jpg",
+          "stratum_sha256": "20983ff8292a1acd4405e159d08c31675fec734c1f878c4561d77d5772cd5520"
+        },
+        {
+          "capacity": 9,
+          "ideal_quota": 2.079002079002079,
+          "quota": 2,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=j3%2fUL7H%2f&id=06527C8B99382870A9BBA8138E9A39F7F11F9D5A&thid=OIP.j3_UL7H_-fyyPpeeXPm8pwHaHa&mediaurl=h...",
+          "stratum_sha256": "20e185d2044e4271d4b5881667fac6b84289558953f68166d3b0be1f81ff30d9"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010402603_020522527.jpg",
+          "stratum_sha256": "21386ed9b404f7819a0fb4247bbfac0a13cc61731902b53c830cba78e98e9b0a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://memorialregionalhealth.com/wp-content/uploads/GettyImages-472127379.jpg",
+          "stratum_sha256": "22fd0eb46f0414dac55d8344c609330879aa7955a874636e45f75d1dccaf6e52"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011032870_0202351926.jpg",
+          "stratum_sha256": "23842830a2e0d566ad6cf3a0fa6672751c4aa1918aea4306d7a36f812cf765c1"
+        },
+        {
+          "capacity": 58,
+          "ideal_quota": 13.398013398013399,
+          "quota": 13,
+          "stratum_preview": "internet",
+          "stratum_sha256": "2387f80ab8e41b33a2e45938fc465aa19eeb6028ee33f8231beca1302f009587"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.runoob.com/python/python-functions.html",
+          "stratum_sha256": "2388755be1707e256903a4cdddc61d7d9ed9d99d3779c7f326db421c3c7ad73e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st.depositphotos.com/1012291/2567/i/600/depositphotos_25675389-stock-photo-cherry-blossoms-and-bench.jpg",
+          "stratum_sha256": "23a387902f5512a6463b35cc3f008813cb48c1a01dbc7101aa6ed370735002b1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img95.699pic.com/photo/30395/7006.jpg_wh300.jpg",
+          "stratum_sha256": "23a8b615296679df5fe0fdd3865268fe448d3c27bada75f918838acebae30a2d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.zcool.cn/community/01c7575767a55b0000018c1bf03a48.jpg@1280w_1l_2o_100sh.jpg",
+          "stratum_sha256": "23d0fc66970d6460b3c9601db24cf9af2a0c54ffce94ee6e67063589b29d1ce4"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://platform.hkdiscovery.com/uploads/2020/09/200924165527-0.jpg",
+          "stratum_sha256": "244ddeb0d6b677dfedee2ed757316a190e7edeb7a256e6b0ee8af73185feab45"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st2.depositphotos.com/1010669/6277/i/600/depositphotos_62771609-stock-photo-eustomas-in-rain.jpg",
+          "stratum_sha256": "24592286abb31ee608cc766a9b7eb102901902e97d77bee9ef45f458e61b3d0f"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs35",
+          "stratum_sha256": "2492646608390bd9ca857b442a22cc73dfb7b317cf70d0e50db1f3b40d89ff77"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://img.51pla.com/uploadpm/2020/0722/0929/8bedc88967344b6a9080ffe0c93a52c3.jpg",
+          "stratum_sha256": "24daaac047b187dfe790608dcbb623cb5256e51c6fa8a883de32a188b4bb64cf"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs27",
+          "stratum_sha256": "251e28fafa80c0ba14c4e3cd6d2f30210eb2d8abf45762da0b47c3dfcdcf8bbc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=syRfm578&id=1FB2B9C4B244F3017FA1E78FF8A7DF44BEEF4D95&thid=OIP.syRfm578FmkuM7vV0rS-7wHaHa&mediaurl=https...",
+          "stratum_sha256": "257f5c10d4dbf24cfffb380a11517a85862aaa48a2b38d98adeff3e573002972"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.qMdc4egaA7RpoZBBJiNNiQHaE7?w=242&h=180&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "259e54c1e5724d5fd833cb116c1c9401c0b528d2abd8c55b02dc4477f4896632"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Store_Mosse_Stora_Gungflyet.jpg/330px-Store_Mosse_Stora_Gungflyet.jpg",
+          "stratum_sha256": "25d3572a5c1d64a43c60ed20d0bc83be66330a7f9e0aaa9187965c65d054e0bd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.rWjcg8ZaHFhC9Ng8mJuwuQHaDt?w=295&h=175&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "263171d1091e17701d7555bf1e36ca3d3c92c4d812e23454a9b2ac1a38c5a95c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st3.depositphotos.com/1850169/15093/i/600/depositphotos_150939070-stock-photo-beach-with-umbrellas-and-sunbeds.jpg",
+          "stratum_sha256": "26874778f9949c5088b31dd7f01b5d823097ed5aee21722b3aafa4de8a507581"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://c8.alamy.com/comp/RE935T/hexagon-shaped-red-stop-sign-RE935T.jpg",
+          "stratum_sha256": "26bd8f06ceb4a703d2b05575c53d2d0466558376a201ca79f066d1fabdfff52f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.entoin.com/images/shah3.jpg",
+          "stratum_sha256": "26eb6f719510480ec3dcdea86dc478842db64142a6b272f9ef319f9afe096d9c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1074761878/zh/%E7%85%A7%E7%89%87/%E7%A5%96%E7%88%B6%E5%92%8C%E5%AD%AB%E5%A5%B3.jpg?s=612x612&w=0&k=20&c=dbze_IFjikA_n9qg7B0i...",
+          "stratum_sha256": "2718e5e0279a658c90e9b574222908cf998fe94e67d4b07e813981b8152d7016"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i.guim.co.uk/img/media/173c22d9644ca33a59296166b92a29f7e19a2cfa/0_452_4184_2510/master/4184.jpg?width=1200&height=1200&quality=85&auto=format&fit=cro...",
+          "stratum_sha256": "27b18010594b31ca5276fd8f900e18a4048210cadb5701f48dccdb46490cd02f"
+        },
+        {
+          "capacity": 32,
+          "ideal_quota": 7.392007392007392,
+          "quota": 7,
+          "stratum_preview": "vsr-train2017",
+          "stratum_sha256": "27e7ef71abfc1d01c5b4563d777dd0d766a6b6aa26358cfed1066e15a54966b0"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs6",
+          "stratum_sha256": "285613390267c43b9c54245ca33104c9d105a606fbd06c30abfbe52be85ea14f"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010433198_039140730.jpg",
+          "stratum_sha256": "2a48dd09d028c4180972deee9701cbf7426e9bdbb6bc104f0c3c9ae8b775f0a7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=OE1UBVhR&id=0FC378CD43E25D93378DF0DEF447360A458377DC&thid=OIP.OE1UBVhR-y1LdvpvahAbVQHaE7&mediaurl=https...",
+          "stratum_sha256": "2a55dfdf7a4bf57a485367172e463af1dcce5ace3b0650914eabc0c3424c489e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.vectorstock.com/i/1000x1000/20/08/american-flag-print-as-star-shaped-symbol-big-vector-25542008.webp",
+          "stratum_sha256": "2accf4eafcde68926d3391bbb438e47788b4fdafe4f0d3e9e019bdd8ae4a5a6f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/python/trypython.asp?filename=demo_for_string",
+          "stratum_sha256": "2b04c8f06b5fb015f4723086230306e4e2d31a22c4f0099215c2f9f6a94a9456"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs32",
+          "stratum_sha256": "2b14a63500ed9e6649bdf7b972e855878be4f0e08cb601051cee36f9ee9306df"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st4.depositphotos.com/2249091/21374/i/600/depositphotos_213742330-stock-photo-wooden-table-front-green-sofa.jpg",
+          "stratum_sha256": "2b7995fc4b72880c34f839d88096742401c240f584f8bf524238f783678508b9"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=DkIVtqij&id=EC43F4BC3AA64F1DA95691F73EFE9B137AF62FED&thid=OIP.DkIVtqij_PFGnUszH0Bk3AHaEN&mediaurl=https...",
+          "stratum_sha256": "2bf09a950191984af6f827dfa9f2f138d571724179f87276e75dfb2b97d22513"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.runoob.com/python/python-modules.html",
+          "stratum_sha256": "2c0be4e88ec8650989d191dc74e4d6dc9cddebadf6abaf3a27f82f732d511d0b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img2.baidu.com/it/u=2859560322,3508306970&fm=253&fmt=auto&app=138&f=JPEG?w=600&h=438",
+          "stratum_sha256": "2c309217de728fc61c179a252d4259daf3ea98ab783abef91ae28c7ce0794a75"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Claude_Monet%2C_Impression%2C_soleil_levant.jpg/450px-Claude_Monet%2C_Impression%2C_soleil_levant.jpg",
+          "stratum_sha256": "2c360d6f8f6027b51d0ea8c8ff7eee38992bafcd17115b0a5f0376e3eeed19e2"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://p4.itc.cn/images01/20211216/f8eb22d5b49c4d0d8b9744edd3bdabc6.jpeg",
+          "stratum_sha256": "2c61eee5c719e1362e0406f56b8dcdb09e4c2e0cf31721194b6473e839af1d0c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i.guim.co.uk/img/media/468ce57d1a82e862ba8e660d6ad19e6b220d39d0/305_0_3131_1879/master/3131.jpg?width=1200&height=1200&quality=85&auto=format&fit=cro...",
+          "stratum_sha256": "2c95801ae8447fd688e5b873aa35b47f5efa814e7573f4a978322e01bd9b7ddd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1230581836/zh/%E7%85%A7%E7%89%87/%E5%B9%B4%E9%82%81%E7%9A%84%E7%A5%96%E6%AF%8D%E5%92%8C%E5%B0%8F%E5%AD%AB%E5%AD%90%E6%88%B4%...",
+          "stratum_sha256": "2ca85f4a788eb1548fd21b27630bebdc380c542422ecd4f5956e88eca84f305a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=151765932,2068512918&fm=253&fmt=auto&app=120&f=JPEG?w=1422&h=800",
+          "stratum_sha256": "2cb0ba2a4e8044822f76a0ce3439d63d9ad59c775254d80e1cbe355f97b73b46"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Painter.png",
+          "stratum_sha256": "2ccb48900e307911618cf21f1d32a69bff5793324cf88e8405f8bf7af63c4df6"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010363246_07162655.jpg",
+          "stratum_sha256": "2ce9bdf6970b839fa78396ff060567289429da8f0865dbc9b8585ff455e38f64"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAoHCBYWFRgVFRUYGBgZGhgZGRgYGBgaGBocGhoaGRwYGBgcIS4lHB4rHxoaJjgmKy8xNTU1GiQ7QDs0Py40NTEBDAwMEA8QHhISHj...",
+          "stratum_sha256": "2cfd95aebbf6665285f1d3130ca8ea9798701e1ca113dedbd4782bfc1bf0c2e9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm3.staticflickr.com/2698/4253934073_bbbde2b6b5_z.jpg",
+          "stratum_sha256": "2d58125dc0f1a2d7e931228dc52ce77d53a38d70879b94ed25a14a3878fa4bf7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.workbc.ca/sites/default/files/styles/hero_image/public/NTI5NzE_WBtwVGtmKPv8pNus-3132-NOC.jpg?itok=TgSnt3su",
+          "stratum_sha256": "2dba935c99832f4f91ef26aebf58d19b387891c6902a03b31411a61bbaaf8d2d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/58657270.133_3307.jpg?w=1200",
+          "stratum_sha256": "2f350caacdb47bdc626712d7d5a064a52489dbb7b5fd953ff4fe5fc77e381853"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2020/04/24/19/01/unhappy-5088274_1280.jpg",
+          "stratum_sha256": "2f433a084037a9393097b5b795e7def3399cb4c402988cf00fc03a12a3adc60c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAoHCBQUFBcVFRUYFxcZHBoZGRoZFx0aGhoaGBgaICEaGhogICwjGh0rICMgJDYkKS0vMzQzGiI4PjgyPSwyMy8BCwsLDw4PHRISHj...",
+          "stratum_sha256": "3007a6d77d5360187bf5bfef1c16502bd45efa905d4b9e6d645b17610bee45c1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img2.baidu.com/it/u=2479213005,3796623851&fm=253&fmt=auto&app=138&f=JPEG?w=800&h=500",
+          "stratum_sha256": "31250028a3bab2172b0f3b61fe99f99ece753f4a57f04976cf4b22102d6d1866"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=KWaStRPv&id=D3346A57C1AD19826542F2767E642A2D742819D5&thid=OIP.KWaStRPvBBily0n9G7YpuAHaHa&mediaurl=https...",
+          "stratum_sha256": "3199f8efb675e3923bf686f9ba6d0f7c032cc9364e9775853e333cd0b7e25374"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/great-wall-of-china-600x450.jpg?resize=600%2C450",
+          "stratum_sha256": "321994ae427bb98dfa40d5d2db80e6d73aeb0f11924cc4fa357b2a518e43becf"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=3417567412,1560205768&fm=253&fmt=auto&app=138&f=JPEG?w=652&h=300",
+          "stratum_sha256": "323400332ee6ab79987323535e99805582966de25aaf11be2515943fd9979ead"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm3.staticflickr.com/2046/2516944023_d00345997d_z.jpg",
+          "stratum_sha256": "32ac5c4b043a51666e38b3c2089197d59e47f516479b2b4a71603d9a6cbae782"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2021/08/18/11/51/sad-6555358_1280.png",
+          "stratum_sha256": "32b1af84a682bb3887f90e7d28fa7b5e5277614e97260f1b2b1d8474ba1b4f23"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=VVCJ2nRT&id=31F49F8101A794C21A0FA696431473E94BCA5538&thid=OIP.VVCJ2nRTQ5kIbozfnTwxbAHaHS&mediaurl=https...",
+          "stratum_sha256": "3330270816a3ec2673f399a73e6f7afdc50f671387bfdfbe81dc86d33e65845c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/free-vector/world-map-isolated_98292-4295.jpg?w=2000",
+          "stratum_sha256": "34bc3030b5a1aa926750eb9e2d9160c6354bfbf8caa2b214147d2d41b564ea34"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.g4tm9b575x1o1qGUj6iXvAHaEK?w=329&h=185&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "352fb502257f3da2653878bbf7b683c986cfe89c68663353dfd1e12826dd8e2c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://urduesl.com/wp-content/uploads/2023/02/list-of-occupations-with-pictures-1741x2048.webp",
+          "stratum_sha256": "35450ecaffac414accadda10f1f781ed5ad8b52e3e9b761885912f7f285ecbb5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.zcool.cn/community/011082554bf3e8000001bf72bc6554.jpg@1280w_1l_2o_100sh.jpg",
+          "stratum_sha256": "35496ed4dc24600c46f7e8d80d9016fc22b4029db1089b6dc67205613e5ca9a8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://images.fun.com.au/products/27156/1-1/mens-magic-magician-costume.jpg",
+          "stratum_sha256": "36686b2312c18505cf56e6dc4c90893cbbd8fd8050e83755a129b6713b789465"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=3106915301,4272227426&fm=253&fmt=auto&app=138&f=JPEG?w=322&h=499",
+          "stratum_sha256": "36e739ffc99b213701f029b1db9ab6937226661598dd615a982b8ddadcc8d066"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Li_Cheng%2C_Luxuriant_Forest_among_Distant_Peaks.jpg/300px-Li_Cheng%2C_Luxuriant_Forest_among_Dista...",
+          "stratum_sha256": "36f2fed4c8b5f04401d0b8e6c9ee29c29645afe32f9187ff4139fa4e605e9b01"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/Giza-Pyramids1-600x450.jpg?resize=600%2C450",
+          "stratum_sha256": "378548b6124ceec908117b2a20f75fd134e196af43e1bed7c871e6dfed91e08d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?q=%E7%82%92%E9%94%85&go=%E6%90%9C%E7%B4%A2&qs=ds&form=QBIDMH&first=1",
+          "stratum_sha256": "37c45d58bf9cdc0c4af800c9101257d66fb237e4cbe0d2e4ac94ba2bb6df7c18"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1297583775/zh/%E7%85%A7%E7%89%87/%E5%B9%B8%E7%A6%8F%E7%9A%84%E5%B9%B4%E8%BC%95%E5%A4%AB%E5%A9%A6%E5%9C%A8%E6%84%9B%E6%93%81%...",
+          "stratum_sha256": "37f262b9223e26cff48084ed292f85276fde461f839f3e77861b9b3852dbbcaf"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1326419180/zh/%E7%85%A7%E7%89%87/beautiful-woman-relaxing-and-drinking-hot-tea.jpg?s=612x612&w=0&k=20&c=nj8oLbcbMqAF3SJrG9GR...",
+          "stratum_sha256": "38116a8f9014b54a9ffad85c52d5d7870aca8c9b2052a2c2e788bd4e02128d77"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1043157538/zh/%E7%85%A7%E7%89%87/%E6%AF%8D%E8%A6%AA%E7%8E%A9%E5%BC%84%E5%A5%B9%E7%9A%84%E5%B0%8F%E5%85%92%E5%AD%90.jpg?s=612...",
+          "stratum_sha256": "38adbb0abd72badaea4b12ce4a6237a2e357fceb033d4447a4b3664f1d439bae"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/999246336/zh/%E7%85%A7%E7%89%87/%E9%AB%98%E4%B8%AD%E5%B0%8E%E5%B8%AB%E7%B5%A6%E7%94%B7%E5%AD%B8%E7%94%9F%E4%B8%80%E5%88%B0%E...",
+          "stratum_sha256": "38d15d1951f8bf29400755b37677fc0acd7fd22dd8f8b7184199102fa5a50818"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Hairdresser.png",
+          "stratum_sha256": "3900ad129acae6cef170e25388a5cb510cd05268fb1ab5a31f51efe6949a13bb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2016/04/07/12/24/concept-1313755_1280.jpg",
+          "stratum_sha256": "3a62e6a98fd4080ffe8d409578b6377b343dec83844463e0c4fb6e5394452f3f"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=381738452,98971456&fm=253&fmt=auto&app=138&f=JPEG?w=549&h=410",
+          "stratum_sha256": "3aafe754ca8384e7134b607d9806553977d37af70298e6b71eedfdcb627c1886"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010541415_0137841242.jpg",
+          "stratum_sha256": "3ac400abdd3bf8fba9274b25d7c608c122f4869e8dcb687783004f8aaef5cc17"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2012/04/28/20/56/bees-44527_1280.png",
+          "stratum_sha256": "3ad22985b3cd528ab335404a6d4a1c920718039548a5a473ddbc602a0f6b29e8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/524258665/zh/%E7%85%A7%E7%89%87/preteen-girl-meeting-with-school-counselor-or-therapist.jpg?s=612x612&w=0&k=20&c=OMu0SVbBSRJ...",
+          "stratum_sha256": "3ae1a85d00862ea757f1504d1f28ca08915e88e9f8a300a568f5d3e6c6598257"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://organic-village.co.th/wp-content/uploads/2022/03/organic-lemon-1200x1200.jpeg",
+          "stratum_sha256": "3b562d0c9ee678e4c8dd79e62374dff4484ab1f0562cf52b6d4991d94a249ddd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=3543021369,1113883513&fm=253&fmt=auto&app=138&f=JPEG?w=892&h=500",
+          "stratum_sha256": "3bc27fc5a482275898d14081f85645347e8396fe94d3baa9688711f54470ebfc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm5.staticflickr.com/4084/4951828184_dd2960c249_z.jpg",
+          "stratum_sha256": "3c91460e3bd49013515b937bee8c57eece88a0fc2c177c1a03e11aedb8fd550b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=L%2f5ji3FB&id=8B343276F2AD56051AF607A849BC67D64E5649BD&thid=OIP.L_5ji3FBOgi7ESC-q2H9ngHaHa&mediaurl=htt...",
+          "stratum_sha256": "3d3bb9b1611fc5ba781389d2aaf748f6a177adfa5190b27de7186a1085290d3d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1270293666/zh/%E7%85%A7%E7%89%87/%E6%AF%8D%E8%A6%AA%E8%AA%BF%E6%95%B4%E5%85%92%E5%AD%90%E6%A0%A1%E6%9C%8D%E4%B8%8A%E7%9A%84%...",
+          "stratum_sha256": "3d637ec03cf1b206cb4d56babd36e064654152111c740c5eb2990ea8771c5d33"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=gS%2F601OH&id=6313295FA6CC76490D7C415FD47DE725FF0B18B6&thid=OIP.gS_601OH_FROnbg0aT89YwHaHa&mediaurl=htt...",
+          "stratum_sha256": "3d8cc3f535634289cab9f386cb1a5b528cd8f7cad50fe9fc9e97f3fbb0c29759"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Oranges_-_whole-halved-segment.jpg/640px-Oranges_-_whole-halved-segment.jpg",
+          "stratum_sha256": "3de70a552f0484752d22538c4f5fab1ef5a88b12f614292be1bf6dbd9d4019e2"
+        },
+        {
+          "capacity": 128,
+          "ideal_quota": 29.56802956802957,
+          "quota": 29,
+          "stratum_preview": "https://www.google.com/maps/@44.3563054,26.1089918,4z?entry=ttu",
+          "stratum_sha256": "3ea392778d4a162f744fd0b47185571ec6203b336afd218068d99bf2beadc2a1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.gardeningknowhow.com/wp-content/uploads/2014/11/gardener1-400x266.jpg",
+          "stratum_sha256": "3f29d4b6ca9d79590822483041532dec15bce3b024c072e874727c3bd7ef39f0"
+        },
+        {
+          "capacity": 48,
+          "ideal_quota": 11.088011088011088,
+          "quota": 11,
+          "stratum_preview": "action/aras",
+          "stratum_sha256": "4027fb6939ea1965cbc0798a795c16efb63be34ff90340da186f9ddfaac376fe"
+        },
+        {
+          "capacity": 12,
+          "ideal_quota": 2.772002772002772,
+          "quota": 3,
+          "stratum_preview": "https://cdn1.byjus.com/wp-content/uploads/2019/06/basic-maths-formulas.png",
+          "stratum_sha256": "4168e64e700715d2807480555331bf42752c5c06172deb71e2be374fdac72064"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTjkFCAW4seymvwKGOhBaXc270NkGrPuk8gog&usqp=CAU",
+          "stratum_sha256": "41b2ffd74eedf2d3d57de45432441f1959b124353689f616887ad55af4619324"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Tailor.png",
+          "stratum_sha256": "41dce092788b1268aa83557ac470cc159a66558b857ce80be4e7f25dcf5c99cb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT55_oJSaM0PViy5nuIDlDnp1mTDA8BCCB-Ng&usqp=CAU",
+          "stratum_sha256": "4387a3a5a32bb40fd908079c3a6e5e07156c07285c576b87cbca9cbc272a1b38"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "https://st2.depositphotos.com/2128411/6998/i/600/depositphotos_69986931-stock-photo-hands-holding-at-the-pole.jpg",
+          "stratum_sha256": "4552cc808c09e71d30a22e9b92c3d724a9fb9192f74313323e780d61e1b603e9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.r6jjoFE-fx4aGwgD9YBCLAHaE7?w=242&h=180&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "459b6a844092323cae3a15d77c0e12faf72aa8e28c42ad8e004f15bee8ed3811"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://pics1.baidu.com/feed/0dd7912397dda144875b4918f5343baa0df48651.jpeg?token=bd6d5387fc748e44701903b206290f27",
+          "stratum_sha256": "461931e8133842df03727f47acfd275701c007d936bd5140ecb28188026cc59f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=3237536936,791921143&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=755",
+          "stratum_sha256": "46604b6d0d4ad91db2487fd1fdc3b5ea5880f16e2851147dca1459aff784ff1a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=uLaUo1eq&id=3D01E1E012E7DC23B885AB3EA25CB9951D9723AC&thid=OIP.uLaUo1eqzwRACOIxKrn3pwHaHa&mediaurl=https...",
+          "stratum_sha256": "46f8df554182a021948855b1c33ad158e76b17bfc0e57f954dc4c1707ee8c4a6"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1307457391/zh/%E7%85%A7%E7%89%87/%E5%BF%AB%E6%A8%82%E7%9A%84%E9%BB%91%E4%BA%BA%E5%AD%B8%E7%94%9F%E8%88%89%E8%B5%B7%E6%89%8B%...",
+          "stratum_sha256": "4775dd47ecd50bd9d455dd87d2c4a3baf17d4819170517a9d96b3d8308942744"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static6.depositphotos.com/1017817/566/i/600/depositphotos_5660191-stock-photo-fun-day-at-the-beach.jpg",
+          "stratum_sha256": "478f53b6789b1c8f5c2fd6f7ae970572dd16b1b3044a717e6d484d8cbf6522b2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1302334386/zh/%E7%85%A7%E7%89%87/%E6%AF%8D%E5%AD%90%E8%AE%80%E8%B3%80%E5%8D%A1.jpg?s=612x612&w=0&k=20&c=qCvVBZxARyExwF2iOLUN...",
+          "stratum_sha256": "47ae1430f298d2a970fe326eeab6b82f574c06691d6d393ce719734a338e80e5"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011381502_06282202152.jpg",
+          "stratum_sha256": "4811063aa11e1f9cb600ed980d0e0f1c3501c341ff5ec92c240a69651df2c9d7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm1.staticflickr.com/106/311810356_00149da97e_z.jpg",
+          "stratum_sha256": "487ad2744170e660fa67f5a27592eb2737a7f7a1c8e78af256a7a85ab2b65992"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/onlymyenglish.com/wp-content/uploads/jobs-and-occupations.png?w=964&ssl=2",
+          "stratum_sha256": "488a4fe29402764fd5553e6124e918793e2ee352857d273b00157f6a9b97f4b9"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs9",
+          "stratum_sha256": "494e64cc51b922d40d06c30fc9583d063961233c57fb93cb06905b2ffcc01178"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=1842825190,2604977287&fm=253&fmt=auto&app=138&f=JPEG?w=667&h=500",
+          "stratum_sha256": "49f58456fa88613a0bed1d8b76bff2b146c33f3452a1016b5ac97ed7501190b3"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.india.com/wp-content/uploads/2022/01/Covid-test-kit-AFP.jpg",
+          "stratum_sha256": "4a40d6e6273a44446039ae37e170f5da1f00f1d09e38d7ed55ae8d26c9d5856e"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://p1.itc.cn/q_70/images03/20210208/7a02a65f9b914800a4489553a8062306.jpeg",
+          "stratum_sha256": "4a59d060065b44bbe28bd5befb3dbfc577c3c7c90b65b5ec8929ae78c9ca32ea"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/premium-photo/three-girls-sunbathing-beach-island-koh-phangan-thailand-young-women-enjoying-sun_369810-1019.jpg",
+          "stratum_sha256": "4a675cb1aafa2a93af2d99c89eac0d460fcc94ddf832cd85f181d14b969a92bd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/g32535-600x450.png?resize=600%2C450",
+          "stratum_sha256": "4af0d91eed2c39ac974f484aed0cc40fd4ddefeae3886df3cee342dea7dfde53"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Carpenter.png",
+          "stratum_sha256": "4b1844ee2910d8bbc3f4f72d0e4f242f1fc9b2bfc885a40659df05499e347051"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAoHCBYVFRgWFRUZGRgaGhwcHBoZHRoaGRoaGBwcGhgaGR4kIy4lHB4rIRoZJjgmLC8xNTU1HCQ7QDs0Py40NTQBDAwMEA8QHxISHz...",
+          "stratum_sha256": "4c042873e1e8ac2ef17b3d69472e02adc488d2c328ceab27ef5a74595fb7a0b0"
+        },
+        {
+          "capacity": 214,
+          "ideal_quota": 49.434049434049435,
+          "quota": 49,
+          "stratum_preview": "description",
+          "stratum_sha256": "4d3a291e28c9b06f85954058465e943e1274124fd3fe51cc961dd80608b7ca03"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010503322_062503983.jpg",
+          "stratum_sha256": "4d3f04aa4dc3da593467932c15ebb1682b01a11c847b5761d01b5dac25684397"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/170619646/photo/star-shaped-sheriffs-badge-badge-star-pin-law.jpg?s=612x612&w=0&k=20&c=vpVW0EMMqhykpDhSYdBocDJE_G2j18tXUmU7s...",
+          "stratum_sha256": "4e020a54e60fa08c81246d7900a1a78e5edc6c8fd037d422c41fe174eb374190"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs33",
+          "stratum_sha256": "4e31e2be23c1aa9bb48903db6acd5b99d45e020bc71eb6c357e3406c605a85ff"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSa5g38-A_o2WyQditZiatKIsh43n4LT6yUHg&usqp=CAU",
+          "stratum_sha256": "4e5ed07724cef9e3d8ce21be6bdaf2f45b02ff37a1125ed189f95be33e05fa23"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img0.baidu.com/it/u=2074856582,1191410713&fm=253&fmt=auto&app=120&f=JPEG?w=1331&h=800",
+          "stratum_sha256": "4e8abffff1a025c2c2f8efb7d9168a6141fc840089a1b295ae9576722db015a3"
+        },
+        {
+          "capacity": 154,
+          "ideal_quota": 35.57403557403558,
+          "quota": 35,
+          "stratum_preview": "COCO train2014",
+          "stratum_sha256": "4f1376daa06a1e2db13c9c8851edefb4cf2ca44019b41a3ee2a62f7b7e16f14b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static9.depositphotos.com/1086013/1149/i/600/depositphotos_11497591-stock-photo-superb-backyard.jpg",
+          "stratum_sha256": "4fe3690fd925be08e7a49bcf022e476c46229dff5e9c344d8a0edaa07862ed19"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXxO0-a8JeEot0Pg8vLBV2QrG64JgTH5Wgxg&usqp=CAU",
+          "stratum_sha256": "511ad4011d4fb3c44017df7f74b9e8d213c93cac648ed847656804a2037a2594"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/free-photo/pretty-florist-posing-with-bouquet_23-2147762236.jpg?w=900&t=st=1687159557~exp=1687160157~hmac=1649afad27b73d1f342c90ac9c7...",
+          "stratum_sha256": "513b5099ebdbf9eb3ef8223faba897209876532a4b3cbfc5990e64cdf6d8276a"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs24",
+          "stratum_sha256": "51ccc29f2894a0a5732737e9f1286463f3c20c6eb6f934032eadb8ee82819101"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://zhuanlan.zhihu.com/p/374461057",
+          "stratum_sha256": "523e0483fb9505ad4effc42de4f10c914cad52a09f11e3225129a365d165829f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.color-name.com/wp-content/uploads/red-apple-fruit.png",
+          "stratum_sha256": "524dbf3beb58a016b194d8e2f65ec429355a6748c256171566b864576e8a9c15"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=ujUjWiMO&id=EDACD913755C5F3D5A34CD8DE1E3AE76B12A0515&thid=OIP.ujUjWiMO_a9fqNjc_CLG-wHaFj&mediaurl=https...",
+          "stratum_sha256": "52690d5c635cf36b93e3aefaf3a16ab2cda6b3bbc6a2aa27c97df80c9cfd4a70"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1030901860/zh/%E7%85%A7%E7%89%87/%E5%9C%A8%E5%85%AC%E5%9C%92%E4%B8%80%E8%B5%B7%E6%94%BE%E9%AC%86%E7%9A%84%E5%85%84%E5%BC%9F%...",
+          "stratum_sha256": "532c10ee7e61856bde95339b2b9ce6a9901a376721bececd7e587e0be091daf2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img2.baidu.com/it/u=2280954147,4093526912&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=701",
+          "stratum_sha256": "53327956b596c971f8c00a778a97733bec92d543976b7f981f7d85a99b913e1d"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://pic.baike.soso.com/ugc/baikepic2/9611/20220314140719-1734772453_png_678_468_305158.jpg/0",
+          "stratum_sha256": "5377dc2dd27e36de44fe95065c9c23043dfe41c3943db26d95bc0b71d37879cc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=2429866527,255223523&fm=253&fmt=auto&app=138&f=JPEG?w=752&h=500",
+          "stratum_sha256": "53ae8d06fd4763e021c25e14b816bab52b6e617b88270bc02ee6e642ec5b1e59"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=2949121113,2134614678&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=546",
+          "stratum_sha256": "54099660f5da668eb751e9b7127de66c10a990b39da148233353413c27eafe55"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2016/04/08/04/42/crying-1315546_1280.jpg",
+          "stratum_sha256": "54203aa560f1e9aa1a2bac3a73554b376d2ee98f9ed9c8b902d9ff8f33a5977d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img95.699pic.com/xsj/0e/8n/0y.jpg!/fh/300",
+          "stratum_sha256": "5430f684fdacea46e9ea3de72da9623f0640402c2b4adffaa61a14cc3291df45"
+        },
+        {
+          "capacity": 36,
+          "ideal_quota": 8.316008316008316,
+          "quota": 8,
+          "stratum_preview": "shapeworld",
+          "stratum_sha256": "5455f010740965f365b25f1acf57dfc40fa97ce181886c0aa1b97eb9607295de"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1047532490/zh/%E7%85%A7%E7%89%87/%E9%AB%98%E4%B8%AD%E5%B0%8E%E5%B8%AB%E7%B5%A6%E7%A9%BF%E5%88%B6%E6%9C%8D%E7%9A%84%E7%94%B7%...",
+          "stratum_sha256": "54ace133776eb7c0e3f31c07a3dd227911d263a77e90c92319f288467e6996b9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://em-content.zobj.net/thumbs/240/apple/354/grinning-face_1f600.png",
+          "stratum_sha256": "55d5bc768cefc12b9514c7b437d2677f9d73d96d5f6a00f88a0c05a45f700f55"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=sWVJodTc&id=29B48E75E5A68C2690788558B5D0E98910E6EA2C&thid=OIP.sWVJodTcY-1K1kwuKEqjuAHaHa&mediaurl=https...",
+          "stratum_sha256": "56069976e2f40e8d71999bf0281d4b7c2f2f065095897ecf174a2d7472932732"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=O%2ffk%2bZ82&id=A6334680ABC077732B9735038E9807EF8A4DF3E1&thid=OIP.O_fk-Z82KZ7SKWEWPiPbtgHaHa&mediaurl=h...",
+          "stratum_sha256": "5645659f6346f3274ff94f8314bea6744d563999eecac2602963cb8f78145bd8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=uXROmkNH&id=00C860F5C54D94A262ADF14D81E46C416BDB2596&thid=OIP.uXROmkNHA4pEs-JODrl5hwHaHa&mediaurl=https...",
+          "stratum_sha256": "565dca2b480e10a5050f308f27c9b8fa64860a4864b5e0d87e11836cd32dd7b2"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=FXGyOJgu&id=B958C2DCEA9394277E019CAFD6AF7F570921620C&thid=OIP.FXGyOJgusmo6cWztX0PalQAAAA&mediaurl=https...",
+          "stratum_sha256": "56e533f694784333f891141b4dfe1db1fb84debb3833872ad067562931d991f8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.allrecipes.com/thmb/yv2xN_cr4C-N9CG9stg3mc8R_Bo=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/9069845-how-to-make-cheese-sticks-Jane...",
+          "stratum_sha256": "5751e790d3c98d6f70518619a4e5bd5828e8045d970b0e185de77ce2dc0a04d3"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static5.depositphotos.com/1033604/415/i/600/depositphotos_4158035-stock-photo-cherry-blossoms-plenitude.jpg",
+          "stratum_sha256": "5856f919d89754151359c436c285ff5003a085d5d1ed45ac0e395c950e9f3f65"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img-qn.51miz.com/Photo/2018/02/18/23/P1313460_057e0dedae76633bf6c0348472ad5c12.jpg",
+          "stratum_sha256": "58b7732edbef34a7394c8f816afb80c7fb27473bfe2dbf191ce1d7748c6b32fc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1094017676/zh/%E7%85%A7%E7%89%87/%E8%B3%87%E6%B7%B1%E8%A5%BF%E7%8F%AD%E7%89%99%E8%A3%94%E7%94%B7%E5%AD%90%E5%B8%B6%E8%91%97%...",
+          "stratum_sha256": "58d23c50a972230e9d6cd41a3de2c245be18086ea1177f1e6e73739718a9f459"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://coresites-cdn-adm.imgix.net/mpora_new/wp-content/uploads/2014/11/girl.jpg",
+          "stratum_sha256": "58e515968cb39505fb03f43413da2355fb955a01bba46675f36b29b138d4f336"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm8.staticflickr.com/7180/6874290949_26e5b63052_z.jpg",
+          "stratum_sha256": "59a8fa41549cfab4cccebf92f4e1226f82095a2078e4dd4b5464510d78dd7e60"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st3.depositphotos.com/14847044/19213/i/600/depositphotos_192138640-stock-photo-sunflowers.jpg",
+          "stratum_sha256": "5a0bb81b8de62691aa9a5bc7497f32d10f120d364531deca15c032109b78a48d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.-_959ECGfWjdPEJpE1gjowAAAA?w=268&h=180&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "5aa6fb702b8a0c7764cb9e317ae5a546c8625bac275b2b4497dbe82fc4aa47a7"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://img2.baidu.com/it/u=525544144,463390017&fm=253&fmt=auto&app=138&f=JPEG?w=596&h=500",
+          "stratum_sha256": "5ab63272536018581b6dd1631bea2bada053e25eae61cedb3e588e0cda824e3c"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=M2KC0dq0&id=EAC00B63021013AA911C03A4B293A01ED27B903F&thid=OIP.M2KC0dq0EfyGd5I26U3RvgHaDl&mediaurl=https...",
+          "stratum_sha256": "5aea4cc7970d557017f8d04721ad69bf1166f518c587f6f19db4967d30dd21ca"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=4162081172,2358319258&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=694",
+          "stratum_sha256": "5b36e8f2a96ed1828cf225506479278660ea1621b38e68cf062eeb39f022c5e9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/658912506/zh/%E7%85%A7%E7%89%87/%E5%BF%AB%E6%A8%82%E7%94%B7%E5%AD%A9%E5%9C%A8%E8%8D%89%E5%9C%B0%E4%B8%8A%E7%8E%A9%E5%AD%A9%E...",
+          "stratum_sha256": "5b53e98fc76b5eceafa0fae82a93f437856852fdbe4d6a2cdf12c779231f48b2"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010490591_056278886.jpg",
+          "stratum_sha256": "5b6f8c2b942a2722c24ebf16c5e899ce94bc77568d8175ae4b5755930efc8520"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/js/tryit.asp?filename=tryjs_objects_method",
+          "stratum_sha256": "5b7b91130d1a05c216b54a79e599fb2ee5085065fd57a976d0038b1d5f1939e3"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img2.baidu.com/it/u=3652862280,2521762197&fm=253&fmt=auto&app=120&f=JPEG?w=900&h=500",
+          "stratum_sha256": "5b8a9c047efcf8dfe2d59b1b5aa26bb5cd1ff3d76faf0d6aece2c3c12ad3f625"
+        },
+        {
+          "capacity": 128,
+          "ideal_quota": 29.56802956802957,
+          "quota": 29,
+          "stratum_preview": "https://www.zhihu.com/question/36417524",
+          "stratum_sha256": "5c0fce475de9de5be63ec8671c9e1556031bbef940164f4a87304bb42baab7e2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://images.unsplash.com/photo-1653316834393-ddaa68981fd6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=...",
+          "stratum_sha256": "5c16e8ce75cad783dd561b5418ebc5053d15a2c041e99d5e27c4178252e8b0b9"
+        },
+        {
+          "capacity": 44,
+          "ideal_quota": 10.164010164010165,
+          "quota": 10,
+          "stratum_preview": "socialmedia",
+          "stratum_sha256": "5c3d0a9bfd56119374bebddfe21f51d855536f83faf3d3f31f9e9363f70b74a2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st4.depositphotos.com/20363444/41954/i/600/depositphotos_419540612-stock-photo-motion-blur-people-walking-street.jpg",
+          "stratum_sha256": "5c53f529ff619b23c4b193d12867af4d70e1e73981f74e09c29de633a81c04f7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/182059956/zh/%E7%85%A7%E7%89%87/large-group-of-students-writing-in-notebooks.jpg?s=612x612&w=0&k=20&c=ZaKKZmDadq_WktZplX2PUn...",
+          "stratum_sha256": "5cbec07a78059e5cd2906d0bcb8c2b7eab10c22bb562636737fd83aeae37ee8a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/523827570/photo/group-of-friends-camping-in-the-forest.jpg?s=1024x1024&w=is&k=20&c=JVUnELWp4Bf6HVTEtfIRDAh6TLZTyXjQ7gfaHXFTZy8=",
+          "stratum_sha256": "5cda99a8de654b62aae9eb87892e7f3bf62eb7234b43641e25082db598368fea"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i2-prod.mirror.co.uk/incoming/article30018541.ece/ALTERNATES/s615/0_Los-Angeles-Premiere-Of-My-Policeman-Arrivals.jpg",
+          "stratum_sha256": "5cece619c021c11a38392d7e1eac817b42ccd3f79985d7b7ad30391e7f62ff76"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://k.sinaimg.cn/n/sinacn20190523s/753/w640h913/20190523/a5aa-hxhyiun6259491.jpg/w700d1q75cms.jpg",
+          "stratum_sha256": "5dbd93d4d10bb56f8753dace598ab57a733472935159ebd16548cc0080240f6c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2016/02/16/03/04/asia-1202527_1280.jpg",
+          "stratum_sha256": "5dc2a37e9f6185b7249696ae1a9e4f73604d2c31494458c226c84b8274b64072"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010441353_070272233.jpg",
+          "stratum_sha256": "5e50841c2ad41221f078b384e0dac0ee10403a4bd5ece6ba471c940e54870df9"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs14",
+          "stratum_sha256": "5f25197073f5e6cd6291f0977f1898ecda2f8dafb9654b876f0e2da43bbc654d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://em-content.zobj.net/thumbs/240/apple/354/beaming-face-with-smiling-eyes_1f601.png",
+          "stratum_sha256": "5f2d9e34ccea20f091c4e3db990f1ef5e4bab48de63439fbc03a4ca7c0a31ebc"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=vQrzyo%2FD&id=BDD674CE443833D4A6BC554E6AFB09CFA10D18AB&thid=OIP.vQrzyo_D9t716i24tLjAYwHaEY&mediaurl=htt...",
+          "stratum_sha256": "608a1025383d483c2ebfb19a5ee5ef6f3243a9f5ffb3aedff554c09b6ab20611"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.britannica.com/80/149180-050-23E41CF0/topographic-map.jpg",
+          "stratum_sha256": "6178e84452d5d3f80cd97dd31fa95b09a9e3485b215a5e8e62de7100ea10d32a"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011041417_0255857546.jpg",
+          "stratum_sha256": "62e410c4cbb2c7a1879cd99b46160128b5b0168863c994c5d23943a6ebd7171f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm6.staticflickr.com/5194/7234957596_85b460f403_z.jpg",
+          "stratum_sha256": "62ee923049871989b222aafb1e8263ea4afffa6cba1ac54287dd58fcb4219bdc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st2.depositphotos.com/2781885/10584/i/600/depositphotos_105849316-stock-photo-lantern-on-night-sky-background.jpg",
+          "stratum_sha256": "63769cd7fe5e14dde644232961c8cb275975c7d51ab617b9ab624e3b5e7e08ad"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/premium-photo/latin-young-girl-doing-yoga-poses-park-outdoors_142883-1666.jpg?w=2000",
+          "stratum_sha256": "6433ebf46daebe0db6dd503cda7394f60f22958d00550c0875e123a334f8c512"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1299969258/zh/%E7%85%A7%E7%89%87/%E8%88%88%E5%A5%AE%E7%9A%84%E6%B0%91%E6%97%8F%E6%AF%8D%E5%AD%90%E5%81%9A%E4%BD%9C%E6%A5%AD....",
+          "stratum_sha256": "64cbeae26c572ac4047d0e75dc367e511672d422c2cc33fb5948ba41f76919a9"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=0R4tJILH&id=7440906DFDBEB0CFB9811FE0CFA653664EAA0219&thid=OIP.0R4tJILHLXdpQXp3FOjlkAHaHT&mediaurl=https...",
+          "stratum_sha256": "64f3d8e36422c646124cfca71347d2de08fc3851d0f08cb3af9faa23be21a11c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static.athome.com/images/w_800,h_800,c_pad,f_auto,fl_lossy,q_auto/v1665232014/p/124290207/outdoor-pink-metal-standing-flamingo-figurine-35.jpg",
+          "stratum_sha256": "654a74be9617366cf128b97f64b1d57b48b7aa3c7f30d6dd87c1977ca4e4d020"
+        },
+        {
+          "capacity": 36,
+          "ideal_quota": 8.316008316008316,
+          "quota": 8,
+          "stratum_preview": "code",
+          "stratum_sha256": "667537bafb83ec54b0d01ffa52ca0e011a25effa4b0c7b407bdda04f3904cca8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2019/05/14/22/03/argument-4203671_1280.jpg",
+          "stratum_sha256": "67d1855cc94acf1a2021671f355ab29b34b52b4d7535f9f8f68f86ba54035fb2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.52geo.cn/wp-content/uploads/2021/06/img_60d8382238d77.png",
+          "stratum_sha256": "6841c88e94bf74f67ef617520b129fbdaeb64918ad4a1911ac227183b7907a05"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs40",
+          "stratum_sha256": "685511b032c094ef588c9169ba52e08f20a8318ee42327c0a88ba7565313a372"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.indigoinstruments.com/images/products-resp/chemistry-lab-glass-test-tubes-18x150mm-55907r.jpg",
+          "stratum_sha256": "68995e0fc8f7fce1dc5049d700f697d9d741a42da2f601b025d7064203e39cc7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm3.staticflickr.com/2631/3734837951_db0d7a1b4c.jpg",
+          "stratum_sha256": "689e7e08a268c7f22f4eada285e9d5eeb22046c9f855d2797c86d8c96369af0e"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=9YWwARK4&id=6ACC09228C3990587B244611B530A474F47C3980&thid=OIP.9YWwARK4v3TgUT4400I_eQHaEK&mediaurl=https...",
+          "stratum_sha256": "6976deacd11d245de62cd74a6bcafc52d67cba805bda90ca539d3331304649d1"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "https://st3.depositphotos.com/5030357/34525/i/600/depositphotos_345254722-stock-photo-few-people-in-an-empty.jpg",
+          "stratum_sha256": "6a541dd99e707abf3363d84c8f9471a39abd2c46c2696b590c1dcb2d48e79a41"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs43",
+          "stratum_sha256": "6a68e5aeedb1a6dfa47ee0ac44ee8c3235ab93dcf50d4ff20e7c57767ca18d8e"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=G7nFNcRj&id=8A298E84DE3EB3731E6B7CC3B41B9CF36C306979&thid=OIP.G7nFNcRj7wkRVfmj65h5CAHaDr&mediaurl=https...",
+          "stratum_sha256": "6ac9af141125a1cc5c27abb26f194878dc299f2406b99f929f2a0cdc1275e82e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img2.baidu.com/it/u=2437820198,190290422&fm=253&fmt=auto&app=138&f=JPEG?w=767&h=500",
+          "stratum_sha256": "6b026e8338441434ee2edf454417a9a6124cb9a8bd1979e2199a4ebe6b80ba76"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/R.beec90b076cfed9f6f940982a8b6a4fc?rik=hfLrY6x6ZxKhBQ&riu=http%3a%2f%2fimage.yjcf360.com%2fu%2fcms%2fwww%2f202202%2f161018327qf8.jp...",
+          "stratum_sha256": "6b137cf3a5c3cc6a7dc35679e3366b0dd51196cad37e06244057b453a7046865"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://img0.baidu.com/it/u=3181099851,3965974851&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=528",
+          "stratum_sha256": "6b87de021a7d8cbdc98aef54c380cbf23c90f4f30a5d9b8d11030c826364d01d"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011364479_05197869977.jpg",
+          "stratum_sha256": "6be86121fb2c57e480c927feb4500627fe65ac7d3add7d75b837cce5e68cd1c1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2020/09/05/17/20/portrait-5547086_1280.jpg",
+          "stratum_sha256": "6c352cb7b4cd1e70f9f9e3cf01c3c5a378f51a3f0c72508b1c732ad60f614ada"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static3.depositphotos.com/1000104/103/i/600/depositphotos_1032812-stock-photo-forest.jpg",
+          "stratum_sha256": "6c6dd9ece0d93e4f9daf6ce72a75fe64874c5861941ae8dee484d6fb3b936865"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011324186_01473138944.jpg",
+          "stratum_sha256": "6cd5b3ce4ce00e2565a5a500f8773b40a0881217cd66795ae141ca94bf999d44"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm1.staticflickr.com/27/197340000_cb815559ce_z.jpg",
+          "stratum_sha256": "6d1639cbc0385d8603e673550982502feeb1bd26dd02a992856e53d3fe9d4e8d"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs41",
+          "stratum_sha256": "6e11d91cdcd8a85947165d5f238bc99407c27a65ce1c17792e56c4254132b0e4"
+        },
+        {
+          "capacity": 183,
+          "ideal_quota": 42.27304227304227,
+          "quota": 42,
+          "stratum_preview": "reasoning",
+          "stratum_sha256": "6ed5480ee75ddf3df0fd7fe8ea8319db0e0305e7cef053ca10403bb5df4bb655"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/R.d8a8d218dd7a103978dc8900521228b5?rik=%2feFzNnG2qiZfqA&riu=http%3a%2f%2fbpic.588ku.com%2felement_pic%2f18%2f01%2f11%2f8bbf8fb7012e...",
+          "stratum_sha256": "6fafd073d328502e3e02c86e25f1e376156e9be5a1cd1505b24e410b898452fe"
+        },
+        {
+          "capacity": 128,
+          "ideal_quota": 29.56802956802957,
+          "quota": 29,
+          "stratum_preview": "COCO_test2015",
+          "stratum_sha256": "70d208089336bce2aff8e998e2aa891d2d5e67f3c55489ae77dcd22526405725"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://visualsonline.cancer.gov/retrieve.cfm?imageid=2129&dpi=300&fileformat=jpg",
+          "stratum_sha256": "7117f47e4bd4b1885f95f0cef5709d10141797996f657102bd1c326b8663674f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img0.baidu.com/it/u=69631095,1079062567&fm=253&fmt=auto&app=138&f=JPEG?w=875&h=500",
+          "stratum_sha256": "712b231a688f80084e53dfdf2e731326b6dd80294b5c60c8331f39664ecb695b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/en/thumb/2/2b/Francis_Picabia%2C_Dame%21_Illustration_for_the_cover_of_the_periodical_Dadaphone_n._7%2C_Paris%2C_March...",
+          "stratum_sha256": "71b80a62c5616934c5822d4ff0fbb3b934b7dd4b7ec774bf45c5675494278fc3"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Taxi-driver.png",
+          "stratum_sha256": "728d707b771b3ed7fde22629cb5e616809d52fb7494fe4ad7f9434c4dfdfa3b9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1296316829/photo/group-of-friends-eating-marshmallows-and-drinking-on-bonfire.jpg?s=612x612&w=0&k=20&c=PvfqSLLXDmQQal9t2-07p...",
+          "stratum_sha256": "72f3294c5ba7a53ae324fdd4a8877d2bd5f50215dada052369d71ec4591d3594"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://gss0.baidu.com/9vo3dSag_xI4khGko9WTAnF6hhy/zhidao/pic/item/9c16fdfaaf51f3dead6ee19f9feef01f3b297968.jpg",
+          "stratum_sha256": "72f7f8bb8b9a3088783fecfb6730b3aba6ce15a3ee302b4feb7c9b2850cd783d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/680239054/zh/%E7%85%A7%E7%89%87/mom-and-son.jpg?s=612x612&w=0&k=20&c=1Iq03AoSb_nLX6JHeBTRrgTr1iuAE6nAbpXCbaMwwro=",
+          "stratum_sha256": "7388ca05e22f19fed66bfb869780711356f49a2b14ce5b6a1b4d8e7223cc7f46"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.google.com.hk/url?sa=i&url=https%3A%2F%2Fwww.uniquenewsonline.com%2Fnational-reading-day-2022-in-india-on-june-19-top-quotes-images-wishes-greeti...",
+          "stratum_sha256": "73ef6982254d685e5130afdfe76efbd0b81eee82b3b5cd739a8df2f5592f113b"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011373576_03642904232.jpg",
+          "stratum_sha256": "740435965683680b5d5a7589c5dc769f9bcce629230da5b799c7ddc062515643"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "http://k.sinaimg.cn/n/sinakd10110/113/w576h337/20200813/ff91-ixreehp4093373.jpg/w700d1q75cms.jpg",
+          "stratum_sha256": "740a94898b300650c2c9636a9c4991db8079b6d06f9176039e47abc0ea17adca"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.QJk2eNInDru0vDAbLYbCtQDREs?w=120&h=180&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "74368c5b59a2fc57c2371a152d44a63baec0fdd2420c346de1760794796d345f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn3.volusion.com/qg4nc.4zbpf/v/vspfiles/photos/CT-Cartop-HTHPIZZA-3.jpg?v-cache=1611141845",
+          "stratum_sha256": "743729114ccbc8ec4223f550b2dde6469e3ff9118aee402165b4973460b6c635"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=z2QM5yZN&id=405CC9C4F922450802091A0F88437E04C4869EE2&thid=OIP.z2QM5yZNBC5TvHMLBfs5GgHaHa&mediaurl=https...",
+          "stratum_sha256": "75b565b2e913502cd92de88f3f6f07af45a102cb74be5e745ce172dabc449d51"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://images.unsplash.com/photo-1598880513655-d1c6d4b2dfbf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDE0fHx8ZW58MHx8fHx8&w=1000&q=80",
+          "stratum_sha256": "75ccfad0d8b04878e3b9bd417c72b127e4289931006d591365ca710659f1d4a1"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010480893_033000255.jpg",
+          "stratum_sha256": "76089b46f33876d394dc5709593646f3467552782fca7371788b29dc608f8ee4"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=YlwuK4Vu&id=2EB13C4E66C1334DBB1A4780414DA4DB901BFB83&thid=OIP.YlwuK4Vuu5njyhuYA2LYJgHaDC&mediaurl=https...",
+          "stratum_sha256": "768ef13648097a2a15aa652ad95e795587980f9ac7c8ae8e89ce8aa54d71efb6"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "http://zuohaotu.com/Download/062011240459_0742801177.jpg",
+          "stratum_sha256": "76fb4eaed3f9914ea330259e5b94279184c94f606bd4d98817f00ae7bbfec5f6"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=NxgWTjyM&id=A8180388030CEB877F00F8E4449BDB0EED3FAED1&thid=OIP.NxgWTjyMSN52PNh800YNVgHaE2&mediaurl=https...",
+          "stratum_sha256": "77841bda80e1d8aefea270647371c166df6a50f3bca8d75d0087782489149d82"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=UWT2Frvh&id=E3C6D7348E248416861754E687064D1A44F2F78F&thid=OIP.UWT2FrvhTgr4O7F1ohPZswHaHa&mediaurl=https...",
+          "stratum_sha256": "77ec1109a9c78d97f52511088d606e517f03f1b0e4e22eabb01c4cb721b6131a"
+        },
+        {
+          "capacity": 248,
+          "ideal_quota": 57.28805728805729,
+          "quota": 57,
+          "stratum_preview": "Internet",
+          "stratum_sha256": "785438160c7cdb205d35bf2d48a440c7237556de195eb62252a03fd813b2b4db"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=jvJO03iN&id=170BD15C4CB2064D4485187CE2E84BEE83353442&thid=OIP.jvJO03iNElEkjfhvxZy0eAHaCL&mediaurl=https...",
+          "stratum_sha256": "78660ebb87dd69056273d926920bc6e86e028c9aa6a5ac37781bbad0a289d4e6"
+        },
+        {
+          "capacity": 16,
+          "ideal_quota": 3.696003696003696,
+          "quota": 4,
+          "stratum_preview": "https://www.runoob.com/python/python-reg-expressions.html",
+          "stratum_sha256": "789c1ea23c5ceacfce100021b708c1e22e802d4f6c13b4a7f5a005e3452f9e3e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvoMjXHzu84g50xKIJTJhUhQJ6wCwU_f5m1A&usqp=CAU",
+          "stratum_sha256": "78bd06f9bb80991a51c3738d424d102f433dac0ebf40acf34700c257b3f8c934"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRC_f5B0z4ZnW4I-bUZX5OCr6RRVaSsDsUoVQ&usqp=CAU",
+          "stratum_sha256": "792c903496a6e90917796cd906d4bdea6a2319809d0fc057d64c282baa84b5f8"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=A%2BsFFjRM&id=A792097ACBF1860598926EA11AD8FE64CAB3F61D&thid=OIP.A-sFFjRMu2vXJK4_pHPMTwHaHa&mediaurl=htt...",
+          "stratum_sha256": "793b465c32b5fa9c593b474c29539cae8b585531c461dda85574c87855bf3188"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=fxKiY%2f%2fy&id=F4786D0C75CACF9EADDA8A515A69A95D219C6461&thid=OIP.fxKiY__yf_8jfF8dqzA6dgHaHa&mediaurl=h...",
+          "stratum_sha256": "7a0d3f1ef6e6db88cc76b068674077ab9f8423331635e37675a70d74ab3fa56d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static7.depositphotos.com/1004999/710/i/600/depositphotos_7100026-stock-photo-winter.jpg",
+          "stratum_sha256": "7c34e644dcf9cde16c9dce584ba6bfd31571e3a5c4eaa880aedd9c0dfd466976"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011065517_0213906996.jpg",
+          "stratum_sha256": "7c823c653042841a6b1641b652f3afd49ced7ebbfe57734636ae84576e9e0f9f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm8.staticflickr.com/7162/6767429191_69b495e08c_z.jpg",
+          "stratum_sha256": "7d100018492ad957a08ba1652b2d6cbcd05f2a1fa4f342f7c8c27d1f9db85782"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st2.depositphotos.com/1340907/8543/v/450/depositphotos_85432698-stock-illustration-bearded-guy-with-arm-raised.jpg",
+          "stratum_sha256": "7d7308793cafe275d9552f8e39fd5bac5089b1f08178e2366eea6d5aa3669983"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://dictionary.cambridge.org/zht/images/thumb/book_noun_001_01679.jpg?version=5.0.325",
+          "stratum_sha256": "7dc173080f9084500939f854059c86a2dfa9597b8e4ea50f655bea89ec7e02ea"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/js/tryit.asp?filename=tryjs_function_return",
+          "stratum_sha256": "7e2b79ee374cc907c5e62ea73b5446e87dd52e226f14871757c4c7aa2a487db7"
+        },
+        {
+          "capacity": 88,
+          "ideal_quota": 20.32802032802033,
+          "quota": 20,
+          "stratum_preview": "koniq10k",
+          "stratum_sha256": "7eab6fbd9b6d4b575acbe3d1aa52793ecfd828c1567ab31cad6f7da6f4ccee06"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm1.staticflickr.com/158/408250816_9a0b84d24f_z.jpg",
+          "stratum_sha256": "7fdb6269cb33fd08ec727f724d31fc9e112b14cd665d701c677d9e05e679038a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/python/trypython.asp?filename=demo_dictionary_brand",
+          "stratum_sha256": "80023fb46d012346a68d6c4e547492d8e5dc26e7518e80cd2c961e806975685d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.glamour.com/photos/5e8b5fa215ec450009291fd9/master/w_2560%2Cc_limit/GettyImages-1061228896.jpg",
+          "stratum_sha256": "80716bf965ea5f402fa910435c476c26bce53db5bb2ef91ab3a8dfb0a6971b92"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2016/08/29/19/05/friends-1628985_1280.jpg",
+          "stratum_sha256": "8079a765da6e0173ab16392d78061f2cb8ee30985dd7532e114cc709538f744e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i.ytimg.com/vi/6lGWt9liWFo/maxresdefault.jpg",
+          "stratum_sha256": "80bafa5d97965b141777528b87ccf3265dff2559f26905cd9bde6e40f5dd2b28"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.canva.com/p/templates/EAE9LRMRVKU-orange-white-creative-we-re-hiring-poster/",
+          "stratum_sha256": "813883254fcf1cfbaba2c41a8d3971b4d2ab75b605853ec14edaac299bc55412"
+        },
+        {
+          "capacity": 12,
+          "ideal_quota": 2.772002772002772,
+          "quota": 3,
+          "stratum_preview": "https://zhuanlan.zhihu.com/p/374461054",
+          "stratum_sha256": "81779afe31eac85869b06f9809b0f52e7310a78780e2cc9b4a961d3ea5fd4b5b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/www.designlike.com/wp-content/uploads/2011/12/1244460822uVyF1gv.jpg?resize=700%2C525&ssl=1",
+          "stratum_sha256": "82b3d0d545cfff6a985fdcba8e546ca29678da689dfdee0d166c14e187fee929"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs13",
+          "stratum_sha256": "8344312ae8545af1e5eda32d9fa76fd5e8af453780650418f9bd45f0e63aa351"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Scramble.svg/640px-Scramble.svg.png",
+          "stratum_sha256": "8458154d85c3cd797828fa720ce019cdd27fc99bde31c67174a713ae4fe8bcfe"
+        },
+        {
+          "capacity": 40,
+          "ideal_quota": 9.24000924000924,
+          "quota": 9,
+          "stratum_preview": "TextVQA test-split",
+          "stratum_sha256": "84b20ffa1a5016a11b2fd1758dea492efcd83484105c74ab496db37a21877c81"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/python/trypython.asp?filename=demo_dict_constructor",
+          "stratum_sha256": "84f0a81568bca875723d9a05bdcdb45e32808acf40b360d5e5db20be43e580cf"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/python/trypython.asp?filename=demo_class4",
+          "stratum_sha256": "853b26ac56e32bdd1c27c239926f3078e7aae0b383c403c8b8e28eb8977da630"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st3.depositphotos.com/14847044/17625/i/600/depositphotos_176256556-stock-photo-rohtang-pass.jpg",
+          "stratum_sha256": "85e043000177d3992864be891084e531eb54524245a2a18834a8df37af52c2d3"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "http://m.sjmrsh.com/upload/201910/20/201910202152104062.jpg",
+          "stratum_sha256": "86808fd6666ef3de69a63fcdefc69753db8b61a987cfa40c83d3ca63afaddaac"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Teacher.png",
+          "stratum_sha256": "86cc23c131dd71dc544b41f7b8cca9ba1e1d99820e686e16143c50f9d845e3ec"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Piet_Mondrian%2C_1909%2C_View_from_the_Dunes_with_Beach_and_Piers%2C_Domburg%2C_MoMA.jpg/330px-Piet...",
+          "stratum_sha256": "87f1d99ac270a8c1e6198d2682115035f41c250c0555e1a51a0106a556ca7aa1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqWQtBbvW6ZTf46FtULCScovWa0ptXzCjDHQ&usqp=CAU",
+          "stratum_sha256": "8923e54c9386fe82e470eb157a8657e49aca263417b1c75c67fb39782c14e55c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static.nike.com/a/images/c_limit,w_592,f_auto/t_product_v1/420ff62a-2cac-4382-8c94-b14c5d1c73e6/air-jordan-wordmark-t-shirt-WDwh2Z.png",
+          "stratum_sha256": "892691afd54c31eddfc03b9b32d9c088dd9afc5442eba37d066805f589814346"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/premium-photo/image-cyborg-girl-pop-art-style_763713-376.jpg",
+          "stratum_sha256": "89775a4a0fa4efb758226a55bf8c964888c117a0ef2ea3a8a13895ebadc89c63"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://images.pexels.com/photos/1728163/pexels-photo-1728163.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+          "stratum_sha256": "89a4efcfcc54701ba398747337ac594698eadeb33f1e001393317bd099ef5a63"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bigw.com.au/medias/sys_master/images/images/hd0/h21/33525216378910.jpg",
+          "stratum_sha256": "89f43fec7f1478396901101f7758c40be9c22be42ac76a0bea30edf71bddefdd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ7-qKXCoA-bI1xOyi8AvJruHweugCsw6Vd5M1CfzTtbMWT_ft7wkK7AWjoS3c_gwJQV24&usqp=CAU",
+          "stratum_sha256": "8a16ece4fc8560ae54b24bcde51e695a3cf8fc8053590fbacb05d363289a3199"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1402835350/zh/%E7%85%A7%E7%89%87/pensive-relaxed-african-american-woman-reading-a-book-at-home-drinking-coffee-sitting-on-th...",
+          "stratum_sha256": "8a2e6c82a60293ad4d37d2d3b9ddc426f27e103bdfa015fe57311f78440a4d2e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://bpic.588ku.com/element_origin_min_pic/19/03/07/183d1e186b05a7e9bd189dbbca23bca4.jpg",
+          "stratum_sha256": "8ad653ed7b86e250c9af940b312efea510cc5e0a6671d57aa93399d06e77c7d9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.runoob.com/python/python-tuples.html",
+          "stratum_sha256": "8b65782151af35a3f89b1d87ea4a5aac721125a9c6947436355093aa36ebc518"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1176707634/zh/%E7%85%A7%E7%89%87/%E5%9F%8E%E5%B8%82%E8%87%AA%E8%A1%8C%E8%BB%8A-%E5%A9%A6%E5%A5%B3%E8%88%87%E8%87%AA%E8%A1%8C...",
+          "stratum_sha256": "8b7fb30a93147e74f4adce8d651e192ccc8ce1682886335afde2716ae5455c59"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.vecteezy.com/vector-art/699849-happy-children-s-day-balloon-poster",
+          "stratum_sha256": "8bd28bfc63c41e7ffbdc7d9d6dcf479264bbfe1e3bf4784826f2703ddd248935"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://vocalist.org.uk/wp-content/uploads/2020/03/microphone-technique.jpg",
+          "stratum_sha256": "8c4ec31607bffb03a459308c5f972300961d7f02666cdd491f1af072923d543d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0P5sb_DyMgnQA7qIMbjs01RRXTdnjYcJTgQ&usqp=CAU",
+          "stratum_sha256": "8c8eaab184b92cdc163387fe51c2a63b1a7c30537f1ce3f8f60fd40f13505c34"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "http://t15.baidu.com/it/u=2995311842,2565462334&fm=224&app=112&f=JPEG?w=500&h=500",
+          "stratum_sha256": "8df22d98f627dddf2a75049f61a3e061677300b50d1f32a26098e2c7d5b93ccc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/R.7cdab3780771098fbedcdc6798883e07?rik=UyOVb%2bw7U8f5BA&riu=http%3a%2f%2fimg.coozhi.com%2fupload%2f20200615%2f15t9r220u9m23p27cdab3...",
+          "stratum_sha256": "8ed2e32fbbf980b0541e0bdbf62f73a5160b78a7039d9f2b8246c0cec8a2af51"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://bkimg.cdn.bcebos.com/pic/f3d3572c11dfa9ecc9c0b89869d0f703908fc157",
+          "stratum_sha256": "8eff8612e7df1eb46527347b278a904fc46297640154e4e81e1205b75c45347a"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs28",
+          "stratum_sha256": "8f3b01fd59a1796c73b3bde3c6f231e96a8cf7b4e2f885d66b4e5323817e6e24"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.rzbEUnOJaEgicRSGN-G-2QHaH3?w=179&h=190&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "8ff4f2a1f12d3e2c3046fd1501afbd02b46ad8917eda5616e53be4b0ea6ffe29"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.google.com.hk/imgres?imgurl=https%3A%2F%2Fwww.leaderkid.com.tw%2Fwp-content%2Fuploads%2F2019%2F05%2Fimg_5a9e2657bb0a1.png&tbnid=V1s3H-aSIxGkxM&ve...",
+          "stratum_sha256": "908638e39781a334df167963879f9b276a12a8cc9da235da58af6e9f93f953a8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.fotor.com/templates/green-football-event-poster-5694e6/",
+          "stratum_sha256": "90940b9d309aa30ec9915d59a584a238bf0c0177af75549842e6b77969727078"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=D%2f%2fgjCsj&id=EA76A0A9FCD9C032DEAED9569AB957F3A079CCE5&thid=OIP.D__gjCsjAvJ5CLYJskpUBwHaHa&mediaurl=h...",
+          "stratum_sha256": "9106d7b44f85f52802ce571a51d0c141e98fc2032856efa033b67b7ebf0b7c57"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "http://www.dayueti.com/uploads/allimg/200330/1-200330222436.jpg",
+          "stratum_sha256": "9177082a8bce6cd84cb488544ff34eded7e443bd13f53d83adf4d940db35848e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static3.depositphotos.com/1003448/170/i/600/depositphotos_1707357-stock-photo-crowd-in-the-mall.jpg",
+          "stratum_sha256": "92a5039c476fdd566403b1cfd21e2d726d64e10fab66a22abe8ecac7e0e9217d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn11.bigcommerce.com/s-8t7jf909gs/images/stencil/1280x1280/products/3481/3371/NS00129__56074.1660594062.png?c=1?imbypass=on",
+          "stratum_sha256": "93e6ae5169763a8ce955954f7c81bc82f1807b7612f7af5b36ebf93b05b22631"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Henri_Rousseau_-_Le_R%C3%AAve_-_Google_Art_Project.jpg/300px-Henri_Rousseau_-_Le_R%C3%AAve_-_Google...",
+          "stratum_sha256": "93ed25b03d923c1da758417564f05ca17816b0a8dec239a7f1ac5b80c3ceb282"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Postman.png.webp",
+          "stratum_sha256": "9407d8c2b5728369e6dc9667afb66ea1fc0fd3bcdef26f6d615d5a045de65e48"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1330668846/zh/%E7%85%A7%E7%89%87/cheerful-extended-family-having-fun-in-nature.jpg?s=612x612&w=0&k=20&c=wFHeL1PkFKJ-QNTaG0x1...",
+          "stratum_sha256": "95c51b8b686e2d296c19680d5fb62f49173711a8f2723a9ebee9a8f5fd5dec41"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=0Q41k49h&id=B75AE959CF987BCF9FA58815C9A78E4EAC8B8720&thid=OIP.0Q41k49hl7Z1x4DnyfJivQAAAA&mediaurl=https...",
+          "stratum_sha256": "962fcba73c0a9a1e657e015b286140d379fd0d675e961add659665b87ad147c2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img95.699pic.com/photo/30375/7279.jpg_wh300.jpg!/fh/300/quality/90",
+          "stratum_sha256": "965012bb07ed251400b538afe27223fe136bf7d9207559433c4d5b92e7a3f573"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://p1.ssl.qhmsg.com/dr/270_500_/t01c2a0d36de9ab3209.jpg",
+          "stratum_sha256": "965f2b046b03630f0f732c07e08ad75095e01d1fbdc8e63119011da600ee4be7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://gss0.baidu.com/-Po3dSag_xI4khGko9WTAnF6hhy/zhidao/pic/item/b7003af33a87e95066afcf4212385343fbf2b467.jpg",
+          "stratum_sha256": "969eb28ec0e30683cab342593793fcca6715d40bfe907e7adf8fcfb919db90ad"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQAMuEX35GUUtl2uZuphhZNFC0umhfooYDPUvCYs3PLR-uFsk8GDNZFP9a0oomRq3oHYUs&usqp=CAU",
+          "stratum_sha256": "96f5e1e94e3b8d43a08cd41c68c4701cf628afd96592e0fb216a23d3c6ee51b9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2020/09/06/09/01/beach-5548437_1280.jpg",
+          "stratum_sha256": "9782c1acada853d085b10c440898eb6cffb641596c602556405ca516db66b02a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img3.redocn.com/20120716/Redocn_2012071612073350.jpg.285.jpg",
+          "stratum_sha256": "98946009b13ea63e2a7fbaba054eb2245149cfccb4c7b9a651bbb1d68c5239a8"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.google.com.hk/imgres?imgurl=https%3A%2F%2Fimg95.699pic.com%2Fxsj%2F2h%2F1y%2Ft8.jpg!%2Ffh%2F300&tbnid=QJkiBxN8-OqICM&vet=12ahUKEwiiu5j4sNH_AhWYgV...",
+          "stratum_sha256": "98a639458fd4bd1169eeb5ed6d75edabbdffcc82b4158d6a4d1b87b7396e37a8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2017/08/06/05/51/rain-2589223_1280.jpg",
+          "stratum_sha256": "999a7aecee3be2e45a9bc07f85eafc442e961d96a9dd45e6bcccf2ed8a65ea5b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=DULZBRxY&id=650E0333C099C64C491A5D6812DE214655E7363A&thid=OIP.DULZBRxYCQbG2GTrJayxXQHaHa&mediaurl=https...",
+          "stratum_sha256": "99c75d70221572582a8e04f3f06d23a032de6471e769be92dde681bff2cf2e1e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSEHsv2PhsESZmoLDd3OePr_ccTM5STCuUmig&usqp=CAU",
+          "stratum_sha256": "9a263baad6dd3a8f42fddcf5d6bfc6d9a4fa7df64488e6a20c26d0b52f6d587a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/en/thumb/a/af/Dada_in_Ultraman.jpg/330px-Dada_in_Ultraman.jpg",
+          "stratum_sha256": "9a38ef3c55b69ff4db25ddbd63d0128c4b5d8fa2320720f8e40f39dd0e2dbb3c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img1.baidu.com/it/u=4054486737,2232201273&fm=253&fmt=auto&app=138&f=JPEG?w=600&h=400",
+          "stratum_sha256": "9a51b4a9510daf9789dcdfefd3b9050c4d3d5b559b38e2b1a1692961ab89a9af"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn2.vectorstock.com/i/1000x1000/01/51/hexagon-bolt-head-composition-vector-45760151.jpg",
+          "stratum_sha256": "9a577c7cb7938be05e2968f69be7989a2bb08c5e969f4b5a55715ee29c480a01"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1174436407/photo/woman-walking-in-a-park.jpg?s=1024x1024&w=is&k=20&c=s1W81a2Z9DekUMsWiB7PC1nZTia_DjMUrdK17FWQw44=",
+          "stratum_sha256": "9ba894350844481089476da52b02aae9374abac4be5b287f07c8b51ddf196a78"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "vsr-val2017",
+          "stratum_sha256": "9bd7039fedfde0e5d915dbd0f78e3af097eb632e7cb3982707db48fd09dc941b"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs29",
+          "stratum_sha256": "9d062f76ac62d436fd765f8e696b24f387365a66f00b7202cd3cd6197f66056f"
+        },
+        {
+          "capacity": 8,
+          "ideal_quota": 1.848001848001848,
+          "quota": 2,
+          "stratum_preview": "https://www.runoob.com/python/python-while-loop.html",
+          "stratum_sha256": "9d7d3055ecb036e1b9cbd05912afeffdd7314f00dbbc0f423c9fa6d88b3766b7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/northcape2010.blogspot.com_.The-Great-Sphynx-at-Giza.jpg?w=1200",
+          "stratum_sha256": "9dad6c882dffee171fbaa5616560969e94f3b42bc82a3deb9547e42c9c91e752"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm6.staticflickr.com/5139/5468977460_739de365cc_z.jpg",
+          "stratum_sha256": "9de702cc732920c01832e45a797906304f911568b3630ba6a7cc24ac5dc3b00e"
+        },
+        {
+          "capacity": 8,
+          "ideal_quota": 1.848001848001848,
+          "quota": 2,
+          "stratum_preview": "https://www.runoob.com/python/python-lists.html",
+          "stratum_sha256": "9e265e022c3347c7829b30097d85d386fa7c643382f5e44b9793b839be2c31a6"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1175699356/zh/%E7%85%A7%E7%89%87/%E6%AD%A1%E5%BF%AB%E7%9A%84%E4%BA%BA%E7%AC%91%E8%83%8C%E8%B2%A0%E7%99%BD%E8%89%B2t%E6%81%A4...",
+          "stratum_sha256": "9ee729f061e26b89a522777eb0dc63472dc3189f5495954c980b6c98650d1fe3"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=Lyon31Zb&id=7B064C3864DABB8376346A8DB339C5787CEAFC9A&thid=OIP.Lyon31ZbcZAMv0vxmbnslQHaHa&mediaurl=https...",
+          "stratum_sha256": "9f62c7b63cf5fd2180a5ca9e7061d3490653234c349302601468611817359d83"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "https://st2.depositphotos.com/27201292/47685/i/600/depositphotos_476858408-stock-photo-buenos-aires-argentina-may-2021.jpg",
+          "stratum_sha256": "9fdb00d2ab105e04d211843c65cb67ee354e4b24d963e8ac1112f6e5af550edb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://people.com/thmb/Xqce6e4xMWVRG3uYeVmvWSw-ttI=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc():focal(719x429:721x431)/ed-sheeran-d7a7c1e2f4e6...",
+          "stratum_sha256": "a050003b9ea034c90d1525ae6a08d4c1213b9011051d369f7f8cfb5cc667391a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.aocd.org/resource/resmgr/ddb_high/biopsy_punch_high.jpg",
+          "stratum_sha256": "a06b5dc9ba36b91af90d8590b24ed9ff8ff5ffbf227534d691245991c8fe9bb7"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://imgs.qiubiaoqing.com/qiubiaoqing/imgs/60805a2fd2b29AAZ.gif",
+          "stratum_sha256": "a12f14684f3eac3076cf2c1197a881f0e70e76ce86f1f96beb7e7a7ba8f341ef"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "http://24236290.s21i.faiusr.com/2/ABUIABACGAAgj5fcnwYo8I-c-gIwoAY4oAY.jpg",
+          "stratum_sha256": "a1a902615988103aef88bde2c4a45dcc695cc64a83b3815c6e576173c86ce943"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/free-photo/sunshine-clouds-sky-during-morning-background-blue-white-pastel-heaven-soft-focus-lens-flare-sunlight-abstract-blurred-cya...",
+          "stratum_sha256": "a1c0a87e763d6acc94129b42c9c95d1477ea05af5cfe53f73feba493e9f32c34"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st4.depositphotos.com/13324256/21561/i/600/depositphotos_215618742-stock-photo-close-view-beautiful-christmas-tree.jpg",
+          "stratum_sha256": "a1ea66deb38a6e8890f23197597110b17a600e468b77498c626ce9377423716f"
+        },
+        {
+          "capacity": 36,
+          "ideal_quota": 8.316008316008316,
+          "quota": 8,
+          "stratum_preview": "PISC",
+          "stratum_sha256": "a2347513271fa52d657d12ebc078ff4cfb025a9c8255adbb848696f1240a3a87"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1406180783/zh/%E7%85%A7%E7%89%87/doing-my-make-up-is-fun.jpg?s=612x612&w=0&k=20&c=n6LJkxd4t77-YqdTV6APtOcJTb_dVcu24XWH5igL5Ic=",
+          "stratum_sha256": "a3cd65eea0957c49bc96597028582b41a0ba2429b432250c0c8da75b10521510"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm4.staticflickr.com/3374/3488410954_978ed6c696_z.jpg",
+          "stratum_sha256": "a41f5ac1951c6c8a580349cb03b48bb92c990c078efca8b4bb5bc62e4dedac47"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.baamboozle.com/uploads/images/125657/1601259657_102416",
+          "stratum_sha256": "a434015d6907227af9f033bb421be8f4f99e75e7113152bd53fc746518f5e15e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://assets.sainsburys-groceries.co.uk/gol/ham-cheese-and-salad-sandwich/original.jpg",
+          "stratum_sha256": "a4b0afe69d992ec3024b384adfe08a1641d26d0f54e2adc5264c921296f49cf9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ8zKWV_vEQ2DdaDkW8O18gKbV1JoBW1mvW-w&usqp=CAU",
+          "stratum_sha256": "a50adbdab1fcbb77ae1d2ad7d13417d2bf582a51cbaac242252901f0923a51c2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm5.staticflickr.com/4056/4625710105_40f2285919_z.jpg",
+          "stratum_sha256": "a577d1c83db950d9b444f8af8fa7f5c053761eff7e9843dd6102eca1c62ce481"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1333390966/zh/%E7%85%A7%E7%89%87/diverse-employees-on-online-conference-video-call-on-tv-screen-in-meeting-room.jpg?s=612x61...",
+          "stratum_sha256": "a5d3897496de47d54c33352f65d19ed914ede4188b79e834e8bdbb5c5dd49715"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://imgnew11.photophoto.cn/20170707/shouhuilaohulangyeshengdongwushiliangtu-23580881_2.jpg",
+          "stratum_sha256": "a6194b9e9f023b6adddeee480965a4a6fde10ddded85b1c1fba57776842d2ab3"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://images.unsplash.com/photo-1554080353-a576cf803bda?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8cGhvdG98ZW58MHx8MHx8fDA%3D&w=1000&q=80",
+          "stratum_sha256": "a6252dd4448c9c51f219db61845336328736e50b9b755c27d6216a7c2b9de266"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.kenhub.com/thumbor/zoz_XVCq44UFroH2ds6eoOUvdtA=/fit-in/800x1600/filters:watermark(/images/logo_url.png,-10,-10,0):background_color(FFFFFF):format...",
+          "stratum_sha256": "a708732c4b60b1ad64f45615ea1d4100d269ee0f8f0e146fe4c58a63c192cc58"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010532905_0132921013.jpg",
+          "stratum_sha256": "a70ece9d4b862937867a0349594a99c73ac8e19f0781a56c611031f972e6782a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st.focusedcollection.com/18590116/i/650/focused_228957948-stock-photo-man-practicing-karate-punching-bag.jpg",
+          "stratum_sha256": "a7855adc732be0ac9fa478fbb9985700cbdad77e43a071989ed4273037fe83b7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/493654430/zh/%E7%85%A7%E7%89%87/little-boy-with-grandmother-reading-a-book.jpg?s=612x612&w=0&k=20&c=_gEYmWRg3Qae6W1ez2dc98qH...",
+          "stratum_sha256": "a7c9e353a9edb0878ba05240ed48c73a3a5d611e608bd57d878c1fb225d139c0"
+        },
+        {
+          "capacity": 7,
+          "ideal_quota": 1.617001617001617,
+          "quota": 1,
+          "stratum_preview": "nan",
+          "stratum_sha256": "a7ec99f6ee7bba06444f78703903d8d72a9f55f17e65559c960685cf4bf736f9"
+        },
+        {
+          "capacity": 12,
+          "ideal_quota": 2.772002772002772,
+          "quota": 3,
+          "stratum_preview": "https://vocabularypoint.com/wp-content/uploads/2022/09/Jobs-and-Occupations-List-with-Pictures.png",
+          "stratum_sha256": "a84c0ecb2e1fceb4d3a89bb3f1bfdd0cb63b1c48fdfb4560fafab3dc61e1f49e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://previews.123rf.com/images/photodeti/photodeti1809/photodeti180900320/107946593-an-elderly-man-reading-books-in-a-library.jpg",
+          "stratum_sha256": "a8f3e9cec7694a5e66d7cb127331dc671e262538df4659be0da687139df5d700"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/encoremusicians.com/blog/wp-content/uploads/2018/05/Emma-Rushworth-Violin.jpg?w=960&ssl=1",
+          "stratum_sha256": "a90e5acc1593af84e0c06ce8b6f26e491c68447295865516c630057b9169384d"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011003409_0100882570.jpg",
+          "stratum_sha256": "a9848f88dbd8e38bd4a61233413c5e03d513044c973eaf5d6edbccf0fa7ca8b8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/R.172f20201acfff3fbfbce8daa817148a?rik=ouv5RJNIndyGyQ&riu=http%3a%2f%2fwww.obzhi.com%2fwp-content%2fuploads%2f2021%2f06%2fmoMIYUYU....",
+          "stratum_sha256": "aa2226b79dc9534d7f1eb57a640146a7641fc99d64d6dad9a3cf9a15b1b9611f"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011191916_0450063799.jpg",
+          "stratum_sha256": "aaa5751c163104719199e6e99d87274714a887e5ffccb55b1efd8864d6077cba"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/4796481469_4d1017a03e_b-600x398.jpg?resize=600%2C398",
+          "stratum_sha256": "aae8859da7178155b104b451c9c3c7f86a9dec992d1d8215f180d3ce94984eee"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/969233490/zh/%E7%85%A7%E7%89%87/%E5%B9%B4%E8%BC%95%E9%9D%9E%E6%B4%B2%E5%A9%A6%E5%A5%B3%E5%9C%A8%E6%97%A5%E8%90%BD%E5%BE%AE%E...",
+          "stratum_sha256": "ab58836104636948e0c51f28b5b1308360afa9c626e0940d6029a56e1a1d0e2a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://pic2.zhimg.com/80/v2-7e755bbadeeded94afd90ff920beafed_1440w.webp",
+          "stratum_sha256": "ab8c818888ab0ddcc4d7c2a6a6f0a794ee6522d386ef1841cca944419eae4a8c"
+        },
+        {
+          "capacity": 12,
+          "ideal_quota": 2.772002772002772,
+          "quota": 3,
+          "stratum_preview": "https://media.geeksforgeeks.org/wp-content/uploads/20230503180026/maths-formula-chart-3-(1).png",
+          "stratum_sha256": "ac2d79af435bc0c57232a6fd90cf3e75140972103f19f501ee191b3e0090ad96"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTbRMK2_kNGX8rZu494K58slFLn_Brg-58ayY3urvKcd7I-a6s_sEOesHpJSWXOxGnPyKk&usqp=CAU",
+          "stratum_sha256": "ac6c88165bf7522b6daa4f245595db6ae6a605f652ac5153d6ea41ca016c3d99"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm4.staticflickr.com/3074/2585624635_5ec091fb74_z.jpg",
+          "stratum_sha256": "aca6c972a8fb51969388c2138a72dae8fd5dc63589e75ff0d0b18f83bcebf776"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Soldier.png",
+          "stratum_sha256": "acfb5e7bdcf478110f369b510868723a9b5e31ebd65a7c0eae895fdd7f2e2944"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/www.designlike.com/wp-content/uploads/2011/12/The-Eiffel-Tower-paris-2393939-1920-2560.jpg?resize=700%2C933&ssl=1",
+          "stratum_sha256": "ad449ac899dd0925c6e4a75a2fb937a189dec1b3119d919f9c6857e415035c27"
+        },
+        {
+          "capacity": 6,
+          "ideal_quota": 1.386001386001386,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=IBAUJpyY&id=A13E1421C7348FDF1607E28FDD00447C393DA67E&thid=OIP.IBAUJpyYYxZVuxy_-iZBswHaHI&mediaurl=https...",
+          "stratum_sha256": "ad5b99940645016f3850a6ddf84603cc88cda16701e9ee759208c147715192fc"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=M2KC0dq0&id=EAC00B63021013AA911C03A4B293A01ED27B903F&thid=OIP.M2KC0dq0EfyGd5I26U3RvgHaDl&mediaurl=https...",
+          "stratum_sha256": "ae3d10f009eec68f202eb9de39f233779d18155dcb7f14ce8aedcadf20411a12"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://memeprod.sgp1.digitaloceanspaces.com/user-wtf/1592797447941.jpg",
+          "stratum_sha256": "af1fca0a5525579bf6a15e2246937493a3c8f802895d2b54bc919ba48077e8b9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1049506008/photo/senior-african-american-woman-hiking-with-camera.jpg?s=612x612&w=0&k=20&c=NFngWW72bnYsFkhkHvn_fgIQ_fhpXRqYx...",
+          "stratum_sha256": "afb9879ae897f81cc40afb0dc7b914b3e128309fb3f2650f26039e03ead3ee10"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.britannica.com/05/187505-050-6BB9F835/Benedict-Cumberbatch-2014.jpg",
+          "stratum_sha256": "b10683914e95fab07a4ed1074b44fb29b8aa1b1681b9314f94424db5aaf6965f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.qX70WbdS3Vf2fA4zo_ZG-wAAAA?w=263&h=180&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "b13df2a88b4d27aad2d9ff7d0773bbdfe5b9d95d074e692653a33939400b513d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://raw.githubusercontent.com/mallowigi/a-file-icon-idea/master/icon.png",
+          "stratum_sha256": "b1e8517174bd2a50c2b49f437ddd50d39d43a81aad0b5bafdb8bba7de9ac421e"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs44",
+          "stratum_sha256": "b2705eabd77196910e7f0c50a44627bdd1b3b4dfe70347f0c01ebafdf78b27dd"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs31",
+          "stratum_sha256": "b27e6908b6676bd29b9aade4de7546b20763b25330c4b40acd8c17b420671ffe"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm4.staticflickr.com/3303/3410256465_f6a8a6b689_z.jpg",
+          "stratum_sha256": "b2b2576335266a1cd852eaaabedde6d70522d79d480581127ce6f5629f0ea1cb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm5.staticflickr.com/4053/4418068540_85a1cb9f24_z.jpg",
+          "stratum_sha256": "b31445534f094930763afbd947b45a49581c84b54266d170dcffdd88575923eb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://c.ndtvimg.com/2022-07/r8nhncg_prince-harry-reuters_625x300_22_July_22.jpg?im=Resize=(1230,900)",
+          "stratum_sha256": "b347885b69b03ccd05e8616bdb6303cae43de2bc610decbaad337e865034ef99"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm1.staticflickr.com/4/5321491_e325126866_z.jpg",
+          "stratum_sha256": "b3b8b41b9c825bfd29f7269028a5a510156d7d5820636f2c13be8c8432b39ab5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.greenflag.com/img/article/l/night.jpg",
+          "stratum_sha256": "b438c268dd9bc230704ca749f91e0232765d925651f82f77fe98158e77968ad2"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs8",
+          "stratum_sha256": "b52065e9ae757307a765c30fb07632b93f4e2fce2e488efe1a6a472b28215ec4"
+        },
+        {
+          "capacity": 12,
+          "ideal_quota": 2.772002772002772,
+          "quota": 3,
+          "stratum_preview": "https://englishgrammarhere.com/wp-content/uploads/2020/03/Jobs-and-Occupations-Names-with-Pictures-in-English.jpg",
+          "stratum_sha256": "b53b4486d49c95ae1397e0201467f1a3d0229eb61d3d32bf10d9ebb2f116d018"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://specialtyproduce.com/sppics/16307.png",
+          "stratum_sha256": "b646e0ef5293e6416ed6301c59d92f2c9f4322c1082bff3837997f1954a24b62"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.frontiersin.org/files/Articles/344648/fnins-12-00274-HTML/image_m/fnins-12-00274-g001.jpg",
+          "stratum_sha256": "b69b1a7171f4db2d0a9a4f1966c2287c922e27502ecd3dee47784401cc8d56d7"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://cmsimg01.71360.com/data/7u32852/public/2019101515262987128.png",
+          "stratum_sha256": "b6ced27c5738eccdbc9fc73eb3ecff89445b0040a403b7c931bd6f901c54c65e"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://n.sinaimg.cn/spider20220803/448/w1024h1024/20220803/5b1a-3306eb5da6172927f1280f2a5d7cde68.jpg",
+          "stratum_sha256": "b76074ddd0a1da5e674d260a24f0c123df2b82ad040d6610f38c1e06bae938f7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.alphafoodie.com/wp-content/uploads/2020/11/Orange-Juice-1-of-1.jpeg",
+          "stratum_sha256": "b7c82aeb0d7d8f8fd2b0405cebbe22fe7e2ff60b2cccf63f99a6b8a967463146"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs20",
+          "stratum_sha256": "b81b6d73c87a29214d35481d8411d74093a906681251090bdd581b20513dd8dd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1146472948/zh/%E7%85%A7%E7%89%87/%E5%8D%83%E5%B9%B4%E9%BB%91%E4%BA%BA%E5%A5%B3%E5%95%86%E4%BA%BA%E5%9C%A8%E4%BC%81%E6%A5%AD%...",
+          "stratum_sha256": "b8b9e1772e409dd26f6e41d1c11c673bf12335d83c220e88c608c460e225419d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1277213578/zh/%E7%85%A7%E7%89%87/%E5%AD%A4%E7%8D%A8%E6%82%B2%E5%82%B7%E7%9A%84%E7%94%B7%E5%AD%A9%E5%9C%A8%E5%AE%B6%E8%A3%A1....",
+          "stratum_sha256": "ba162c33ad15989a457b6658fe202d71df9c1efab694a48c1a651d32a704ee3d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://em-content.zobj.net/thumbs/240/apple/354/pensive-face_1f614.png",
+          "stratum_sha256": "ba33a46c7692419de6540c635535656b7ec80eb8f3408f1b86d1668e351a00d3"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm4.staticflickr.com/3348/3652187987_e243f35e00_z.jpg",
+          "stratum_sha256": "ba65d1b6d2831ef6cefb50b6343bbed569170ed1f3848205e900be4feedb00e2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://hsdc-cdn.s3.eu-west-1.amazonaws.com/uploads/2021/09/TimeTable-Example-2021-Alton-A-Level-1536x602.jpg",
+          "stratum_sha256": "bba876937f3bb83fba55f15a07e55d3dbfd8d991a50681762d764ebc86e2fa70"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.myperfectresume.com/wp-content/uploads/2020/09/5-common-questions-for-cashier-768x512.jpg",
+          "stratum_sha256": "bc77ff067c7cee418047c387d00179dfa30cb69064c91eb961d108f0d4068886"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs25",
+          "stratum_sha256": "bc90c3cb28dc5dc1a48e7ec55eef7cd997e434717d2b6f1554e1f6970a5357fe"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=trXdn0br&id=742AF321E29D272007948FD6B9EDDC3F2B8EC5E2&thid=OIP.trXdn0br7cbLc5C0dswzegHaJX&mediaurl=https...",
+          "stratum_sha256": "bccffe93cdcc9d1dccf8032635738e0ed035c0bb5c32bfe816718c5e2b4994c9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st4.depositphotos.com/1022135/22293/i/1600/depositphotos_222937232-stock-photo-group-multiracial-young-people-playing.jpg",
+          "stratum_sha256": "befcafbe8c31cdd018a3ec06834f87c9f6fd40dde1ed02b10b53f1cbfb70480c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=Ze%2byXy6S&id=608255225D617F00479AC8E0CB39795374CC2C5B&thid=OIP.Ze-yXy6SjxxHAQtC36Eb8AHaHa&mediaurl=htt...",
+          "stratum_sha256": "c1676f4ba5b41d61367b3f77dc4a1f41e3cd5b65323275435ad8a13ee5983ad3"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011023667_0156451756.jpg",
+          "stratum_sha256": "c2006e03eceaf4abab94d2d57f554622ce4adafc8152c1982a4372c0730a17bf"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.runoob.com/python/python-strings.html",
+          "stratum_sha256": "c2669949351c0daf22bdf96717b4ff69f7a07bd1def6e6e9fda4d1399447601a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://3f4c2184e060ce99111b-f8c0985c8cb63a71df5cb7fd729edcab.ssl.cf2.rackcdn.com/media/18283/mellosweetmellon.jpg",
+          "stratum_sha256": "c2c00eb12c3e6240d036bfe01f54773b632aeb8428cd781956f607e55f9a3de4"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs10",
+          "stratum_sha256": "c2c9af772c676b7bc6ae007b6341c17f6ff3784cb3633c09ca7555aa1b990a2f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Doctor.png.webp",
+          "stratum_sha256": "c3032ab1107816f0e9c0975a267b6b0d1a0d4a291bf1d1667c3d7d01a5f53962"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062010335181_0826373.jpg",
+          "stratum_sha256": "c35f0ea8175e0fa5c5d229361eccecf578d9b50fed87251a58cb74722e2c9cd1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img0.baidu.com/it/u=601418823,1572285469&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=310",
+          "stratum_sha256": "c3f802ac7044188f2e69befb3fea1931142bf1a65569759f7321504b415f8462"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/R.dab6202087c3a0c0c2fd33c6aae82b13?rik=UftKuyST4oWmng&riu=http%3a%2f%2f5b0988e595225.cdn.sohucs.com%2fimages%2f20200210%2f70f551898...",
+          "stratum_sha256": "c456393fe3b4b6cc61ac560fc8e1f2133e70cfe19e685dca7ecc57a59ffb1258"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.dLfhgvw6eRCxidetOaQfgAHaEf?pid=ImgDet&rs=1",
+          "stratum_sha256": "c4709fce7dcf70c67fb5f995364c1df48c5030b0cc9ce0e30ae1e19f4094ff51"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/915788572/photo/umbrella.jpg?s=612x612&w=0&k=20&c=ETfyuxq67QmECGK7brhk9GgbVeyQi8aje1fLx_fP5ko=",
+          "stratum_sha256": "c4bff9cdf83f66699050e574dd378cb2f5258e5ea71f1ba49af03ba5410e78fb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.foodandwine.com/thmb/CGXpgjWOgHWv9TsqyMoLyl5cYrs=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/soppressata-pizza-with-calabrian-chil...",
+          "stratum_sha256": "c5becadc744adda1c89f1c4f1199edab6b24a8a3e384e10a6e256d90fe0ee152"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://qph.cf2.quoracdn.net/main-qimg-773b0edb0b8d236e2cd653760437f55b.webp",
+          "stratum_sha256": "c6d87ba38802081cc166fc40509dd29f9e4908d393b02caa4d91fa4ee18277e5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.google.com.hk/imgres?imgurl=https%3A%2F%2Fimages.cdn1.stockunlimited.net%2Fpreview1300%2Ffather-s-day-poster_1538707.jpg&tbnid=ed5JF4YsXPPrFM&vet...",
+          "stratum_sha256": "c76519c3c290835a76e388b234539564d539ed895a49e1072d61b1f92d4587ad"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm1.staticflickr.com/34/123564064_3b9c100b20_z.jpg",
+          "stratum_sha256": "c9e0a762c6c387488f8d1cac24e9717aec293cfd7a41e1948561fa31fa9e43fc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/free-vector/flat-design-no-photo-sign_23-2149276115.jpg?w=740&t=st=1687164421~exp=1687165021~hmac=3cad5f52bd96fb6645da1435c273fcd23e8...",
+          "stratum_sha256": "ca64cbaa8a4e3625d0539e1b3b3dd9f241ae3907c4bd895401593bae9d617dbd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://previews.123rf.com/images/wavebreakmediamicro/wavebreakmediamicro1409/wavebreakmediamicro140923103/31909700-woman-getting-a-pedicure-from-beautician-...",
+          "stratum_sha256": "caeb9b5c8c03c3e9d9f7f4301764f047b6d37634b3c76927a929d2d3c074ea9b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/free-photo/side-view-woman-clay-sculpting_23-2149730894.jpg?w=2000",
+          "stratum_sha256": "cb0c4ea1c359f8d2ba5d7803504015eb9b8d769e12b87799373e2f30bd19dc04"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.vSHzUvNAjee8UppmuT-C8gHaFL?w=245&h=180&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "cd151fe110ac0b92fe587d80622c4a550c25a6afd21619dd0bb444751be409e5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img2.baidu.com/it/u=1875414189,2982012210&fm=253&fmt=auto&app=138&f=JPEG?w=1805&h=500",
+          "stratum_sha256": "cd3b3631540f70d4085e64fddaca531282f0d6b6fb1da62485c5c3a61fb8ecc5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img2.baidu.com/it/u=4046451314,608707891&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=679",
+          "stratum_sha256": "cfed27c9442eb8d404047a9e5cf05f80bed1f1cff4815d5b0f149b6349890cb3"
+        },
+        {
+          "capacity": 36,
+          "ideal_quota": 8.316008316008316,
+          "quota": 8,
+          "stratum_preview": "Clevr",
+          "stratum_sha256": "d041b525cb7f6f439b0b3e108ed5e9bb97cee5e6ffc6370a62975c91dfb23192"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i5.walmartimages.ca/images/Enlarge/272/109/6000191272109.jpg",
+          "stratum_sha256": "d0c17c713627c759c2102cb20c7b7da00d091e86d5342ff4c5705dab6ca149b9"
+        },
+        {
+          "capacity": 8,
+          "ideal_quota": 1.848001848001848,
+          "quota": 2,
+          "stratum_preview": "https://i0.wp.com/onlymyenglish.com/wp-content/uploads/jobs-and-occupations.png?w=964&ssl=1",
+          "stratum_sha256": "d0c2083d047ca238642792422aa49087f66d8dad91356da3fcee40ee6778083d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/853720192/zh/%E7%85%A7%E7%89%87/%E5%B0%8F%E5%A5%B3%E5%AD%A9%E5%AD%B8%E7%BF%92%E9%A8%8E%E8%BB%8A%E8%88%87%E7%A5%96%E7%88%B6.j...",
+          "stratum_sha256": "d0fc9b0076deafc7eaa69270959d4c4dad37c7d4ada0edd3d26ecb02e34c5716"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/909554898/photo/cross-section-plant-stem-under-the-microscope-for-classroom-education.jpg?s=612x612&w=0&k=20&c=s7klB_jBDebWe...",
+          "stratum_sha256": "d115b0ae05399ba842d5f6395d14104f150fb2e5daa8d5a86b987c79fdc3c033"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/free-photo/young-handsome-repairman-blue-overall-yellow-helmet-holding-toolbox-wrench-bearded-plumber-standing-isolated-color-wall-ma...",
+          "stratum_sha256": "d1afe5f5630766ee239ad39aa9837c87aef881ea67e1713dc43c703efa13d55b"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011345196_03976452832.jpg",
+          "stratum_sha256": "d1b2ad9a3f1b3b272aa223757160d154b27300c8b7c3b0824c56c799400fbec8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=ItMmDDxC&id=18AEF1575EF0AF2266F83C5294CF8E9B23F0BA38&thid=OIP.ItMmDDxC-8ZWw4CEgqH22AHaJW&mediaurl=https...",
+          "stratum_sha256": "d1c8d7453392d29aee891ad7b001433a99a6061099318d5bf3f189edd895fd59"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.freepik.com/free-photo/guy-sitting-rocks-near-river_23-2147683054.jpg?w=2000",
+          "stratum_sha256": "d256b2361120aeac608f292570692a2c9c94fca841ad736e70ac46c884373fcf"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/leaning_tower_of_pisa_by_europestock.jpg?resize=600%2C800",
+          "stratum_sha256": "d32e30907213bf89baf2b960c1c163d890f6ed5fb83458d9232849c6e8b9549e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/www.designlike.com/wp-content/uploads/2011/12/Bran_Castle_by_slickdj3.jpg?resize=700%2C484&ssl=1",
+          "stratum_sha256": "d3c9b3d5d3f5b6b27eb7c977638136199a206bb810c05d4ed47edf5f4979cdb6"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://prod-images-static.radiopaedia.org/images/12503200/27f6574b96deb965217cff1aac35fc_big_gallery.jpg",
+          "stratum_sha256": "d4123f734806739ec44d15f97c88e0bec94cf988bd0480b6ea9b33373389388b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm3.staticflickr.com/2765/4073027964_751291b54e_z.jpg",
+          "stratum_sha256": "d4cdad5d2a987f567d266dd26a5b99b4f97b537e09c82616bbcddfff9287a62d"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=QKbyjnJi&id=094664BF21272F53A547ED6CB2D699915F4794F2&thid=OIP.QKbyjnJi_qFemqqqVF76VQHaE_&mediaurl=https...",
+          "stratum_sha256": "d4f852bdd41c1be4160a402342d2d889a1f3d91f3ad06f592da8018ab424e26c"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/en/thumb/c/c5/Jean_Metzinger%2C_1913%2C_En_Canot%2C_oil_on_canvas%2C_146_x_114_cm%2C_missing_or_destroyed.jpg/330px-Je...",
+          "stratum_sha256": "d62ed04e6090291c74566f156547f9ccf9eb96c59f9dc53c6f02cabcc6f43b66"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1303559217/zh/%E7%85%A7%E7%89%87/%E7%88%B8%E7%88%B8%E5%92%8C%E5%A5%B3%E5%85%92%E7%8E%A9%E6%99%82%E9%96%93%E6%89%93%E6%89%AE%...",
+          "stratum_sha256": "d689a48b810f2b557fe888aace156c5dbbff2c042f166dbb129bd259090b36cc"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "https://st.depositphotos.com/1000602/1256/i/600/depositphotos_12562631-stock-photo-blurred-crowd-of-unrecognizable-at.jpg",
+          "stratum_sha256": "d70fa933244e7d70272c47b0a83e2d86bb4927bb7506a61a6449713980b7581b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm8.staticflickr.com/7020/6472161409_297ef5faf6_z.jpg",
+          "stratum_sha256": "d7aab346a09db8d3e58e8429926623bb36b908f8f8bccafc3441f88d68c7705e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://m.media-amazon.com/images/I/619squh97YL._AC_UF894,1000_QL80_.jpg",
+          "stratum_sha256": "d87b790046de5d816437b2c6717a62d3dbb44b13f677082974459a1911e65871"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1270068979/zh/%E7%85%A7%E7%89%87/%E5%BF%AB%E6%A8%82%E5%BE%AE%E7%AC%91%E7%9A%84%E5%8D%B0%E5%BA%A6%E7%88%B6%E8%A6%AA%E7%B5%A6%...",
+          "stratum_sha256": "d8c59960907d3a8e1d638584071536e13c8ac12f14a6e78c697898babd29a2c8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm1.staticflickr.com/46/121153772_8f51e0c3cc_z.jpg",
+          "stratum_sha256": "d931eccf6b1bdf00a97101aff7cadfcad664cb18bcbe76aab25d257395097243"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=8g12w30r&id=C9A44683B65DDD507C3101A39D229E36D12A236C&thid=OIP.8g12w30rejHmTYKqIu8gcwHaF1&mediaurl=https...",
+          "stratum_sha256": "d93569664965c12a891d5c2901f8c82b150edbd502b09ab0e7e519b8b54c8979"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQFfqKc-4Ux5lraCcdE-3aJG8aVsVF9LwuAUA&usqp=CAU",
+          "stratum_sha256": "d9838547d305512fa17280fd76079295207cdcf962a66bf7554244a3593ddcec"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/R.c17243402facb00e4abef2c1d4047c3e?rik=XXCoB%2bEPv%2fRsOg&riu=http%3a%2f%2fwww.guangyuanol.cn%2fuploads%2fallimg%2f201105%2f16004KK...",
+          "stratum_sha256": "d9cc2c1684221ea97989f6435f45a7a6171e798530d94957f16ee6aba5c945fc"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.britannica.com/23/238523-050-D22E57A9/Helen-Mirren-Cannes-Film-Festival-2021.jpg",
+          "stratum_sha256": "dace1b5fe90a17726907215744217baf452dec663f2f1e03067c2f155f3fa3c2"
+        },
+        {
+          "capacity": 415,
+          "ideal_quota": 95.86509586509587,
+          "quota": 96,
+          "stratum_preview": "scienceqa",
+          "stratum_sha256": "db1d4b423571a462a34841c85d14311e718df0e949616a8465d2dbe19d013a48"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://image.baidu.com/search/detail?ct=503316480&z=&tn=baiduimagedetail&ipn=d&word=%E6%B0%A6&step_word=&ie=utf-8&in=&cl=2&lm=-1&st=-1&hd=&latest=&copyright...",
+          "stratum_sha256": "dbe57e905edba42594fac4b69c9bc89bcb88923adb8f3d6a3b3d59b08a16008b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/862689744/zh/%E7%85%A7%E7%89%87/%E5%AD%B8%E7%BF%92%E5%88%B0%E7%9A%84%E5%92%92%E8%AA%9E.jpg?s=612x612&w=0&k=20&c=y7iqBSKIpn5Q...",
+          "stratum_sha256": "dcc2215199eac15345073095c6d26b652ace8b67853f5f363fd05e9311ddd205"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st3.depositphotos.com/9880800/15633/i/600/depositphotos_156338002-stock-photo-senior-woman-with-umbrella.jpg",
+          "stratum_sha256": "dcfc973a192d1e74a9966fa002b9826a95ba7effcc7ada923f4107cf5b7b3aad"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st2.depositphotos.com/3747267/6028/i/600/depositphotos_60281305-stock-photo-palms-at-wind.jpg",
+          "stratum_sha256": "dd4c5cbd5be2ffe42edcd1c55edc2acf934cdfe2d6fa1e202a4cfa5e4dd21204"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1132439589/zh/%E7%85%A7%E7%89%87/%E5%AA%BD%E5%AA%BD%E6%95%99%E5%A5%B9%E7%9A%84%E5%85%92%E5%AD%90%E5%9C%A8%E5%85%AC%E5%9C%92%...",
+          "stratum_sha256": "dd65d9e66e65d1f40a8983f0a59c6bbbb654c57ec2f04e481c17d0830620d390"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/882116488/zh/%E7%85%A7%E7%89%87/%E5%9D%90%E5%9C%A8%E7%AA%97%E9%82%8A%E7%9A%84%E5%B9%B4%E8%BC%95%E5%A5%B3%E5%AD%90.jpg?s=612x...",
+          "stratum_sha256": "dd919f5c3f8ed5f5d40db4886777557a536bb0eb440c5fd8edaae0fb9f98b6d8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.0yxIwfe0i-01dG6jdduCXgHaEK?w=296&h=180&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "ddbefbe77efd797165fa2c5eb8cfa7b0cd07e487947e3627f11b0749f4e9c7c2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=bsRn1hDM&id=8982A9756C294CDB8E8EA3E4082CD53A48CC6F53&thid=OIP.bsRn1hDMteAWcpEnORECVwHaHa&mediaurl=https...",
+          "stratum_sha256": "de0311a089eeb50fada7dc6979a1ecaa8fe2bd7eec67fcee0f788bc0c7c6db8a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm5.staticflickr.com/4040/4229420099_434689cd55_z.jpg",
+          "stratum_sha256": "de217ccf33230228eeea8df2d172643931d15cdf74c279a5386c45d12efbf1f2"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/www.designlike.com/wp-content/uploads/2011/12/Burj_Al_Arab_on_18_October_2007_Pict_1.jpg?w=806&ssl=1",
+          "stratum_sha256": "de321425d3afaf6f0c734c7d3f9759f8e96e41f122bbd6bdbdfa21b20ef8ef0f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/liberty.jpg?resize=600%2C800",
+          "stratum_sha256": "de64fa742beb42c9d97f676bbde5d3c8085cdc0ba0173a70d9f5c9b42b18d179"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Nurse.png.webp",
+          "stratum_sha256": "de78dabd26d5956cfe32d36c12a203a830f4e508d9ae3880c3530ecc5eae947b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSDipm31_plsG_TjJYyO7lli69M9xF_pIDdVA&usqp=CAU",
+          "stratum_sha256": "de95fe0ac080fb32859c0c13cf7c68593f95ddfb229d442543f0d8348f695ecc"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=77rYhcri&id=8A298E84DE3EB3731E6B59EF6D14777464FB901C&thid=OIP.77rYhcribbmGpzi3gbNhrgHaDq&mediaurl=https...",
+          "stratum_sha256": "df26acde02cf4d1bbcde037c480ad9e073040a54669771f93ab26d883bfdd534"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm8.staticflickr.com/7194/6796780464_6154994b9e_z.jpg",
+          "stratum_sha256": "df799f1c28d3e3e65c8aa0723dbf2a364061eab258830fbcee20d8e1eed3df6f"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/478003004/zh/%E7%85%A7%E7%89%87/bonding-with-grandma.jpg?s=612x612&w=0&k=20&c=bQfrIDLOclNYl0CcPsWRteezbvcXtRvL_MSkKfahAPM=",
+          "stratum_sha256": "df9e3c738a3143da1466eb6f101affa4761932166632f23b15559527a4831e32"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=o9vk3ViG&id=8EC79F1BB1FB16171039344F2CF5676E863A58AA&thid=OIP.o9vk3ViGmEkdMAcYTgkVrQHaFj&mediaurl=https...",
+          "stratum_sha256": "e00a13cfc974cf5fbbd3c0f4b0f6f346fbda580445c394d5805c197debd2db3e"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.w3schools.com/python/trypython.asp?filename=demo_dict_datatypes",
+          "stratum_sha256": "e04928e38085ccb3af3bac48a62d9de809a1364b4ec1eea24dbde2f75061874d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2017/07/17/22/00/furious-2514031_1280.jpg",
+          "stratum_sha256": "e0bebfb84f52e405cad6e0d55f5ae61d4861c350203c76f7dd0306b37448b076"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.tanhei.com/file/upload/202112/03/13443918334.jpg",
+          "stratum_sha256": "e10d2d9687a5d62e9dbb286fc5f058f3205cb2e9e328c9a7a68f49608a094519"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://texashistory.unt.edu/ark:/67531/metapth861210/m1/1/med_res/",
+          "stratum_sha256": "e170ef8bd27c8c101efdace7489a16a9634994dcfb7de5eba3b5077c97b02fbd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://prettysimplesweet.com/wp-content/uploads/2016/08/GrissiniBreadSticks-3.jpg",
+          "stratum_sha256": "e17b3250b2a7230350a46c055251e02e1028aadfa054b200a88e241fc96ad1c7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://ns-strategy.cdn.bcebos.com/ns-strategy/upload/fc_big_pic/part-00028-3803.jpg",
+          "stratum_sha256": "e1d9b7dc583de32a8f478c4d217dc891d696648492d8877d54696a7ac87956ec"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img.zcool.cn/community/01566a55448cff0000019ae99deece.jpg?x-oss-process=image/auto-orient,1/resize,m_lfit,w_1280,limit_1/sharpen,100",
+          "stratum_sha256": "e1e25346968dbd5be97af3c1671003aed21299d7aea5345be0c3c84951ad68d5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/Windmills-Kinderdijk-Netherlands-600x450.jpg?resize=600%2C450",
+          "stratum_sha256": "e2145543c69b5e2fd2bff5f36eace4c45ac5983c802b44f1985cc8b6f8ca31c7"
+        },
+        {
+          "capacity": 32,
+          "ideal_quota": 7.392007392007392,
+          "quota": 7,
+          "stratum_preview": "scene/places365_val",
+          "stratum_sha256": "e242c894ba9c81a55c413d19b4dd4230d3ac36e380ef7b16edc1e1e8eb00f7a6"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Hasegawa_Tohaku_-_Pine_Trees_%28Sh%C5%8Drin-zu_by%C5%8Dbu%29_-_right_hand_screen.jpg/300px-Hasegawa...",
+          "stratum_sha256": "e29d478cf6df677fc598672744d062e4e6181d2f6b591541637c6edfb168c99b"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011173220_0445846327.jpg",
+          "stratum_sha256": "e2ade7477f82cd95c2d198f2597d7f1353cb446b83c3bf01151f37138b083b5b"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://static8.depositphotos.com/1005858/803/i/600/depositphotos_8030386-stock-photo-senior-woman-portrait-on-black.jpg",
+          "stratum_sha256": "e3d7bb6a7f973269818b8ddcecad12ca9e512e5056b84ba125d45220136f5bf8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.cnn.com/api/v1/images/stellar/prod/130502152627-rubber-duck-in-hong-kong-1.jpg?q=w_4288,h_2848,x_0,y_0,c_fill",
+          "stratum_sha256": "e5005c2e652a31101698bae1b4225b03cbdbf9dc88e3ccb97357fee066032383"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://zhuanlan.zhihu.com/p/374461056",
+          "stratum_sha256": "e5fc3844bdb2143bb16993817ffe682fd2a30d290dba16dfad5f92c8420d4284"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st.depositphotos.com/1023912/1918/i/600/depositphotos_19182595-stock-photo-lantern-on-windowsill.jpg",
+          "stratum_sha256": "e625b39b754eee8c4c6ca9cd27a451ab68c98fbafe0de1a295ac79e6d76d5f34"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.cntraveler.com/photos/61e8afdfbe93438d3bcb8800/16:9/w_2560%2Cc_limit/GettyImages-1063092438.jpg",
+          "stratum_sha256": "e62df8b6ff00374bdbb4a27fc15b52f406f47c3d0c485421bf76fc81f0a54c58"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs38",
+          "stratum_sha256": "e6584335e4dca01403a343012f70d2de3e2cbfaaec3074b55d94916f55c87773"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=Fmc4baLM&id=0DE893D79A5F6A0AD537E743BB55836E8A0BBC7F&thid=OIP.Fmc4baLMS-NNNelTgOrZWwHaHa&mediaurl=https...",
+          "stratum_sha256": "e7edb12414590d19ce5c794fc19a25f504d5e31ffcda8825888794a45f8f7a02"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/R.950c9cc3c5239d21ef202dd9fe0f0135?rik=lEscyqvbmoLWuQ&riu=http%3a%2f%2fpic26.photophoto.cn%2f20130311%2f0005018483962857_b.jpg&ehk=...",
+          "stratum_sha256": "e81d36493ee89cc7af22d16d60bac8e3bd9240c634e5e09e6e26e915b79eed5d"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=A%2BsFFjRM&id=A792097ACBF1860598926EA11AD8FE64CAB3F61D&thid=OIP.A-sFFjRMu2vXJK4_pHPMTwHaHa&mediaurl=htt...",
+          "stratum_sha256": "e82cd0df64e7acde92de20c43aa1dcbf6dab266a2b5eadc60370bf1e4922d0b9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/598165432/zh/%E7%85%A7%E7%89%87/womans-emotional-struggle.jpg?s=612x612&w=0&k=20&c=fNoLu0B5-uvqxSb6Xd2JHyBAOi_A4ZoBBnw-FFh-ccI=",
+          "stratum_sha256": "e8b8c26e1b6f205642da113d1378d6aed4ed8b29311ebea6cb5350ef0f4652bd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://static4.depositphotos.com/1003697/438/i/600/depositphotos_4384584-stock-photo-friends-have-fun-and-celebrate.jpg",
+          "stratum_sha256": "ea0f5379c9b3938d035f3cea6798084344ebfd32272e0b6a76dcba347ee153dd"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://saintgirischool.com/wp-content/uploads/2020/01/page0001.jpg",
+          "stratum_sha256": "ea703010f5f0dd3a4a6a467e2d9d208488f20da9a98adb2cf369384706869ffa"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.shopify.com/s/files/1/0170/7494/products/Untitleddesign_10_2000x.jpg?v=1670389562",
+          "stratum_sha256": "eb144236f671dddbc2a959036ef6e69b4cecc2a82e0b53b7a0a4d46c5cb2e13b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://image.baidu.com/search/detail?ct=503316480&z=0&tn=baiduimagedetail&ipn=d&word=%E6%B0%AE%E6%B0%94&step_word=&ie=utf-8&in=&cl=2&lm=-1&st=-1&hd=&latest=...",
+          "stratum_sha256": "eb97bafa6234ac1c3aab61af0f8801fb7777a34bf7727ddf28fc72ea6cfd7a41"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st.depositphotos.com/1004999/1635/i/600/depositphotos_16350541-stock-photo-golden-planet.jpg",
+          "stratum_sha256": "ebc628689c0df0235593a724341d070edbf8ba8a2fac26791f421f272ca3e08d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/526369105/photo/climber-grips-the-edge.jpg?s=612x612&w=0&k=20&c=o5wvwvKv_ByUbT6Di5XwB7C_UlKj7tz5t_ZvHaYHbnk=",
+          "stratum_sha256": "eca1964bd5953adcc38f220cef5872d5dca448ab6ea9e103e42445363f836b46"
+        },
+        {
+          "capacity": 3,
+          "ideal_quota": 0.693000693000693,
+          "quota": 0,
+          "stratum_preview": "https://www.youtube.com/watch?v=w6urQm7Prs26",
+          "stratum_sha256": "ecffaf2354d198a6c4d3fc11c409d21a68adc1a9df5103420255f4a817accfc7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://st4.depositphotos.com/5539612/28793/i/600/depositphotos_287930328-stock-photo-mountain-river-prut-yaremche-ukraine.jpg",
+          "stratum_sha256": "ed95499fb4365e6f90c4ec4537ef52f7eeab378a3abb8e60a68cc80f2dfe45a7"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm5.staticflickr.com/4067/4580052713_a4f005f5a0_z.jpg",
+          "stratum_sha256": "edd47bf77a33e7f9a93d8844f569b416f87d0227af8ed25cf30eb836d19c7c99"
+        },
+        {
+          "capacity": 16,
+          "ideal_quota": 3.696003696003696,
+          "quota": 4,
+          "stratum_preview": "https://media.geeksforgeeks.org/wp-content/uploads/20230428112324/maths-formula-chart-05-05-05-copy.webp",
+          "stratum_sha256": "eef9bcc7c59b205da55fc477fa2262788a6282b1ad113d67c553567676a0c55a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.cnn.com/api/v1/images/stellar/prod/220321052036-david-beckham-11212021.jpg?c=9x16",
+          "stratum_sha256": "f036e602e16a58672162208f2c134e3d50cb48fdc70aa093b230256efce44248"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/www.designlike.com/wp-content/uploads/2011/12/Brandenburg-Gate-at-Dusk-Berlin-Germany-800x600.jpg?resize=800%2C600&ssl=1",
+          "stratum_sha256": "f10996c750d819427d5a718647627a128e19181d23ade8a8a9cb0c70f67fdbea"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i.ytimg.com/vi/bKxiwxWsC3c/maxresdefault.jpg",
+          "stratum_sha256": "f15be447c88e0b08c57d496d5ff9e3341797f3e3639a1f928fc4eb7ab4ef30ec"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1323715308/zh/%E7%85%A7%E7%89%87/african-american-girl-raising-her-hands-while-sitting-on-her-desk-in-the-class-at-school.jp...",
+          "stratum_sha256": "f15e50dcd53c73fa6d0cd2400342871851a4ef3be1c4f60d5e4be49e24f09d8b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1005846308/photo/mature-artist-playing-the-piano-in-studio.jpg?s=612x612&w=0&k=20&c=vj111D2f5hNcB2MsdhfTiTtBA8VChHRPALpdRUll...",
+          "stratum_sha256": "f1a3f5fb3211db4ff97dc1226a60e052f257f2c23748ee980abec6bef5ca5c2b"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/658352584/zh/%E7%85%A7%E7%89%87/%E5%8F%AF%E6%84%9B%E7%9A%84%E4%BA%9E%E6%B4%B2%E5%85%92%E7%AB%A5%E8%BA%BA%E5%9C%A8.jpg?s=612x...",
+          "stratum_sha256": "f2f0d1c2a572e28198bb50688ef5fa55177d12410d1907191d1c3cdeb1924a69"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.gbnews.com/media-library/kate-middleton.jpg?id=34119926&width=1200&height=800&quality=90&coordinates=0%2C0%2C0%2C2",
+          "stratum_sha256": "f30889db4bc510d23e2c3dc13e230d8bfcc87ee2501cd26cab77a7968b8015c5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1309085629/zh/%E7%85%A7%E7%89%87/%E7%89%B9%E5%AF%AB%E5%BE%AE%E7%AC%91%E6%84%9B%E5%B9%B4%E8%BC%95%E7%9A%84%E7%88%B6%E8%A6%AA%...",
+          "stratum_sha256": "f3d0b772ca4e844c967b38dc91e861c265e9dd1e80b32168f528c31b6addc6c1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://th.bing.com/th/id/OIP.XmXJv1CY8WhwxRpWMhfeqAHaE7?w=283&h=189&c=7&r=0&o=5&dpr=1.5&pid=1.7",
+          "stratum_sha256": "f409ed3602f3a2789b259dbe26b730de36cf9112317fc3e418f26a76e688a0e4"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/525409577/zh/%E7%85%A7%E7%89%87/elevated-view-of-students-writing-their-gcse-exam.jpg?s=612x612&w=0&k=20&c=ExvksA4l8fXd1IT3B...",
+          "stratum_sha256": "f4be3be9db9086742bb2b18f224a14fd955bc4b0f4824bcd1c82dc8248773c71"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i.ytimg.com/vi/YdaU4op-_fM/maxresdefault.jpg",
+          "stratum_sha256": "f5181cbd2f87ea2efe57deb483d76cd746f22a59f0bef3e6434d05d7231268ec"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011223063_0516771790.jpg",
+          "stratum_sha256": "f57676d0bc4dbd6fa6598caf39e310c9fd25006cbe6dcd2bf6d318c292603e00"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/www.designlike.com/wp-content/uploads/2011/12/neuschwanstein_by_goddamner-d39fjm1.jpg?w=1024&ssl=1",
+          "stratum_sha256": "f5b84acf7b47f6e392d7a9d62c7be18f950abc127b4649af131dffffe30e5d7d"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.bing.com/images/search?view=detailV2&ccid=q6nfmVvT&id=5818B3AB81365681C4AB0060EB8E8F5B4E711BF1&thid=OIP.q6nfmVvTVysR98UOE52LpAHaHa&mediaurl=https...",
+          "stratum_sha256": "f5f15ed3baec78b06f0e29bc95e91077177d44208619fd196168e233405a81e1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://englishtivi.com/wp-content/uploads/2022/07/Judge.png.webp",
+          "stratum_sha256": "f642e313491ad883ccbd60d5b32cb86e0b25926cad406d59b26c3c1e50f085ca"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://www.entoin.com/images/shah2.jpg",
+          "stratum_sha256": "f688760ddefb509c539aef18b4c3ba62dd437f666f9a115e23d1ab7b3442b181"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://d2gg9evh47fn9z.cloudfront.net/800px_COLOURBOX23352415.jpg",
+          "stratum_sha256": "f86a26d7ccf96d96549e0ddfd22d1c0b0b3c4469ae0e5850d50a6803aa3625fe"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://img0.baidu.com/it/u=221396920,1553768820&fm=253&fmt=auto&app=138&f=JPEG?w=620&h=364",
+          "stratum_sha256": "f8e8a6822045637e12e80b96e7e793274d85b52a93913df444ec671357f4ecd8"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://media.istockphoto.com/id/1325578537/zh/%E7%85%A7%E7%89%87/happy-indian-mother-having-fun-with-her-daughter-outdoor-family-and-love-concept-focus-on-m...",
+          "stratum_sha256": "f95516d2525a2893095ab13b8fb7f01597811ffc0304a6c63517cf5b44ef5874"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Claude_Monet_-_Woman_with_a_Parasol_-_Madame_Monet_and_Her_Son_-_Google_Art_Project.jpg/255px-Claud...",
+          "stratum_sha256": "f99f0ad5e965c8407d3e2be28a756cc47b1bb8320e5a76d3d9904a5efcc670a5"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Hoch-Cut_With_the_Kitchen_Knife.jpg/330px-Hoch-Cut_With_the_Kitchen_Knife.jpg",
+          "stratum_sha256": "fa249963785fee11b39494dccc83c726cfda0715cf9d74c6e27c54a8cfa66ffb"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://cdn.pixabay.com/photo/2018/03/12/06/17/sadness-3218845_1280.jpg",
+          "stratum_sha256": "fa86297ce798157bcdd96bf4f4ee6382cf84d199299f5d77f9c64c3e9ec7cde6"
+        },
+        {
+          "capacity": 8,
+          "ideal_quota": 1.848001848001848,
+          "quota": 2,
+          "stratum_preview": "https://www.w3schools.com/python/trypython.asp?filename=demo_for_continue",
+          "stratum_sha256": "fab274518b4fed6a17adbf2b16db2978e3f1fee5d1a75d1a4bd7db953351f4a9"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://upload.shejihz.com/2020/06/44a7f4ce94207eb64805d5f896467a09.jpg",
+          "stratum_sha256": "fada02d62d7203a873b16cbee72ca403f0e59717adfea4eaaee38cdf916190b9"
+        },
+        {
+          "capacity": 8,
+          "ideal_quota": 1.848001848001848,
+          "quota": 2,
+          "stratum_preview": "https://media.geeksforgeeks.org/wp-content/uploads/20230428112327/maths-formula-chart-06-06-copy.webp",
+          "stratum_sha256": "faede374fb40cd0ce379241d93d662fe31a80c595bc2eaf124acc592ac1f403a"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://images.pexels.com/photos/1557652/pexels-photo-1557652.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",
+          "stratum_sha256": "fb3f4a6b2a9c974c743c2210247b19c48c499d9dbe120b4ee94080759deefcf4"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm8.staticflickr.com/7380/9841114004_cb048de6cc_z.jpg",
+          "stratum_sha256": "fc66a5e48f2543445e6862dbd0d158ed5c3eaa3703ac2adf81d618deab365ee1"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://picx.zhimg.com/v2-a321e5018ed11fdefc5e8734b0954082_r.jpg?source=1940ef5c",
+          "stratum_sha256": "fd1190ccf0d8626cc6076dff390bf5720e69a857830144682e7b1f7d67d95f67"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://nwscdn.com/media/catalog/product/m/a/main---match-rugby-ball-replacement.jpg",
+          "stratum_sha256": "fdbc266834f671eca443d6a95f7aff94f39191d5cf3709fbf0f433c7267f3110"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://i0.wp.com/designlike.com/wp-content/uploads/2011/12/The-Little-Mermaid-Copenhagen-600x450.jpg?resize=600%2C450",
+          "stratum_sha256": "fdfbefc5448e630e0e260cbcdd0893953165fdcbf55e1b97d6ba6226b2832213"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTfZu-c0CdmjjqYExsZGj910SKhjqUkj-uoPA&usqp=CAU",
+          "stratum_sha256": "fe2a376ec092a4612b8d75740a3d87715cb7792a31d906ceefb8b3d2f1009796"
+        },
+        {
+          "capacity": 2,
+          "ideal_quota": 0.462000462000462,
+          "quota": 0,
+          "stratum_preview": "http://zuohaotu.com/Download/062011083912_0260267679.jpg",
+          "stratum_sha256": "ff0e569861fcb27c2ed8c8d46366a8d4003763dede0b7ec4636ba3ef38a791c0"
+        },
+        {
+          "capacity": 4,
+          "ideal_quota": 0.924000924000924,
+          "quota": 1,
+          "stratum_preview": "https://farm3.staticflickr.com/2148/2146819200_3a32436fba_z.jpg",
+          "stratum_sha256": "ffb761211ee7f356e0bf1e866103e84aab6042f0d00526232b388c99c921dd51"
+        }
+      ]
+    },
+    "mme": {
+      "candidate_groups": 1187,
+      "candidate_rows": 2374,
+      "config": "default",
+      "excluded_non_pair_groups": 0,
+      "group_size_distribution": {
+        "2": 1187
+      },
+      "hub_id": "lmms-lab-encoder/MME",
+      "manifest": "mme_1000.jsonl",
+      "manifest_sha256": "4df75f1b1125161c079e007b68e2784524dad7955ca72601ffa32575b699c787",
+      "revision": "d6c9023f017b564f7b3ccccf5348166bce8fdbcd",
+      "selected_groups": 500,
+      "selected_rows": 1000,
+      "split": "test",
+      "stratum_pair_capacities": {
+        "OCR": 20,
+        "artwork": 200,
+        "celebrity": 170,
+        "code_reasoning": 20,
+        "color": 30,
+        "commonsense_reasoning": 70,
+        "count": 30,
+        "existence": 30,
+        "landmark": 200,
+        "numerical_calculation": 20,
+        "position": 30,
+        "posters": 147,
+        "scene": 200,
+        "text_translation": 20
+      },
+      "stratum_pair_quotas": {
+        "OCR": 8,
+        "artwork": 84,
+        "celebrity": 72,
+        "code_reasoning": 8,
+        "color": 13,
+        "commonsense_reasoning": 30,
+        "count": 13,
+        "existence": 13,
+        "landmark": 84,
+        "numerical_calculation": 8,
+        "position": 13,
+        "posters": 62,
+        "scene": 84,
+        "text_translation": 8
+      },
+      "strict_two_question_groups": 1187
+    },
+    "textvqa": {
+      "candidate_rows": 5000,
+      "config": "default",
+      "hub_id": "lmms-lab-encoder/textvqa",
+      "manifest": "textvqa_1000.jsonl",
+      "manifest_sha256": "b47c13ff376286791788f98f6fd1ef2577d0b8b9ac920c18b894226710d7fb0b",
+      "revision": "9c0699cd19768ac5ab97568f6b3cbac4c0062884",
+      "sampling": "deterministic SHA-256 rank without replacement",
+      "selected_rows": 1000,
+      "split": "validation",
+      "unique_question_ids": 5000
+    }
+  },
+  "plan": "advisor_2026_09",
+  "seed": 42
+}

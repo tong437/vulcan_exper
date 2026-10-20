@@ -1,0 +1,15 @@
+{
+  "model": "gemma_4_e2b_it",
+  "dataset": "textvqa",
+  "n_samples": 1000,
+  "n_layers": 35,
+  "grid_size": 1001,
+  "source_manifest": "artifacts/neuron_typing_generalization/control_response_2026_10_frozen/gemma_4_e2b_it__textvqa/manifest.json",
+  "source_run_id": "gemma_4_e2b_it__textvqa__seed42__8acd4e4a38",
+  "candidate_knee_u": 0.714,
+  "candidate_knee_score_share": 0.46910604216891877,
+  "mean_share_at_1pct": 0.0030783691717598334,
+  "mean_share_at_5pct": 0.018681601249112584,
+  "mean_share_at_10pct": 0.04114036880979645,
+  "mean_share_at_20pct": 0.09215704798896077
+}

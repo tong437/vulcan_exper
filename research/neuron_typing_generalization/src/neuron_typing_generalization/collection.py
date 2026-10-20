@@ -118,6 +118,7 @@ def collect_reduced_activations(
     run_id: str,
     model_name: str,
     dataset_name: str,
+    down_projection_norms: Mapping[int, Tensor] | None = None,
 ) -> dict[str, Any]:
     """Run one injected model into resumable compact per-sample partitions."""
     if samples.empty or "sample_id" not in samples:
@@ -130,15 +131,24 @@ def collect_reduced_activations(
     part_dir = activation_dir / "sample_parts"
     part_dir.mkdir(parents=True, exist_ok=True)
 
-    down_norm_tensors = {
-        binding.layer: torch.linalg.vector_norm(
-            binding.down_projection.weight.detach().to(torch.float32), ord=2, dim=0
-        )
-        for binding in bindings
-    }
+    if down_projection_norms is None:
+        down_norm_tensors = {
+            binding.layer: torch.linalg.vector_norm(
+                binding.down_projection.weight.detach().to(torch.float32), ord=2, dim=0
+            )
+            for binding in bindings
+        }
+    else:
+        down_norm_tensors = dict(down_projection_norms)
+        if set(down_norm_tensors) != {binding.layer for binding in bindings}:
+            raise ValueError("Precomputed down-projection norms do not cover exactly the discovered layers.")
+        for binding in bindings:
+            values = down_norm_tensors[binding.layer]
+            if values.ndim != 1 or values.shape[0] != binding.d_ff or not torch.isfinite(values).all():
+                raise ValueError(f"Invalid precomputed down-projection norms for layer {binding.layer}.")
     down_norms = np.zeros((layers, d_ff), dtype=np.float32)
     for layer, width in enumerate(d_ff_by_layer):
-        down_norms[layer, :width] = down_norm_tensors[layer].cpu().numpy()
+        down_norms[layer, :width] = down_norm_tensors[layer].to(device="cpu", dtype=torch.float32).numpy()
     if not np.isfinite(down_norms).all():
         raise RuntimeError("Down-projection norms contain non-finite values.")
     weight_path = activation_dir / "down_projection_norms.npy"

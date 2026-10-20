@@ -16,9 +16,16 @@ limitations under the License.
 
 # Advisor-confirmed experimental guidance
 
-This file is the normative interpretation contract for the input-dependent neuron-typing study. Implementation,
-configuration, tests, tables, figures, and written conclusions must agree with it. If the advisor changes a definition,
-update this file first and create new versioned manifests or outputs where the change affects reproducibility.
+> **Status update (2026-09):** The model/dataset matrix, sampling policy, and primary experiment in this document
+> have been superseded by [`ADVISOR_PLAN_2026_09_CN.md`](ADVISOR_PLAN_2026_09_CN.md). The definitions of the MLP hook,
+> importance, W/V/T/M response states, normalization, invalid observations, and interpretation limits below remain in
+> force where the new plan refers to them. Sections describing VQAv2, GQA Balanced, CLEVR, VizWiz-VQA, the three-model
+> matrix, controlled pairs, and `unpaired_v1_1000` are historical only and must not govern new runs.
+
+This file preserves the original interpretation contract for the input-dependent neuron-typing study. For new runs,
+implementation, configuration, tests, tables, figures, and written conclusions must first agree with the superseding
+plan linked above, then with the still-active definitions retained here. Existing manifests and outputs remain frozen
+for reproducibility and must not be overwritten.
 
 ## 1. Research object and permitted interpretation
 
@@ -83,6 +90,39 @@ the including-self and distinct-pair estimands because a self-pair never changes
 For every `(layer, neuron)`, report valid-sample counts, class counts and proportions, entropy, normalized entropy,
 dominant class, and an auditable stability/profile label. Transition matrices use only explicit edges from the frozen
 pair manifest. Directed and symmetrized transitions must remain distinguishable.
+
+For the current four-state study, distinguish raw Shannon entropy from normalized entropy:
+
+```text
+S = -sum_c p_c log(p_c)
+H_norm = S / log(4)
+K_eff = exp(S) = 4 ** H_norm
+```
+
+Thus `H_norm` lies in `[0, 1]`, while the effective category count lies in `[1, 4]`. Writing
+`exp(H_norm)` would be inconsistent with the intended interpretation because its maximum would be `e`, not four.
+Entropy and effective category count are two monotonic representations of the same state-occupancy distribution and
+must not be presented as independent evidence. Any near-1/2/3/4 bands used in figures are descriptive reference
+intervals, not learned clusters or inferential thresholds.
+
+For the current Hellinger-clustering extension, compare neurons only through the ordered state-probability vector
+`(p_V, p_T, p_M, p_W)`. Use Hellinger distance in `[0, 1]`, standard unconstrained average linkage, and a cophenetic
+distance cut at `0.20`. Cluster independently within each model × dataset run; cluster identifiers have no cross-run
+alignment. Any sampled analysis must be labeled as a pilot and preserve the layer-stratified neuron manifest, seed,
+linkage matrix, assignments, cluster summaries, and source hashes. A sampled dendrogram must not be described as an
+exact full-neuron clustering.
+
+For the current state-pair decomposition, keep the unordered pair order fixed as `VT, VM, VW, TM, TW, MW`. For each
+neuron use `R_ab = 2 N_a N_b / (N(N-1))`, and verify that the six contributions sum to that neuron's distinct-sample
+change rate. At run level, average each absolute `R_ab` across neurons first; normalize those six means only afterward
+when a composition plot is required. Do not average per-neuron normalized compositions: they are undefined when a
+neuron has `R=0` and would give low-change and high-change neurons equal weight.
+
+For the layerwise response-state baseline, compute each state share as the arithmetic mean of `N_c/N` over the real
+neurons in that decoder layer. Keep state order `V,T,M,W`; require the four shares to sum to one for every layer; and
+preserve each architecture's observed layer count and layer-specific `d_ff`. In particular, do not pad Gemma's
+different-width layers or force models to a common depth. These layerwise state occupancies are descriptive inputs to
+the later answer-generation intervention, not evidence that any state class has a larger causal effect on answers.
 
 Uncertainty for a controlled-pair aggregate is estimated by resampling frozen manifest edges, not neurons. Every
 bootstrap replicate recomputes the ratio of summed changed-neuron counts to summed valid-neuron counts. Record the

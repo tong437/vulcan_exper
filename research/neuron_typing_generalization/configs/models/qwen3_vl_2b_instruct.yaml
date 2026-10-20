@@ -1,0 +1,27 @@
+name: qwen3_vl_2b_instruct
+hub_id: Qwen/Qwen3-VL-2B-Instruct
+model_id_or_path: /root/autodl-pub-RTX4090-hdd-1/models/Qwen3-VL-2B-Instruct
+revision: 89644892e4d85e24eaac8bacfd4f463576704203
+architecture: Qwen3VLForConditionalGeneration
+family: qwen3_vl
+modality: vision_language
+dtype: bfloat16
+device_map: auto
+trust_remote_code: false
+decoder:
+  model_type: qwen3_vl_text
+  auto_discover_ffn: true
+  expected_layers: 28
+  expected_d_ff: 6144
+hooks:
+  module_pattern: "*.layers.<index>.mlp.down_proj"
+  capture: forward_pre_input
+  captured_value: post_gating_activation
+token_roles:
+  visual: processor_expanded_decoder_positions
+  text: user_content_span_after_chat_template
+  exclude_control_and_padding: true
+weights:
+  format: safetensors
+  sha256: 7de1838c87a5349b016c26a1c3f7d2bc400a3d485f95ef39a7059ffd734977a0
+  sha256_verified: true

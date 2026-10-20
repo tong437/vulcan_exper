@@ -28,6 +28,8 @@ def main() -> None:
     parser.add_argument("--max-samples", type=int)
     parser.add_argument("--validate-direct-streaming", action="store_true")
     parser.add_argument("--validation-only", action="store_true")
+    parser.add_argument("--replay-dir", type=Path)
+    parser.add_argument("--down-norms", type=Path)
     args = parser.parse_args()
     if args.validation_only and not args.validate_direct_streaming:
         parser.error("--validation-only requires --validate-direct-streaming")
@@ -38,6 +40,8 @@ def main() -> None:
         args.max_samples,
         validate_streaming=args.validate_direct_streaming,
         validation_only=args.validation_only,
+        replay_dir=args.replay_dir,
+        down_norms_path=args.down_norms,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

@@ -1,0 +1,17 @@
+model,model_label,dataset,overall_change_rate,included_neurons,excluded_neurons,invalid_observations,run_id
+llava_1_5_7b,LLaVA-1.5-7B,mme,0.43352140681401774,352256,0,0,llava_1_5_7b__mme__seed42__164078c4d6
+llava_1_5_7b,LLaVA-1.5-7B,mmbench,0.44926627816156456,352256,0,0,llava_1_5_7b__mmbench__seed42__ab5eea63a9
+llava_1_5_7b,LLaVA-1.5-7B,textvqa,0.4771099079525565,352256,0,0,llava_1_5_7b__textvqa__seed42__5bbe3e953b
+llava_1_5_7b,LLaVA-1.5-7B,chartqa,0.42533842965308133,352256,0,0,llava_1_5_7b__chartqa__seed42__81b1017a1b
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mme,0.35697866964574326,172032,0,0,qwen3_vl_2b_instruct__mme__seed42__0c0ad619b6
+qwen3_vl_2b_instruct,Qwen3-VL-2B,mmbench,0.40385490437191285,172032,0,0,qwen3_vl_2b_instruct__mmbench__seed42__25696e0cb1
+qwen3_vl_2b_instruct,Qwen3-VL-2B,textvqa,0.3635094116042195,172032,0,0,qwen3_vl_2b_instruct__textvqa__seed42__e1bc2e7e76
+qwen3_vl_2b_instruct,Qwen3-VL-2B,chartqa,0.37307573339010514,172032,0,0,qwen3_vl_2b_instruct__chartqa__seed42__69cc71046e
+qwen3_5_2b,Qwen3.5-2B,mme,0.39680023071845716,147456,0,0,qwen3_5_2b__mme__seed42__d1cb5d1368
+qwen3_5_2b,Qwen3.5-2B,mmbench,0.45656029204931925,147456,0,0,qwen3_5_2b__mmbench__seed42__a3ab039dd1
+qwen3_5_2b,Qwen3.5-2B,textvqa,0.42435765546633886,147456,0,0,qwen3_5_2b__textvqa__seed42__231713ac74
+qwen3_5_2b,Qwen3.5-2B,chartqa,0.42282296175570094,147456,0,0,qwen3_5_2b__chartqa__seed42__59cff35855
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,0.3446380543066741,337920,0,0,gemma_4_e2b_it__mme__seed42__378265080c
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,0.37442825787435163,337920,0,0,gemma_4_e2b_it__mmbench__seed42__e94a84bc2a
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,0.3779630531810219,337920,0,0,gemma_4_e2b_it__textvqa__seed42__8acd4e4a38
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,0.3737419231672486,337920,0,0,gemma_4_e2b_it__chartqa__seed42__12f869abd8

@@ -1,0 +1,441 @@
+{
+  "status": "complete",
+  "runs": 16,
+  "figures": 16,
+  "state_order": [
+    "V",
+    "T",
+    "M",
+    "C",
+    "W"
+  ],
+  "input_policy": "advisor ablation evaluation_prompt with add_generation_prompt=True",
+  "classification": {
+    "V": "qV > 1/d_ff and qT <= 1/d_ff",
+    "T": "qV <= 1/d_ff and qT > 1/d_ff",
+    "M": "qV > 1/d_ff and qT > 1/d_ff",
+    "C": "qV <= 1/d_ff and qT <= 1/d_ff and qC > 1/d_ff",
+    "W": "qV <= 1/d_ff and qT <= 1/d_ff and qC <= 1/d_ff"
+  },
+  "maximum_layer_sum_residual": 1.1102230246251565e-16,
+  "summaries": [
+    {
+      "model": "llava_1_5_7b",
+      "model_label": "LLaVA-1.5-7B",
+      "dataset": "mme",
+      "dataset_label": "MME",
+      "samples": 1000,
+      "layers": 32,
+      "neurons": 352256,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 11,
+        "maximum": 11,
+        "mean": 11.0
+      },
+      "overall_share_V": 0.1884282765942951,
+      "overall_share_T": 0.18870862384175144,
+      "overall_share_M": 0.14860015727198403,
+      "overall_share_C": 0.10555860794422238,
+      "overall_share_W": 0.3687043343477471
+    },
+    {
+      "model": "llava_1_5_7b",
+      "model_label": "LLaVA-1.5-7B",
+      "dataset": "mmbench",
+      "dataset_label": "MMBench",
+      "samples": 1000,
+      "layers": 32,
+      "neurons": 352256,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 11,
+        "maximum": 11,
+        "mean": 11.0
+      },
+      "overall_share_V": 0.1853843653479288,
+      "overall_share_T": 0.17262374806958575,
+      "overall_share_M": 0.15101570164880088,
+      "overall_share_C": 0.10976678892623547,
+      "overall_share_W": 0.38120939600744913
+    },
+    {
+      "model": "llava_1_5_7b",
+      "model_label": "LLaVA-1.5-7B",
+      "dataset": "textvqa",
+      "dataset_label": "TextVQA",
+      "samples": 1000,
+      "layers": 32,
+      "neurons": 352256,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 11,
+        "maximum": 11,
+        "mean": 11.0
+      },
+      "overall_share_V": 0.18588039948219476,
+      "overall_share_T": 0.19170801916787789,
+      "overall_share_M": 0.1501727522029433,
+      "overall_share_C": 0.10705714310047239,
+      "overall_share_W": 0.36518168604651163
+    },
+    {
+      "model": "llava_1_5_7b",
+      "model_label": "LLaVA-1.5-7B",
+      "dataset": "chartqa",
+      "dataset_label": "ChartQA",
+      "samples": 1000,
+      "layers": 32,
+      "neurons": 352256,
+      "maximum_layer_sum_residual": 0.0,
+      "control_token_count": {
+        "minimum": 11,
+        "maximum": 11,
+        "mean": 11.0
+      },
+      "overall_share_V": 0.1804151866824128,
+      "overall_share_T": 0.18554153229469478,
+      "overall_share_M": 0.15302197833393896,
+      "overall_share_C": 0.11029151242278344,
+      "overall_share_W": 0.3707297902661701
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "model_label": "Qwen3-VL-2B",
+      "dataset": "mme",
+      "dataset_label": "MME",
+      "samples": 1000,
+      "layers": 28,
+      "neurons": 172032,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 10,
+        "maximum": 10,
+        "mean": 10.0
+      },
+      "overall_share_V": 0.17484037853422618,
+      "overall_share_T": 0.17073611304873512,
+      "overall_share_M": 0.13973435174851195,
+      "overall_share_C": 0.09244476027715774,
+      "overall_share_W": 0.422244396391369
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "model_label": "Qwen3-VL-2B",
+      "dataset": "mmbench",
+      "dataset_label": "MMBench",
+      "samples": 1000,
+      "layers": 28,
+      "neurons": 172032,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 10,
+        "maximum": 10,
+        "mean": 10.0
+      },
+      "overall_share_V": 0.16425318545386902,
+      "overall_share_T": 0.161111078171503,
+      "overall_share_M": 0.14808006649925595,
+      "overall_share_C": 0.10035277157738094,
+      "overall_share_W": 0.4262028982979911
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "model_label": "Qwen3-VL-2B",
+      "dataset": "textvqa",
+      "dataset_label": "TextVQA",
+      "samples": 1000,
+      "layers": 28,
+      "neurons": 172032,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 10,
+        "maximum": 10,
+        "mean": 10.0
+      },
+      "overall_share_V": 0.17513011532738096,
+      "overall_share_T": 0.17138073149181549,
+      "overall_share_M": 0.13906924874441964,
+      "overall_share_C": 0.09081424386160715,
+      "overall_share_W": 0.4236056605747767
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "model_label": "Qwen3-VL-2B",
+      "dataset": "chartqa",
+      "dataset_label": "ChartQA",
+      "samples": 1000,
+      "layers": 28,
+      "neurons": 172032,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 10,
+        "maximum": 10,
+        "mean": 10.0
+      },
+      "overall_share_V": 0.16025667898995535,
+      "overall_share_T": 0.16012276204427084,
+      "overall_share_M": 0.15336299060639882,
+      "overall_share_C": 0.09656912086123512,
+      "overall_share_W": 0.4296884474981399
+    },
+    {
+      "model": "qwen3_5_2b",
+      "model_label": "Qwen3.5-2B",
+      "dataset": "mme",
+      "dataset_label": "MME",
+      "samples": 1000,
+      "layers": 24,
+      "neurons": 147456,
+      "maximum_layer_sum_residual": 0.0,
+      "control_token_count": {
+        "minimum": 14,
+        "maximum": 14,
+        "mean": 14.0
+      },
+      "overall_share_V": 0.17228015814887152,
+      "overall_share_T": 0.18880008951822919,
+      "overall_share_M": 0.16275897894965277,
+      "overall_share_C": 0.12311370171440972,
+      "overall_share_W": 0.3530470716688368
+    },
+    {
+      "model": "qwen3_5_2b",
+      "model_label": "Qwen3.5-2B",
+      "dataset": "mmbench",
+      "dataset_label": "MMBench",
+      "samples": 1000,
+      "layers": 24,
+      "neurons": 147456,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 14,
+        "maximum": 14,
+        "mean": 14.0
+      },
+      "overall_share_V": 0.16878402370876736,
+      "overall_share_T": 0.16978727213541667,
+      "overall_share_M": 0.17219299994574655,
+      "overall_share_C": 0.13206209309895833,
+      "overall_share_W": 0.3571736111111111
+    },
+    {
+      "model": "qwen3_5_2b",
+      "model_label": "Qwen3.5-2B",
+      "dataset": "textvqa",
+      "dataset_label": "TextVQA",
+      "samples": 1000,
+      "layers": 24,
+      "neurons": 147456,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 14,
+        "maximum": 14,
+        "mean": 14.0
+      },
+      "overall_share_V": 0.1632413533528646,
+      "overall_share_T": 0.1939651150173611,
+      "overall_share_M": 0.16366055636935764,
+      "overall_share_C": 0.11856742350260416,
+      "overall_share_W": 0.3605655517578125
+    },
+    {
+      "model": "qwen3_5_2b",
+      "model_label": "Qwen3.5-2B",
+      "dataset": "chartqa",
+      "dataset_label": "ChartQA",
+      "samples": 1000,
+      "layers": 24,
+      "neurons": 147456,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 14,
+        "maximum": 14,
+        "mean": 14.0
+      },
+      "overall_share_V": 0.15398189290364583,
+      "overall_share_T": 0.17556220838758682,
+      "overall_share_M": 0.17739636908637152,
+      "overall_share_C": 0.12891754828559027,
+      "overall_share_W": 0.36414198133680553
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "model_label": "Gemma-4-E2B-it",
+      "dataset": "mme",
+      "dataset_label": "MME",
+      "samples": 1000,
+      "layers": 35,
+      "neurons": 337920,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 11,
+        "maximum": 11,
+        "mean": 11.0
+      },
+      "overall_share_V": 0.1485264411695076,
+      "overall_share_T": 0.16318355232007578,
+      "overall_share_M": 0.14245129616477276,
+      "overall_share_C": 0.08071041962594697,
+      "overall_share_W": 0.4651282907196971
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "model_label": "Gemma-4-E2B-it",
+      "dataset": "mmbench",
+      "dataset_label": "MMBench",
+      "samples": 1000,
+      "layers": 35,
+      "neurons": 337920,
+      "maximum_layer_sum_residual": 1.1102230246251565e-16,
+      "control_token_count": {
+        "minimum": 11,
+        "maximum": 11,
+        "mean": 11.0
+      },
+      "overall_share_V": 0.14538550544507572,
+      "overall_share_T": 0.16317522490530303,
+      "overall_share_M": 0.14340910570549242,
+      "overall_share_C": 0.08508525094696968,
+      "overall_share_W": 0.4629449129971591
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "model_label": "Gemma-4-E2B-it",
+      "dataset": "textvqa",
+      "dataset_label": "TextVQA",
+      "samples": 1000,
+      "layers": 35,
+      "neurons": 337920,
+      "maximum_layer_sum_residual": 0.0,
+      "control_token_count": {
+        "minimum": 11,
+        "maximum": 11,
+        "mean": 11.0
+      },
+      "overall_share_V": 0.13797414180871212,
+      "overall_share_T": 0.1606022727272727,
+      "overall_share_M": 0.14663241299715907,
+      "overall_share_C": 0.08228377426609847,
+      "overall_share_W": 0.4725073982007576
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "model_label": "Gemma-4-E2B-it",
+      "dataset": "chartqa",
+      "dataset_label": "ChartQA",
+      "samples": 1000,
+      "layers": 35,
+      "neurons": 337920,
+      "maximum_layer_sum_residual": 0.0,
+      "control_token_count": {
+        "minimum": 11,
+        "maximum": 11,
+        "mean": 11.0
+      },
+      "overall_share_V": 0.13392496152935607,
+      "overall_share_T": 0.1568729462594697,
+      "overall_share_M": 0.15073623046874998,
+      "overall_share_C": 0.08610776811079544,
+      "overall_share_W": 0.4723580936316289
+    }
+  ],
+  "individual_figures": [
+    {
+      "model": "llava_1_5_7b",
+      "dataset": "mme",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/llava_1_5_7b__mme__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/llava_1_5_7b__mme__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "llava_1_5_7b",
+      "dataset": "mmbench",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/llava_1_5_7b__mmbench__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/llava_1_5_7b__mmbench__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "llava_1_5_7b",
+      "dataset": "textvqa",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/llava_1_5_7b__textvqa__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/llava_1_5_7b__textvqa__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "llava_1_5_7b",
+      "dataset": "chartqa",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/llava_1_5_7b__chartqa__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/llava_1_5_7b__chartqa__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "dataset": "mme",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/qwen3_vl_2b_instruct__mme__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/qwen3_vl_2b_instruct__mme__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "dataset": "mmbench",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/qwen3_vl_2b_instruct__mmbench__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/qwen3_vl_2b_instruct__mmbench__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "dataset": "textvqa",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/qwen3_vl_2b_instruct__textvqa__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/qwen3_vl_2b_instruct__textvqa__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "dataset": "chartqa",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/qwen3_vl_2b_instruct__chartqa__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/qwen3_vl_2b_instruct__chartqa__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "qwen3_5_2b",
+      "dataset": "mme",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/qwen3_5_2b__mme__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/qwen3_5_2b__mme__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "qwen3_5_2b",
+      "dataset": "mmbench",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/qwen3_5_2b__mmbench__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/qwen3_5_2b__mmbench__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "qwen3_5_2b",
+      "dataset": "textvqa",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/qwen3_5_2b__textvqa__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/qwen3_5_2b__textvqa__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "qwen3_5_2b",
+      "dataset": "chartqa",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/qwen3_5_2b__chartqa__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/qwen3_5_2b__chartqa__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "dataset": "mme",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/gemma_4_e2b_it__mme__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/gemma_4_e2b_it__mme__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "dataset": "mmbench",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/gemma_4_e2b_it__mmbench__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/gemma_4_e2b_it__mmbench__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "dataset": "textvqa",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/gemma_4_e2b_it__textvqa__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/gemma_4_e2b_it__textvqa__layerwise_control_state_distribution.csv"
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "dataset": "chartqa",
+      "png": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/figures/layerwise_control_state_distributions/gemma_4_e2b_it__chartqa__layerwise_control_state_distribution.png",
+      "csv": "research/neuron_typing_generalization/reports/advisor_2026_10_control_states/tables/layerwise_control_state_distributions/gemma_4_e2b_it__chartqa__layerwise_control_state_distribution.csv"
+    }
+  ]
+}

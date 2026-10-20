@@ -1,0 +1,47 @@
+name: advisor_2026_09_main
+artifact_root: artifacts/neuron_typing_generalization
+
+models:
+  - ../models/llava_1_5_7b.yaml
+  - ../models/qwen3_vl_2b_instruct.yaml
+  - ../models/qwen3_5_2b.yaml
+  - ../models/gemma_4_e2b_it.yaml
+
+datasets:
+  - ../datasets/mme.yaml
+  - ../datasets/mmbench.yaml
+  - ../datasets/textvqa.yaml
+  - ../datasets/chartqa.yaml
+
+metrics:
+  - ../metrics/down_projection_weighted_rms.yaml
+
+seeds: [42]
+
+sampling:
+  require_frozen_manifest: true
+  require_pair_manifest: false
+  materialize_selected_images_only: true
+  manifest_tier: advisor_2026_09
+  expected_samples: 1000
+
+inference:
+  batch_size: 1
+  dtype: bfloat16
+  inference_mode: true
+  generate: false
+  use_cache: false
+  capture_all_decoder_layers: true
+  compact_partitioned_statistics: true
+  resume_completed_samples: true
+
+sample_analysis:
+  primary: per_neuron_distinct_sample_change_rate
+  aggregate: arithmetic_mean_over_valid_model_mlp_neurons
+  compute_maximum_pair: false
+
+acceptance:
+  require_configured_decoder_layout: true
+  require_nonempty_visual_mask: true
+  require_nonempty_text_mask: true
+  reject_nonfinite_statistics: true

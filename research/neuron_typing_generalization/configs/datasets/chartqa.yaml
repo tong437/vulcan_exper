@@ -1,0 +1,11 @@
+name: chartqa
+hub_id: lmms-lab-encoder/ChartQA
+revision: 9e63b7df1592a1c2158e735cc1725454aef0d6d9
+config: default
+split: test
+sample_count: 1000
+sampling: stratified_strict_pairs
+stratum_field: type
+pair_key: [type, image_path]
+pair_count: 500
+seed: 42

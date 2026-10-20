@@ -26,7 +26,7 @@ from neuron_typing_generalization.adapters import (
 
 @pytest.mark.parametrize(
     ("family", "image_token", "visual_count"),
-    [("qwen3_5", 90, 4), ("llava", 91, 3), ("gemma4", 92, 2)],
+    [("qwen3_5", 90, 4), ("qwen3_vl", 93, 4), ("llava", 91, 3), ("gemma4", 92, 2)],
 )
 def test_supported_family_layouts_resolve_expanded_visual_and_question_tokens(
     family: str, image_token: int, visual_count: int

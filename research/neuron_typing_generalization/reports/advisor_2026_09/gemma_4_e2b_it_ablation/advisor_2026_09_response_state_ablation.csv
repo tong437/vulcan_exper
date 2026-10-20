@@ -1,0 +1,57 @@
+model,model_label,dataset,dataset_label,metric,condition,state,method,runs,score_mean,score_std,drop_mean,drop_std
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,baseline,,baseline,1,0.704,0.0,0.0,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,V_random,V,random,10,0.6933,0.0024517567397911075,0.010699999999999932,0.0024517567397911075
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,T_random,T,random,10,0.6916,0.006257440016137203,0.012399999999999967,0.006257440016137203
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,M_random,M,random,10,0.6555000000000001,0.0037785946829182147,0.04849999999999988,0.0037785946829182147
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,W_random,W,random,10,0.6961999999999999,0.0028982753492378904,0.007800000000000029,0.0028982753492378904
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,V_max,V,max,1,0.662,0.0,0.041999999999999926,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,T_max,T,max,1,0.018,0.0,0.6859999999999999,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,M_max,M,max,1,0.474,0.0,0.22999999999999998,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,W_max,W,max,1,0.69,0.0,0.014000000000000012,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,V_min,V,min,1,0.693,0.0,0.01100000000000001,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,T_min,T,min,1,0.695,0.0,0.009000000000000008,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,M_min,M,min,1,0.69,0.0,0.014000000000000012,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,W_min,W,min,1,0.696,0.0,0.008000000000000007,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mme,MME,Accuracy,global_random,,random,10,0.6891,0.004954235000930419,0.014899999999999913,0.004954235000930419
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,baseline,,baseline,1,0.731,0.0,0.0,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,V_random,V,random,10,0.7268,0.005308274463305173,0.0041999999999999815,0.005308274463305173
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,T_random,T,random,10,0.7208,0.005245103536738923,0.010199999999999987,0.005245103536738923
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,M_random,M,random,10,0.701,0.008485281374238556,0.030000000000000027,0.008485281374238556
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,W_random,W,random,10,0.7257,0.003056868404829436,0.005299999999999971,0.003056868404829436
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,V_max,V,max,1,0.694,0.0,0.03700000000000003,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,T_max,T,max,1,0.586,0.0,0.14500000000000002,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,M_max,M,max,1,0.058,0.0,0.6729999999999999,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,W_max,W,max,1,0.713,0.0,0.018000000000000016,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,V_min,V,min,1,0.718,0.0,0.013000000000000012,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,T_min,T,min,1,0.716,0.0,0.015000000000000013,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,M_min,M,min,1,0.73,0.0,0.0010000000000000009,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,W_min,W,min,1,0.729,0.0,0.0020000000000000018,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,mmbench,MMBench,Accuracy,global_random,,random,10,0.72,0.009140872800534734,0.01100000000000001,0.009140872800534734
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,baseline,,baseline,1,0.6489,0.0,0.0,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,V_random,V,random,10,0.64495,0.004933164411522389,0.003950000000000009,0.004933164411522389
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,T_random,T,random,10,0.63887,0.006412496480397569,0.010029999999999983,0.006412496480397569
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,M_random,M,random,10,0.60456,0.007282124232209538,0.044340000000000046,0.007282124232209538
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,W_random,W,random,10,0.6459699999999999,0.0033142956349057878,0.002930000000000099,0.0033142956349057878
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,V_max,V,max,1,0.5605,0.0,0.08840000000000003,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,T_max,T,max,1,0.30460000000000004,0.0,0.3443,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,M_max,M,max,1,0.0053,0.0,0.6436000000000001,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,W_max,W,max,1,0.647,0.0,0.0019000000000000128,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,V_min,V,min,1,0.647,0.0,0.0019000000000000128,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,T_min,T,min,1,0.6507999999999999,0.0,-0.0018999999999999018,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,M_min,M,min,1,0.651,0.0,-0.0020999999999999908,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,W_min,W,min,1,0.6497,0.0,-0.0008000000000000229,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,textvqa,TextVQA,Soft accuracy,global_random,,random,10,0.64162,0.0046908421418760116,0.007280000000000064,0.0046908421418760116
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,baseline,,baseline,1,0.448,0.0,0.0,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,V_random,V,random,10,0.43879999999999997,0.0035213633723318047,0.009200000000000041,0.0035213633723318047
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,T_random,T,random,10,0.4454000000000001,0.0019550504398153593,0.0025999999999999357,0.0019550504398153593
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,M_random,M,random,10,0.41369999999999996,0.005716448003592601,0.03430000000000005,0.005716448003592601
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,W_random,W,random,10,0.44989999999999997,0.003984692933938299,-0.0018999999999999573,0.003984692933938299
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,V_max,V,max,1,0.39,0.0,0.057999999999999996,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,T_max,T,max,1,0.254,0.0,0.194,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,M_max,M,max,1,0.012,0.0,0.436,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,W_max,W,max,1,0.449,0.0,-0.0010000000000000009,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,V_min,V,min,1,0.449,0.0,-0.0010000000000000009,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,T_min,T,min,1,0.443,0.0,0.0050000000000000044,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,M_min,M,min,1,0.452,0.0,-0.0040000000000000036,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,W_min,W,min,1,0.452,0.0,-0.0040000000000000036,0.0
+gemma_4_e2b_it,Gemma-4-E2B-it,chartqa,ChartQA,Relaxed accuracy,global_random,,random,10,0.43970000000000004,0.006667499947923182,0.008299999999999974,0.006667499947923182

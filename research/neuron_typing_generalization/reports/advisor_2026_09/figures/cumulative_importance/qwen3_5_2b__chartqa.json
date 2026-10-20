@@ -1,0 +1,15 @@
+{
+  "model": "qwen3_5_2b",
+  "dataset": "chartqa",
+  "n_samples": 1000,
+  "n_layers": 24,
+  "grid_size": 1001,
+  "source_manifest": "artifacts/neuron_typing_generalization/control_response_2026_10_frozen/qwen3_5_2b__chartqa/manifest.json",
+  "source_run_id": "qwen3_5_2b__chartqa__seed42__59cff35855",
+  "candidate_knee_u": 0.649,
+  "candidate_knee_score_share": 0.5005861734606166,
+  "mean_share_at_1pct": 0.004452768491294773,
+  "mean_share_at_5pct": 0.025958293967400344,
+  "mean_share_at_10pct": 0.05611514405006717,
+  "mean_share_at_20pct": 0.12284142118378169
+}

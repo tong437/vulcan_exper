@@ -1,0 +1,15 @@
+{
+  "model": "llava_1_5_7b",
+  "dataset": "mme",
+  "n_samples": 1000,
+  "n_layers": 32,
+  "grid_size": 1001,
+  "source_manifest": "artifacts/neuron_typing_generalization/control_response_2026_10_frozen/llava_1_5_7b__mme/manifest.json",
+  "source_run_id": "llava_1_5_7b__mme__seed42__164078c4d6",
+  "candidate_knee_u": 0.677,
+  "candidate_knee_score_share": 0.5093963337139841,
+  "mean_share_at_1pct": 0.004250935114178236,
+  "mean_share_at_5pct": 0.024643903167388355,
+  "mean_share_at_10pct": 0.05328204233748723,
+  "mean_share_at_20pct": 0.11691953888456895
+}

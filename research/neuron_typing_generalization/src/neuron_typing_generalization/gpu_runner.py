@@ -16,17 +16,20 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
 
 from .adapters import load_local_processor_adapter, load_model_layout
+from .advisor_prompts import mmbench_selection_prompt
 from .collection import collect_reduced_activations
 from .config import ExperimentSpec, expand_study, load_study
 from .hooks import InjectedModelAdapter, validate_direct_vs_streaming
@@ -96,6 +99,22 @@ def _load_image_index(artifact_root: Path, dataset_name: str) -> dict[str, Path]
     return index
 
 
+def _load_replay_rows(replay_dir: Path | None, dataset_name: str) -> dict[str, dict[str, Any]]:
+    if dataset_name != "mmbench":
+        return {}
+    if replay_dir is None:
+        raise ValueError("MMBench activation collection requires --replay-dir for frozen choices.")
+    path = replay_dir / "mmbench_1000.jsonl"
+    if not path.is_file():
+        raise FileNotFoundError(f"Frozen MMBench replay rows are missing: {path}")
+    rows = {}
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            row = json.loads(line)
+            rows[str(row["sample_id"])] = row
+    return rows
+
+
 def _move_roles(roles: TokenRoleMasks, device: torch.device) -> TokenRoleMasks:
     return TokenRoleMasks(
         visual=roles.visual.to(device),
@@ -113,6 +132,8 @@ def run_gpu_collection(
     *,
     validate_streaming: bool = False,
     validation_only: bool = False,
+    replay_dir: Path | None = None,
+    down_norms_path: Path | None = None,
 ) -> dict[str, Any]:
     """Load one configured VLM and collect compact reduced activations with resume support."""
     spec = _select_spec(study_path.resolve(), model_name, dataset_name)
@@ -152,15 +173,40 @@ def run_gpu_collection(
     device = _model_input_device(model)
     processor_adapter = load_local_processor_adapter(spec.model.values, use_fast=False)
     image_index = _load_image_index(resolve_artifact_root(spec), spec.dataset.name)
+    replay_rows = _load_replay_rows(replay_dir, spec.dataset.name)
+    prompt_audit = []
+    if spec.dataset.name == "mmbench":
+        for sample in samples.to_dict(orient="records"):
+            sample_id = str(sample["sample_id"])
+            prompt = mmbench_selection_prompt(sample, replay_rows.get(sample_id))
+            prompt_audit.append(
+                {"sample_id": sample_id, "selection_prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest()}
+            )
+        (context.run_dir / "logs/mmbench_input_policy.json").write_text(
+            json.dumps(
+                {
+                    "policy": "image_plus_question_plus_valid_choices_no_hint",
+                    "generation_instruction_included": False,
+                    "samples": prompt_audit,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
 
     def prepare(sample: Mapping[str, Any]) -> PreparedInputs:
         image_id = str(sample["image_id"])
         image_path = image_index.get(image_id)
         if image_path is None:
             raise FileNotFoundError(f"No materialized {spec.dataset.name} image for image_id={image_id}.")
+        question = str(sample["question"])
+        if spec.dataset.name == "mmbench":
+            question = mmbench_selection_prompt(sample, replay_rows.get(str(sample["sample_id"])))
         with Image.open(image_path) as image:
             prepared = processor_adapter.prepare_inputs(
-                {"question": str(sample["question"]), "image": image.convert("RGB")}
+                {"question": question, "image": image.convert("RGB")}
             )
         return PreparedInputs(
             model_inputs=_move_model_inputs(prepared.model_inputs, device, dtype),
@@ -175,18 +221,39 @@ def run_gpu_collection(
         raise RuntimeError(
             f"Discovered FFN layout disagrees with config: layers={len(discovered)}, d_ff={observed_widths}."
         )
+    down_norms = None
+    if down_norms_path is not None:
+        stored = np.load(down_norms_path, allow_pickle=False)
+        expected_shape = (len(discovered), max(observed_widths))
+        if stored.shape != expected_shape:
+            raise ValueError(f"Precomputed down-projection norms have shape {stored.shape}; expected {expected_shape}.")
+        down_norms = {
+            binding.layer: torch.from_numpy(stored[binding.layer, : binding.d_ff].astype(np.float32, copy=True))
+            for binding in discovered
+        }
     validation_report = None
     if validate_streaming or validation_only:
         validation_sample = samples.iloc[0].to_dict()
         validation_prepared = prepare(validation_sample)
-        down_norms = {
-            binding.layer: torch.linalg.vector_norm(
-                binding.down_projection.weight.detach().to(torch.float32), ord=2, dim=0
-            )
-            for binding in discovered
-        }
+        validation_down_norms = down_norms
+        if validation_down_norms is None:
+            validation_down_norms = {
+                binding.layer: torch.linalg.vector_norm(
+                    binding.down_projection.weight.detach().to(torch.float32), ord=2, dim=0
+                )
+                for binding in discovered
+            }
         validation_report = validate_direct_vs_streaming(
-            model, discovered, validation_prepared, down_norms, absolute_tolerance=1e-6, relative_tolerance=1e-5
+            model,
+            discovered,
+            validation_prepared,
+            validation_down_norms,
+            # The direct boolean-index reduction and streaming masked reduction
+            # sum hundreds of BF16-derived visual-token values in different
+            # orders. These bounds remain tight while covering that expected
+            # float32 accumulation-order error.
+            absolute_tolerance=1e-5,
+            relative_tolerance=5e-4,
         )
         validation_report.update(
             {
@@ -216,7 +283,13 @@ def run_gpu_collection(
             }
     torch.cuda.reset_peak_memory_stats()
     manifest = collect_reduced_activations(
-        adapter, samples, context.run_dir, context.run_id, spec.model.name, spec.dataset.name
+        adapter,
+        samples,
+        context.run_dir,
+        context.run_id,
+        spec.model.name,
+        spec.dataset.name,
+        down_projection_norms=down_norms,
     )
     runtime = {
         "run_id": context.run_id,
@@ -228,6 +301,12 @@ def run_gpu_collection(
         "dtype": dtype_name,
         "transformers": transformers.__version__,
         "torch": torch.__version__,
+        "input_policy": (
+            "image_plus_question_plus_valid_choices_no_hint"
+            if spec.dataset.name == "mmbench"
+            else "frozen_sample_question"
+        ),
+        "down_projection_norms_source": str(down_norms_path) if down_norms_path is not None else "loaded_model",
     }
     (context.run_dir / "logs/gpu_collection_summary.json").write_text(
         json.dumps(runtime, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

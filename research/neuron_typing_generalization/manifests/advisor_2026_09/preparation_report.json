@@ -1,0 +1,25 @@
+{
+  "datasets": {
+    "chartqa": {
+      "sample_manifest_sha256": "93519f0b2e652829272d417ec71f01dbb48497f43d1669b21014c11b97186b2d",
+      "samples": 1000,
+      "unique_images": 494
+    },
+    "mmbench": {
+      "sample_manifest_sha256": "a414a5f79d53b050444baa616b4d64ac5517ef4111f6e90baf6f06f0ed5a5616",
+      "samples": 1000,
+      "unique_images": 834
+    },
+    "mme": {
+      "sample_manifest_sha256": "4b370fcdf38d0f7a637dc59c6d4da969359c4298cf35202ea5f47b5da727cd48",
+      "samples": 1000,
+      "unique_images": 499
+    },
+    "textvqa": {
+      "sample_manifest_sha256": "6fdadc9261e226d4a4581d9885078759472615c8f4c4877e81cbf3fb4153e040",
+      "samples": 1000,
+      "unique_images": 936
+    }
+  },
+  "tier": "advisor_2026_09"
+}

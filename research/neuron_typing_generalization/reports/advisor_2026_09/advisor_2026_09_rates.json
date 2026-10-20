@@ -1,0 +1,165 @@
+{
+  "estimand": "arithmetic mean of per-neuron all-distinct-sample change rates",
+  "runs": [
+    {
+      "model": "llava_1_5_7b",
+      "model_label": "LLaVA-1.5-7B",
+      "dataset": "mme",
+      "overall_change_rate": 0.43352140681401774,
+      "included_neurons": 352256,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "llava_1_5_7b__mme__seed42__164078c4d6"
+    },
+    {
+      "model": "llava_1_5_7b",
+      "model_label": "LLaVA-1.5-7B",
+      "dataset": "mmbench",
+      "overall_change_rate": 0.44926627816156456,
+      "included_neurons": 352256,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "llava_1_5_7b__mmbench__seed42__ab5eea63a9"
+    },
+    {
+      "model": "llava_1_5_7b",
+      "model_label": "LLaVA-1.5-7B",
+      "dataset": "textvqa",
+      "overall_change_rate": 0.4771099079525565,
+      "included_neurons": 352256,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "llava_1_5_7b__textvqa__seed42__5bbe3e953b"
+    },
+    {
+      "model": "llava_1_5_7b",
+      "model_label": "LLaVA-1.5-7B",
+      "dataset": "chartqa",
+      "overall_change_rate": 0.42533842965308133,
+      "included_neurons": 352256,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "llava_1_5_7b__chartqa__seed42__81b1017a1b"
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "model_label": "Qwen3-VL-2B",
+      "dataset": "mme",
+      "overall_change_rate": 0.35697866964574326,
+      "included_neurons": 172032,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "qwen3_vl_2b_instruct__mme__seed42__0c0ad619b6"
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "model_label": "Qwen3-VL-2B",
+      "dataset": "mmbench",
+      "overall_change_rate": 0.40385490437191285,
+      "included_neurons": 172032,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "qwen3_vl_2b_instruct__mmbench__seed42__25696e0cb1"
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "model_label": "Qwen3-VL-2B",
+      "dataset": "textvqa",
+      "overall_change_rate": 0.3635094116042195,
+      "included_neurons": 172032,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "qwen3_vl_2b_instruct__textvqa__seed42__e1bc2e7e76"
+    },
+    {
+      "model": "qwen3_vl_2b_instruct",
+      "model_label": "Qwen3-VL-2B",
+      "dataset": "chartqa",
+      "overall_change_rate": 0.37307573339010514,
+      "included_neurons": 172032,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "qwen3_vl_2b_instruct__chartqa__seed42__69cc71046e"
+    },
+    {
+      "model": "qwen3_5_2b",
+      "model_label": "Qwen3.5-2B",
+      "dataset": "mme",
+      "overall_change_rate": 0.39680023071845716,
+      "included_neurons": 147456,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "qwen3_5_2b__mme__seed42__d1cb5d1368"
+    },
+    {
+      "model": "qwen3_5_2b",
+      "model_label": "Qwen3.5-2B",
+      "dataset": "mmbench",
+      "overall_change_rate": 0.45656029204931925,
+      "included_neurons": 147456,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "qwen3_5_2b__mmbench__seed42__a3ab039dd1"
+    },
+    {
+      "model": "qwen3_5_2b",
+      "model_label": "Qwen3.5-2B",
+      "dataset": "textvqa",
+      "overall_change_rate": 0.42435765546633886,
+      "included_neurons": 147456,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "qwen3_5_2b__textvqa__seed42__231713ac74"
+    },
+    {
+      "model": "qwen3_5_2b",
+      "model_label": "Qwen3.5-2B",
+      "dataset": "chartqa",
+      "overall_change_rate": 0.42282296175570094,
+      "included_neurons": 147456,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "qwen3_5_2b__chartqa__seed42__59cff35855"
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "model_label": "Gemma-4-E2B-it",
+      "dataset": "mme",
+      "overall_change_rate": 0.3446380543066741,
+      "included_neurons": 337920,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "gemma_4_e2b_it__mme__seed42__378265080c"
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "model_label": "Gemma-4-E2B-it",
+      "dataset": "mmbench",
+      "overall_change_rate": 0.37442825787435163,
+      "included_neurons": 337920,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "gemma_4_e2b_it__mmbench__seed42__e94a84bc2a"
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "model_label": "Gemma-4-E2B-it",
+      "dataset": "textvqa",
+      "overall_change_rate": 0.3779630531810219,
+      "included_neurons": 337920,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "gemma_4_e2b_it__textvqa__seed42__8acd4e4a38"
+    },
+    {
+      "model": "gemma_4_e2b_it",
+      "model_label": "Gemma-4-E2B-it",
+      "dataset": "chartqa",
+      "overall_change_rate": 0.3737419231672486,
+      "included_neurons": 337920,
+      "excluded_neurons": 0,
+      "invalid_observations": 0,
+      "run_id": "gemma_4_e2b_it__chartqa__seed42__12f869abd8"
+    }
+  ]
+}

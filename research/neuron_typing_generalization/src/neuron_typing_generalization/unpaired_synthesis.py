@@ -211,7 +211,7 @@ def _save_figures(frame: pd.DataFrame, layers: pd.DataFrame, figure_dir: Path) -
         .reset_index()
     )
     labels = [f"{row.dataset_label} · {row.model_label}" for row in ordered.itertuples()]
-    figure, axis = plt.subplots(figsize=(11, 7.5))
+    figure, axis = plt.subplots(figsize=(11, 8.0))
     left = np.zeros(len(ordered))
     for label in CLASS_LABELS:
         values = ordered[f"class_proportion_{label}"].to_numpy()
@@ -221,13 +221,14 @@ def _save_figures(frame: pd.DataFrame, layers: pd.DataFrame, figure_dir: Path) -
     axis.set(xlabel="Sample–neuron occurrence proportion", xlim=(0, 1))
     axis.legend(ncol=4, loc="lower center", bbox_to_anchor=(0.5, 1.01))
     axis.grid(axis="x", alpha=0.2)
-    figure.tight_layout()
+    figure.subplots_adjust(left=0.25, right=0.985, bottom=0.11, top=0.90)
     path = figure_dir / "unpaired_class_composition.png"
-    figure.savefig(path, dpi=220)
+    figure.savefig(path, dpi=300, bbox_inches="tight", pad_inches=0.12)
+    figure.savefig(path.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.12)
     plt.close(figure)
     figures.append((path, "W/V/T/M occurrence composition"))
 
-    figure, axis = plt.subplots(figsize=(11, 7.5))
+    figure, axis = plt.subplots(figsize=(11, 8.0))
     positions = np.arange(len(ordered))
     axis.hlines(
         positions, ordered["p10_neuron_change_rate"], ordered["p90_neuron_change_rate"], color="#9aa0a6", linewidth=2
@@ -241,9 +242,10 @@ def _save_figures(frame: pd.DataFrame, layers: pd.DataFrame, figure_dir: Path) -
     axis.set(xlabel="Per-neuron all-distinct-sample change rate", xlim=(0, 0.8))
     axis.grid(axis="x", alpha=0.2)
     axis.set_title("Per-neuron distribution: median, interquartile range, and 10th–90th percentiles")
-    figure.tight_layout()
+    figure.subplots_adjust(left=0.25, right=0.985, bottom=0.11, top=0.90)
     path = figure_dir / "unpaired_neuron_change_distributions.png"
-    figure.savefig(path, dpi=220)
+    figure.savefig(path, dpi=300, bbox_inches="tight", pad_inches=0.12)
+    figure.savefig(path.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.12)
     plt.close(figure)
     figures.append((path, "Per-neuron change-rate distributions"))
     return [

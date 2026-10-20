@@ -1,5 +1,63 @@
 # Input-Dependent Neuron Typing for VLMs
 
+> **Current experiment (2026-09):** Future work follows
+> [`ADVISOR_PLAN_2026_09_CN.md`](ADVISOR_PLAN_2026_09_CN.md): four models
+> (`LLaVA-1.5-7B`, `Qwen3-VL-2B-Instruct`, `Qwen3.5-2B`, `Gemma-4-E2B-it`) × four datasets
+> (MME, MMBench, TextVQA, ChartQA), with 1,000 questions per dataset. The VQAv2/GQA/CLEVR/VizWiz material below
+> documents the completed legacy study and is not the launch recipe for new runs.
+
+The four pinned source datasets are downloaded under the ignored
+`artifacts/neuron_typing_generalization/advisor_2026_09/hf_cache/` directory. The frozen seed-42 sample manifests and
+their audit are committed under [`manifests/advisor_2026_09/`](manifests/advisor_2026_09/). Regenerate them with
+`pipelines/sample_advisor_2026_09.py`; its exact offline command is recorded in the manifest README.
+
+The completed 16-run response-change table and the state-entropy/effective-category report are under
+[`reports/advisor_2026_09/`](reports/advisor_2026_09/). Regenerate all CPU-only tables and the 4×4 effective-category
+distribution figure from the frozen per-neuron profiles with:
+
+```bash
+bash research/neuron_typing_generalization/run_advisor_2026_09.sh report
+```
+
+For normalized entropy `H_norm = -sum_c p_c log(p_c) / log(4)`, the effective category count is
+`K_eff = 4 ** H_norm` (equivalently `exp(S)` for unnormalized entropy `S`), giving the intended range `[1, 4]`.
+
+The Hellinger/Average-Linkage extension is currently an explicitly sampled pilot. It selects 4,096 neurons per run
+with deterministic proportional layer stratification, computes their exact Hellinger distance matrix, performs standard
+average linkage, and cuts at `d_H = 0.20`. Run it with:
+
+```bash
+bash research/neuron_typing_generalization/run_advisor_2026_09.sh cluster
+```
+
+Outputs are written under
+[`reports/advisor_2026_09/hellinger_clustering_pilot/`](reports/advisor_2026_09/hellinger_clustering_pilot/).
+This is not a full-neuron clustering: full condensed distance storage alone would require roughly 81–462 GiB per run.
+
+The six-pair decomposition (`VT`, `VM`, `VW`, `TM`, `TW`, `MW`) is computed from the same frozen per-neuron state
+counts. It first averages each absolute `R_ab` contribution across neurons, verifies that their sum reproduces the
+reported overall `R`, and only then normalizes the six means for composition plots. Regenerate the 16 individual
+figures, the shared-scale 4×4 overview, and CSV/JSON/Markdown tables with:
+
+```bash
+bash research/neuron_typing_generalization/run_advisor_2026_09.sh pairs
+```
+
+Outputs are written to
+[`reports/advisor_2026_09/advisor_2026_09_state_pairs.md`](reports/advisor_2026_09/advisor_2026_09_state_pairs.md).
+
+The answer-generation-impact extension begins with a descriptive layerwise baseline. For every real decoder layer it
+averages each neuron's 1,000-sample `V/T/M/W` frequencies, preserves architecture-specific layer counts and widths,
+and verifies that every stacked bar sums to 100%. Generate the 16 individual figures, 4×4 overview, and layer tables
+with:
+
+```bash
+bash research/neuron_typing_generalization/run_advisor_2026_09.sh layers
+```
+
+Outputs are written to
+[`reports/advisor_2026_09/advisor_2026_09_layerwise_states.md`](reports/advisor_2026_09/advisor_2026_09_layerwise_states.md).
+
 This directory implements the advisor-confirmed study of sample-conditional response states in vision-language model
 decoder MLPs. The historical phase1–6 code under `scripts/vulcan/neuron_typing/` remains a frozen reproducibility
 baseline and is not imported here.

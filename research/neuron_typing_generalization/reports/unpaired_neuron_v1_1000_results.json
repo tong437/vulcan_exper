@@ -4044,12 +4044,12 @@
     {
       "file": "figures/unpaired_class_composition.png",
       "title": "W/V/T/M occurrence composition",
-      "sha256": "9292ae9c66df7a072af0449e8c76f81f5e553222339137b05d264dbdce9020af"
+      "sha256": "b44038a6aab96230630e3efeba0ec59ba59836150500e8a1a7ee2937c20de84f"
     },
     {
       "file": "figures/unpaired_neuron_change_distributions.png",
       "title": "Per-neuron change-rate distributions",
-      "sha256": "ac1fc764cadc8e9e95838b71b66ccb7f319dddbce1d10485b6406095528a0758"
+      "sha256": "0466a8965edd178a71d19bba3c7ff83650fdc922853419aa69266ec99f787c8d"
     }
   ]
 }

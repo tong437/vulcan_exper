@@ -28,7 +28,7 @@ from .hooks import masks_from_spans
 from .interfaces import PreparedInputs, TokenRoleMasks
 
 
-SUPPORTED_FAMILIES = ("qwen3_5", "llava", "gemma4")
+SUPPORTED_FAMILIES = ("qwen3_5", "qwen3_vl", "llava", "gemma4")
 
 
 @dataclass(frozen=True)
@@ -205,7 +205,7 @@ class ProcessorInputAdapter:
         self.layout = layout
         self.processor = processor
 
-    def prepare_inputs(self, sample: dict[str, Any]) -> PreparedInputs:
+    def prepare_inputs(self, sample: dict[str, Any], *, add_generation_prompt: bool = False) -> PreparedInputs:
         question = str(sample["question"])
         messages = [
             {
@@ -219,7 +219,7 @@ class ProcessorInputAdapter:
         prepared = self.processor.apply_chat_template(
             messages,
             tokenize=True,
-            add_generation_prompt=False,
+            add_generation_prompt=add_generation_prompt,
             return_dict=True,
             return_tensors="pt",
         )
