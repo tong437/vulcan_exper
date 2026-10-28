@@ -1,0 +1,67 @@
+{
+  "source": "artifacts/neuron_typing_generalization/control_response_2026_10_frozen/qwen3_5_2b__mme",
+  "reference_sha256": {
+    "artifacts/neuron_typing_generalization/nonuniform_budget_2026_10/qwen3_5_2b__mme__eps_0p05/predictions.jsonl": "d26c9aa925cec2da3870f06d55694d2f49806e7044cbdb2d6fd0d51c553df015",
+    "artifacts/neuron_typing_generalization/nonuniform_budget_2026_10/qwen3_5_2b__mme__eps_0p15/predictions.jsonl": "4b19a2621dac369d9f86d1e6a73eb244ffbaefc0fe3d652f728e6a9410f5a320",
+    "artifacts/neuron_typing_generalization/nonuniform_budget_2026_10/qwen3_5_2b__mme__eps_0p30/predictions.jsonl": "2db71dc3579ffef2024ba4afb372d36bd1a2fc4814449e90533b21964fdd2d99"
+  },
+  "mask_digests_verified": 3000,
+  "pair_seed": 20261022,
+  "cross_group_pairs": 2000,
+  "summary": [
+    {
+      "model": "qwen3_5_2b",
+      "dataset": "mme",
+      "epsilon": 0.05,
+      "samples": 1000,
+      "pairs": 2000,
+      "total_mean": 0.09338748508029514,
+      "total_sd": 0.0009428198450347906,
+      "total_p10": 0.09225667317708335,
+      "total_p90": 0.0945163302951389,
+      "mean_layer_sd": 0.004635165830127298,
+      "max_layer_sd": 0.015086309698060749,
+      "jaccard_mean": 0.4515548741449342,
+      "jaccard_p10": 0.36432339637989797,
+      "jaccard_p90": 0.5281243569143447,
+      "layer_reference_mean": 0.0857076232758038,
+      "adjusted_overlap_mean": 0.5519815934707578
+    },
+    {
+      "model": "qwen3_5_2b",
+      "dataset": "mme",
+      "epsilon": 0.15,
+      "samples": 1000,
+      "pairs": 2000,
+      "total_mean": 0.24047366672092013,
+      "total_sd": 0.0018323386386522676,
+      "total_p10": 0.23828125,
+      "total_p90": 0.24255438910590277,
+      "mean_layer_sd": 0.006670979542585743,
+      "max_layer_sd": 0.013536359079204075,
+      "jaccard_mean": 0.5541475576732801,
+      "jaccard_p10": 0.474609318054931,
+      "jaccard_p90": 0.6244626816187306,
+      "layer_reference_mean": 0.15860028870645287,
+      "adjusted_overlap_mean": 0.6060443445263245
+    },
+    {
+      "model": "qwen3_5_2b",
+      "dataset": "mme",
+      "epsilon": 0.3,
+      "samples": 1000,
+      "pairs": 2000,
+      "total_mean": 0.4293302137586805,
+      "total_sd": 0.0023857640747514492,
+      "total_p10": 0.42645670572916666,
+      "total_p90": 0.43203531901041664,
+      "mean_layer_sd": 0.006449452142929375,
+      "max_layer_sd": 0.012563529864533745,
+      "jaccard_mean": 0.6659170755961408,
+      "jaccard_p10": 0.5995717191197193,
+      "jaccard_p90": 0.7239044596611508,
+      "layer_reference_mean": 0.28206390838372974,
+      "adjusted_overlap_mean": 0.643590092815506
+    }
+  ]
+}

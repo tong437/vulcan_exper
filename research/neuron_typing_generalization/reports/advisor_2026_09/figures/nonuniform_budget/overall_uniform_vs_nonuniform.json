@@ -1,0 +1,8 @@
+{
+  "source": "/root/autodl-pvt-RTX4090-hdd-1/vulcan-exper/research/neuron_typing_generalization/reports/advisor_2026_09/figures/nonuniform_budget/measured_comparison.csv",
+  "source_sha256": "672d8980bb022148c2d91e2768cbe1292149e0c55d649917a22bf2d51f6704ef",
+  "weighting": "equal weight across 16 model-dataset runs",
+  "band": "mean +/- sample SD, ddof=1",
+  "execution_summaries_checked": 192,
+  "baseline_anchor": "unpruned; not a new epsilon=0 experiment"
+}
